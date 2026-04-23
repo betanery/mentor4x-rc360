@@ -20,7 +20,18 @@ const ROLES = ["super_admin","mentor","estrategista","cliente_dono","gestor_clie
 const CLIENT_ROLES = ["cliente_dono","gestor_cliente","colaborador_cliente"];
 
 type AuthStatus = "confirmado" | "pendente" | "expirado";
-type AuthUser = { id: string; email: string; status: AuthStatus; invited_at: string | null; confirmed_at: string | null; last_sign_in_at: string | null };
+type AdminUser = {
+  id: string;
+  email: string;
+  status: AuthStatus;
+  invited_at: string | null;
+  confirmed_at: string | null;
+  last_sign_in_at: string | null;
+  profile: { full_name: string | null; avatar_url: string | null } | null;
+  roles: string[];
+  memberships: { company_id: string; member_role: string; company?: { id: string; name: string } | null }[];
+};
+type Company = { id: string; name: string };
 
 const STATUS_LABEL: Record<AuthStatus, string> = { confirmado: "Confirmado", pendente: "Convite pendente", expirado: "Convite expirado" };
 const STATUS_VARIANT: Record<AuthStatus, "default" | "secondary" | "destructive" | "outline"> = {
@@ -38,12 +49,10 @@ const AUDIT_VARIANT: Record<string, "default" | "secondary" | "destructive" | "o
 export default function AdminUsers() {
   const { isStaff, hasRole } = useAuth();
   const { current, companies: ctxCompanies } = useCompany();
-  const [profiles, setProfiles] = useState<any[]>([]);
-  const [roles, setRoles] = useState<any[]>([]);
-  const [members, setMembers] = useState<any[]>([]);
-  const [companies, setCompanies] = useState<any[]>([]);
-  const [authUsers, setAuthUsers] = useState<AuthUser[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [audit, setAudit] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [resendingId, setResendingId] = useState<string | null>(null);
@@ -53,17 +62,13 @@ export default function AdminUsers() {
   const [form, setForm] = useState({ full_name: "", email: "", role: "cliente_dono" as typeof ROLES[number], company_id: "" });
 
   const load = async () => {
-    const [p, r, c, m, a] = await Promise.all([
-      supabase.from("profiles").select("*"),
-      supabase.from("user_roles").select("*"),
-      supabase.from("companies").select("id, name"),
-      supabase.from("company_members").select("user_id, company_id, member_role"),
-      supabase.from("invite_audit").select("*").order("created_at", { ascending: false }).limit(200),
-    ]);
-    setProfiles(p.data || []); setRoles(r.data || []); setCompanies(c.data || []); setMembers(m.data || []); setAudit(a.data || []);
-
-    const { data: au } = await supabase.functions.invoke("admin-list-users", { body: {} });
-    if (au?.users) setAuthUsers(au.users);
+    setLoading(true);
+    const { data, error } = await supabase.functions.invoke("admin-list-users", { body: {} });
+    setLoading(false);
+    if (error || data?.error) { toast.error(data?.error || error?.message || "Falha ao carregar usuários"); return; }
+    setUsers(data.users || []);
+    setCompanies(data.companies || []);
+    setAudit(data.audit || []);
   };
   useEffect(() => { load(); }, []);
 
@@ -73,19 +78,12 @@ export default function AdminUsers() {
     }
   }, [open, current?.id]);
 
-  const rolesOf = (uid: string) => roles.filter((r) => r.user_id === uid).map((r) => r.role);
-  const companiesOf = (uid: string) => members.filter((m) => m.user_id === uid).map((m) => companies.find((c) => c.id === m.company_id)?.name).filter(Boolean);
-  const authOf = (uid: string): AuthUser | undefined => authUsers.find((u) => u.id === uid);
-
-  const filtered = useMemo(() => profiles.filter((p) => {
-    const rs = roles.filter((r) => r.user_id === p.user_id).map((r) => r.role);
-    const cs = members.filter((m) => m.user_id === p.user_id).map((m) => m.company_id);
-    const st = authOf(p.user_id)?.status;
-    if (filterRole !== "all" && !rs.includes(filterRole)) return false;
-    if (filterCompany !== "all" && !cs.includes(filterCompany)) return false;
-    if (filterStatus !== "all" && st !== filterStatus) return false;
+  const filtered = useMemo(() => users.filter((u) => {
+    if (filterRole !== "all" && !u.roles.includes(filterRole)) return false;
+    if (filterCompany !== "all" && !u.memberships.some((m) => m.company_id === filterCompany)) return false;
+    if (filterStatus !== "all" && u.status !== filterStatus) return false;
     return true;
-  }), [profiles, roles, members, authUsers, filterRole, filterCompany, filterStatus]);
+  }), [users, filterRole, filterCompany, filterStatus]);
 
   if (!isStaff) return <Navigate to="/" replace />;
 
@@ -109,18 +107,16 @@ export default function AdminUsers() {
     load();
   };
 
-  const resendInvite = async (p: any) => {
-    const au = authOf(p.user_id);
-    if (!au?.email) { toast.error("Email do usuário não encontrado"); return; }
-    const userRoles = rolesOf(p.user_id);
-    const role = userRoles[0] || "cliente_dono";
-    setResendingId(p.user_id);
+  const resendInvite = async (u: AdminUser) => {
+    if (!u.email) { toast.error("Email do usuário não encontrado"); return; }
+    const role = u.roles[0] || "cliente_dono";
+    setResendingId(u.id);
     const { data, error } = await supabase.functions.invoke("admin-invite", {
-      body: { email: au.email, full_name: p.full_name || au.email, role, company_id: null, resend: true },
+      body: { email: u.email, full_name: u.profile?.full_name || u.email, role, company_id: null, resend: true },
     });
     setResendingId(null);
     if (error || data?.error) { toast.error(data?.error || error?.message); return; }
-    toast.success(`Convite reenviado para ${au.email}`);
+    toast.success(`Convite reenviado para ${u.email}`);
     load();
   };
 
@@ -233,37 +229,40 @@ export default function AdminUsers() {
 
           <Card className="p-6 shadow-card">
             <div className="space-y-2">
-              {filtered.length === 0 && (
+              {loading && (
+                <div className="flex items-center justify-center py-8 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando usuários...
+                </div>
+              )}
+              {!loading && filtered.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-8">Nenhum usuário encontrado.</p>
               )}
-              {filtered.map((p) => {
-                const userRoles = rolesOf(p.user_id);
-                const userCompanies = companiesOf(p.user_id);
-                const au = authOf(p.user_id);
-                const status = au?.status || "pendente";
-                const StatusIcon = STATUS_ICON[status];
-                const canResend = status === "pendente" || status === "expirado";
+              {!loading && filtered.map((u) => {
+                const StatusIcon = STATUS_ICON[u.status];
+                const canResend = u.status === "pendente" || u.status === "expirado";
+                const companyNames = u.memberships.map((m) => m.company?.name).filter(Boolean);
+                const displayName = u.profile?.full_name || u.email;
                 return (
-                  <div key={p.user_id} className="flex flex-wrap items-center gap-3 p-3 rounded-lg border border-border">
+                  <div key={u.id} className="flex flex-wrap items-center gap-3 p-3 rounded-lg border border-border">
                     <div className="h-10 w-10 rounded-full bg-gradient-brand text-primary-foreground font-bold flex items-center justify-center shrink-0">
-                      {(p.full_name || au?.email || "?")[0]?.toUpperCase()}
+                      {(displayName || "?")[0]?.toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{p.full_name || "Sem nome"}</p>
+                      <p className="font-semibold truncate">{displayName}</p>
                       <p className="text-xs text-muted-foreground truncate">
-                        {au?.email || "—"} · {userCompanies.length ? userCompanies.join(" · ") : "Sem empresa"}
+                        {u.email} · {companyNames.length ? companyNames.join(" · ") : "Sem empresa"}
                       </p>
                     </div>
-                    <Badge variant={STATUS_VARIANT[status]} className="gap-1">
+                    <Badge variant={STATUS_VARIANT[u.status]} className="gap-1">
                       <StatusIcon className="h-3 w-3" />
-                      {STATUS_LABEL[status]}
+                      {STATUS_LABEL[u.status]}
                     </Badge>
                     <div className="flex flex-wrap gap-1">
-                      {userRoles.map((r) => <Badge key={r} variant="outline">{ROLE_LABEL[r]}</Badge>)}
+                      {u.roles.map((r) => <Badge key={r} variant="outline">{ROLE_LABEL[r]}</Badge>)}
                     </div>
                     {canResend && (
-                      <Button size="sm" variant="ghost" onClick={() => resendInvite(p)} disabled={resendingId === p.user_id}>
-                        {resendingId === p.user_id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCw className="h-3 w-3 mr-1" />}
+                      <Button size="sm" variant="ghost" onClick={() => resendInvite(u)} disabled={resendingId === u.id}>
+                        {resendingId === u.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCw className="h-3 w-3 mr-1" />}
                         Reenviar
                       </Button>
                     )}
@@ -282,14 +281,14 @@ export default function AdminUsers() {
               )}
               {audit.map((a) => {
                 const company = companies.find((c) => c.id === a.company_id);
-                const inviter = profiles.find((p) => p.user_id === a.invited_by);
+                const inviter = users.find((u) => u.id === a.invited_by);
                 return (
                   <div key={a.id} className="flex flex-wrap items-center gap-3 p-3 rounded-lg border border-border text-sm">
                     <Badge variant={AUDIT_VARIANT[a.status] || "secondary"}>{AUDIT_LABEL[a.status] || a.status}</Badge>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{a.email} · <span className="text-muted-foreground font-normal">{ROLE_LABEL[a.role]}</span></p>
                       <p className="text-xs text-muted-foreground truncate">
-                        {company?.name || "Sem empresa"} · convidado por {inviter?.full_name || "—"}
+                        {company?.name || "Sem empresa"} · convidado por {inviter?.profile?.full_name || inviter?.email || "—"}
                         {a.error_message && <span className="text-destructive"> · {a.error_message}</span>}
                       </p>
                     </div>
