@@ -93,13 +93,6 @@ export default function AdminUsers() {
     toast.success(`Convite reenviado para ${email}`);
   };
 
-  const filtered = useMemo(() => profiles.filter((p) => {
-    const rs = rolesOf(p.user_id);
-    const cs = members.filter((m) => m.user_id === p.user_id).map((m) => m.company_id);
-    if (filterRole !== "all" && !rs.includes(filterRole)) return false;
-    if (filterCompany !== "all" && !cs.includes(filterCompany)) return false;
-    return true;
-  }), [profiles, roles, members, filterRole, filterCompany]);
 
   return (
     <div className="space-y-6">
