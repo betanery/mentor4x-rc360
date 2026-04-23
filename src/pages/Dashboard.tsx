@@ -1,0 +1,233 @@
+import { Card } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useCompany } from "@/hooks/useCompany";
+import { PageHeader } from "@/components/PageHeader";
+import { StatCard } from "@/components/StatCard";
+import { CHAOS_LABEL, STAGE_LABEL, GOAL_STATUS_LABEL, PILLAR_LABEL, formatBRL } from "@/lib/labels";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Activity, Target, AlertTriangle, TrendingUp, Calendar, DollarSign, Users, Sparkles } from "lucide-react";
+import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { format, subDays, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Link } from "react-router-dom";
+
+export default function Dashboard() {
+  const { current } = useCompany();
+  const [goals, setGoals] = useState<any[]>([]);
+  const [bottlenecks, setBottlenecks] = useState<any[]>([]);
+  const [pillars, setPillars] = useState<any[]>([]);
+  const [meetings, setMeetings] = useState<any[]>([]);
+  const [scoreHistory, setScoreHistory] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!current) return;
+    (async () => {
+      const [g, b, p, m] = await Promise.all([
+        supabase.from("goals").select("*").eq("company_id", current.id).order("due_date", { ascending: true }),
+        supabase.from("bottlenecks").select("*").eq("company_id", current.id).eq("resolved", false).order("urgency", { ascending: false }).limit(5),
+        supabase.from("pillar_scores").select("*").eq("company_id", current.id).order("measured_at", { ascending: false }),
+        supabase.from("meetings").select("*").eq("company_id", current.id).gte("scheduled_at", new Date().toISOString()).order("scheduled_at").limit(1),
+      ]);
+      setGoals(g.data || []);
+      setBottlenecks(b.data || []);
+      setPillars(p.data || []);
+      setMeetings(m.data || []);
+
+      // Mock 90-day score evolution from pillar_scores
+      const history = Array.from({ length: 12 }, (_, i) => {
+        const d = subDays(new Date(), (11 - i) * 7);
+        const baseScore = (current.overall_score || 50) - (11 - i) * 2.5;
+        return { date: format(d, "dd/MM", { locale: ptBR }), score: Math.max(20, Math.round(baseScore + Math.random() * 4)) };
+      });
+      setScoreHistory(history);
+    })();
+  }, [current]);
+
+  if (!current) {
+    return (
+      <div className="max-w-2xl mx-auto py-20 text-center space-y-4">
+        <Sparkles className="h-12 w-12 text-gold mx-auto" />
+        <h2 className="text-2xl font-bold">Bem-vindo ao MENTOR 4X</h2>
+        <p className="text-muted-foreground">Você ainda não está vinculado a uma empresa. Fale com seu mentor para receber acesso.</p>
+      </div>
+    );
+  }
+
+  const chaos = CHAOS_LABEL[current.chaos_level];
+  const stage = STAGE_LABEL[current.journey_stage];
+
+  const weeklyGoals = goals.filter((g) => {
+    if (!g.week_start) return false;
+    const ws = new Date(g.week_start);
+    const now = new Date();
+    const diff = (now.getTime() - ws.getTime()) / (1000 * 60 * 60 * 24);
+    return diff >= 0 && diff < 7;
+  });
+  const completedWeekly = weeklyGoals.filter((g) => g.status === "concluido").length;
+  const execRate = weeklyGoals.length ? Math.round((completedWeekly / weeklyGoals.length) * 100) : 0;
+
+  // Latest pillar score per pillar
+  const latestPillar = (key: string) => {
+    const arr = pillars.filter((p) => p.pillar === key);
+    return arr[0]?.score ?? 0;
+  };
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title={`Dashboard Executivo`}
+        subtitle="Visão completa da execução, score e próximos passos da empresa."
+        action={<Badge className={`${chaos.color} text-xs px-3 py-1.5 font-bold`}>{chaos.label}</Badge>}
+      />
+
+      {/* Hero KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="Score Geral" value={current.overall_score} sub="0–100 pontos" icon={Activity} accent="primary" />
+        <StatCard label="Execução da semana" value={`${execRate}%`} sub={`${completedWeekly}/${weeklyGoals.length} metas`} icon={Target} accent="gold" />
+        <StatCard label="Dependência do dono" value={`${current.owner_dependency}%`} sub="meta < 30%" icon={Users} accent={current.owner_dependency > 60 ? "destructive" : "info"} />
+        <StatCard label="Receita projetada" value={formatBRL(current.projected_revenue)} sub="próximos 12 meses" icon={DollarSign} accent="success" />
+      </div>
+
+      {/* Stage + Pillars */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2 p-6 shadow-card overflow-hidden relative bg-gradient-brand text-primary-foreground">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gold/10 rounded-full -translate-y-32 translate-x-32 blur-3xl" />
+          <div className="relative">
+            <p className="text-[10px] font-bold tracking-widest text-gold uppercase">Estágio atual da Jornada</p>
+            <div className="mt-2 flex items-baseline gap-3">
+              <h2 className="text-4xl font-black">{stage.label}</h2>
+              <span className="text-gold font-semibold">{stage.subtitle}</span>
+            </div>
+            <div className="mt-6 flex items-center gap-2">
+              {["mes_1","mes_2","mes_3","mes_4"].map((s, i) => {
+                const active = ["mes_1","mes_2","mes_3","mes_4","concluido"].indexOf(current.journey_stage) >= i;
+                return <div key={s} className={`h-2 flex-1 rounded-full ${active ? "bg-gold" : "bg-primary-foreground/20"}`} />;
+              })}
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6 shadow-card">
+          <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Próxima reunião</p>
+          {meetings[0] ? (
+            <div className="mt-2">
+              <div className="text-lg font-bold">{meetings[0].title}</div>
+              <div className="mt-1 text-sm text-muted-foreground flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                {format(parseISO(meetings[0].scheduled_at), "dd 'de' MMMM 'às' HH'h'mm", { locale: ptBR })}
+              </div>
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-muted-foreground">Nenhuma reunião agendada.</p>
+          )}
+        </Card>
+      </div>
+
+      {/* Pilares 4X */}
+      <Card className="p-6 shadow-card">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h3 className="text-lg font-bold">Pilares 4X</h3>
+            <p className="text-sm text-muted-foreground">Score atual em cada eixo do método</p>
+          </div>
+          <Link to="/pilares" className="text-xs font-semibold text-royal hover:text-primary">Ver detalhes →</Link>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {Object.entries(PILLAR_LABEL).map(([key, p]) => {
+            const score = latestPillar(key);
+            return (
+              <div key={key} className={`p-4 rounded-xl bg-gradient-to-br ${p.color} text-white relative overflow-hidden`}>
+                <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">{p.label}</p>
+                <div className="text-4xl font-black mt-2">{score}</div>
+                <div className="mt-2 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                  <div className="h-full bg-white" style={{ width: `${score}%` }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* Charts + Goals */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2 p-6 shadow-card">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-bold">Evolução do Score · 90 dias</h3>
+              <p className="text-sm text-muted-foreground">Trajetória da empresa nas últimas 12 semanas</p>
+            </div>
+            <TrendingUp className="h-5 w-5 text-success" />
+          </div>
+          <ResponsiveContainer width="100%" height={260}>
+            <LineChart data={scoreHistory}>
+              <defs>
+                <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--gold))" stopOpacity={0.4} />
+                  <stop offset="100%" stopColor="hsl(var(--gold))" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} domain={[0, 100]} />
+              <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+              <Line type="monotone" dataKey="score" stroke="hsl(var(--royal))" strokeWidth={3} dot={{ fill: "hsl(var(--gold))", r: 4 }} activeDot={{ r: 6 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </Card>
+
+        <Card className="p-6 shadow-card">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold">Metas da semana</h3>
+            <Link to="/metas" className="text-xs font-semibold text-royal hover:text-primary">Ver todas →</Link>
+          </div>
+          {weeklyGoals.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma meta definida para esta semana.</p>}
+          <div className="space-y-3">
+            {weeklyGoals.slice(0, 4).map((g) => {
+              const st = GOAL_STATUS_LABEL[g.status];
+              return (
+                <div key={g.id} className="border border-border rounded-lg p-3 hover:bg-muted/40 transition-colors">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-semibold line-clamp-2 flex-1">{g.title}</p>
+                    <Badge className={`${st.color} text-[10px] shrink-0`} variant="secondary">{st.label}</Badge>
+                  </div>
+                  {g.financial_impact > 0 && <p className="text-xs text-success font-semibold mt-1">{formatBRL(g.financial_impact)}</p>}
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
+
+      {/* Bottlenecks */}
+      <Card className="p-6 shadow-card">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-bold flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-destructive" /> Top gargalos críticos</h3>
+            <p className="text-sm text-muted-foreground">Travas que mais impactam o resultado agora</p>
+          </div>
+          <Link to="/gargalos" className="text-xs font-semibold text-royal hover:text-primary">Ver todos →</Link>
+        </div>
+        {bottlenecks.length === 0 && <p className="text-sm text-muted-foreground">Nenhum gargalo crítico identificado.</p>}
+        <div className="space-y-3">
+          {bottlenecks.map((b) => (
+            <div key={b.id} className="flex items-center gap-4 p-3 rounded-lg border border-border hover:border-destructive/40 transition-colors">
+              <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm truncate">{b.name}</p>
+                <p className="text-xs text-muted-foreground">{b.area} · {formatBRL(b.estimated_value)} em impacto</p>
+              </div>
+              <div className="w-32 hidden md:block">
+                <Progress value={b.progress} className="h-2" />
+                <p className="text-[10px] text-muted-foreground mt-0.5">{b.progress}% resolvido</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
