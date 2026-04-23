@@ -1,72 +1,54 @@
 
-# MENTOR 4X — Sistema premium de execução da mentoria
+# Convite por email com seleção de role + vínculo automático
 
-Reconstrução completa do zero. Sistema **interno** de mentoria (pós-venda, execução e transformação). Não inclui CRM, pipeline, checkout ou captação.
+A tela `/admin/usuarios` (`AdminUsers.tsx`) já existe e chama a edge function `admin-invite`, mas a UX atual exige senha temporária e não envia email real. Vou substituir por um fluxo de convite por email de verdade.
 
-## 🎨 Identidade visual
-- **Paleta:** Azul profundo `#112145`, Azul royal `#124378`, Dourado `#CEA32A`, Bege `#F8E19C`, Branco
-- **Tipografia:** Montserrat
-- **Estilo:** Apple-like minimal × dashboards Monday × cards ClickUp × clareza Notion. Animações suaves, mobile-first, modo claro premium com toques dourados.
-- **Tela de boas-vindas:** Frase "O céu não é o limite." + "Sua empresa está mais organizada hoje do que ontem."
+## O que muda
 
-## 👥 Acesso e perfis (6 roles)
-Email/senha + Google. **Sem signup público** — Super Admin e Mentores convidam usuários por email e os vinculam a uma empresa.
-- Super Admin (Roberta), Mentor, Estrategista, Cliente Dono, Gestor Cliente, Colaborador Cliente
-- Roles em tabela separada `user_roles` com função `has_role` (segurança server-side)
-- Cada role vê só o que pode: clientes não veem outras empresas, colaboradores têm leitura limitada
+### 1. Edge function `admin-invite` (reescrita)
+- Remove o fluxo de `createUser` com senha.
+- Passa a usar `supabase.auth.admin.inviteUserByEmail(email, { redirectTo, data: { full_name } })` — Supabase envia o email de convite com link mágico para o usuário definir a própria senha.
+- Após criar o usuário convidado:
+  - Insere em `user_roles` (role escolhida).
+  - Se `company_id` informado → insere em `company_members` com `member_role`.
+  - Se a role for de cliente (`cliente_dono`, `gestor_cliente`, `colaborador_cliente`) e nenhum `company_id` foi passado, retorna erro 400 (cliente precisa de empresa).
+  - Para staff (`mentor`, `estrategista`), `company_id` é opcional.
+- Mantém checagens: só staff convida; só `super_admin` cria outro `super_admin`.
+- Trata caso "email já existe" com mensagem amigável.
 
-## 🧱 Módulos (todos os 13 entregues)
+### 2. Tela `AdminUsers.tsx` (refeita)
+- **Form de convite (Dialog):**
+  - Campo: Nome completo
+  - Campo: Email
+  - Select: Role (com labels em PT)
+  - Select: Empresa — pré-preenchido automaticamente com a empresa ativa do contexto (`useCompany`); obrigatório quando role é de cliente, opcional para staff
+  - Remove campo "Senha temporária"
+  - Botão: "Enviar convite"
+- **Feedback:** toast verde "Convite enviado para {email}. Ele receberá um link para definir a senha."
+- **Lista de usuários** (mantida + melhorada):
+  - Mostra nome, email (vindo de auth via lookup), roles em badges, empresas vinculadas
+  - Filtro por role e por empresa
+  - Ação "Reenviar convite" para usuários ainda não confirmados
 
-**1. Dashboard Executivo** — Score geral, nível de caos (Total/Severo/Moderado/Leve/Escala), 4 scores de pilares, metas da semana com % de execução, gargalos críticos, próxima reunião, alertas, gráfico evolução 90 dias, dependência do dono, receita projetada.
+### 3. Auto-vínculo à empresa do Super Admin
+- O `company_id` no form vem por padrão de `useCompany().currentCompany?.id` (a empresa ativa selecionada no header).
+- Super Admin pode trocar para qualquer empresa via Select; cliente_dono/gestor não chegam nessa tela (já bloqueado por `isStaff`).
 
-**2. Jornada 4 Meses** — Timeline visual premium com os 4 estágios (Clareza+Prioridade → Execução+Governança → Performance+Consolidação → Autonomia+Escala). Cada mês: objetivos, tarefas, entregáveis, reuniões, checklists, % progresso.
+### 4. Tela `/auth` — fluxo de definição de senha pós-convite
+- Detecta `type=invite` ou `type=recovery` na URL (Supabase redireciona com `access_token` no hash).
+- Quando detectado, mostra formulário "Defina sua senha" em vez do login.
+- Ao salvar: `supabase.auth.updateUser({ password })` → redireciona para `/`.
 
-**3. Sistema de Metas (2/semana)** — Board estilo ClickUp. Campos: título, descrição, responsável, prazo, indicador, impacto financeiro (R$), evidência (upload), comentários do mentor. Status: não iniciado / em andamento / concluído / atrasado / bloqueado.
+### 5. Configuração necessária
+- A URL de redirect do convite será `${window.location.origin}/auth` — precisa estar liberada nas URLs permitidas. Vou configurar `site_url` e `additional_redirect_urls` via tool de auth config para incluir o domínio de preview e produção.
 
-**4. Top 5 Gargalos** — Tela dedicada: nome, área, impacto, urgência, valor financeiro estimado, plano de correção, responsável, progresso.
+## Detalhes técnicos
+- A função `inviteUserByEmail` usa o template de email padrão do Supabase ("Invite user"). Não vou configurar templates customizados de marca neste passo (pode ser feito depois com setup de domínio de email).
+- O `handle_new_user` trigger já cria o `profile` automaticamente quando o usuário aceita o convite e faz primeiro login, então não precisa inserir profile manualmente.
+- Validação com zod no edge function (email válido, role no enum, company_id uuid quando presente).
 
-**5. Pilares 4X** — 4 cards gigantes (Crescimento, Eficiência, Encantamento, Liderança) com score, metas relacionadas, evolução, pontos cegos, recomendações.
-
-**6. Sala de Guerra Semanal** — Tela de reunião com os 5 blocos (Feito / Travou / Indicadores / Próximos Passos / Decisões). Histórico semanal + ata gerada automaticamente pela IA.
-
-**7. Área do Mentor** — Painel com todos os clientes, clientes em risco, baixa execução, metas atrasadas, score por cliente, agenda de reuniões, observações privadas, health score.
-
-**8. Área do Estrategista** — Carteira, follow-up semanal, checklist de cobrança, tarefas abertas, relatórios rápidos, biblioteca de mensagens prontas.
-
-**9. Área do Cliente** — Experiência premium: progresso da empresa, metas atuais, próximas reuniões, wins recentes, trilhas liberadas, solicitações abertas, ranking opcional.
-
-**10. Universidade 4X** — Catálogo de conteúdo por categoria (7 trilhas) com vídeo, PDF, playbooks. Player + progresso por aluno.
-
-**11. IA Conselheira "Meu Sócio IA"** — Chat conversacional com streaming (Lovable AI / Gemini), com contexto da empresa + ações automáticas: gerar plano semanal, sugerir 2 metas, resumir reunião → ata, analisar travas, alertar risco.
-
-**12. Relatórios PDF Premium** — Geração de PDF (evolução mensal, score, gargalos resolvidos, metas concluídas, próximos focos, ROI percebido) com identidade visual.
-
-**13. Certificação Final** — Ao concluir jornada, certificado premium em PDF.
-
-## 🤖 Automações (edge functions agendadas)
-- Lembrete de metas atrasadas
-- Alerta de baixa execução semanal
-- Aviso da próxima reunião
-- Resumo semanal automático (IA)
-- Ranking de execução
-- Cliente sumido há 7 dias
-- Parabéns por meta concluída
-
-## 📊 Métricas internas
-Taxa de execução semanal, evolução do score, dependência do dono, score de liderança, metas concluídas/mês, gargalos resolvidos, engajamento por login.
-
-## 🗄️ Banco (Lovable Cloud)
-Tabelas: `profiles`, `user_roles`, `companies`, `company_members`, `goals`, `goal_updates`, `weekly_reviews`, `bottlenecks`, `pillar_scores`, `meetings`, `meeting_notes`, `tasks`, `playbooks`, `courses`, `lessons`, `lesson_progress`, `reports`, `notifications`, `ai_logs`, `certificates`. RLS rigoroso em todas.
-
-## 🌱 Dados demo
-1 empresa demo completa ("Empresa Demo 4X") com metas, gargalos, scores nos 4 pilares, reuniões passadas e futuras, progresso na jornada e usuários de exemplo em cada role para você navegar tudo já populado.
-
-## 🚀 Estratégia de entrega
-Construído **tudo de uma vez**, mas em ondas dentro do mesmo build para garantir qualidade:
-1. Fundação: design system, auth, roles, banco, navegação por role
-2. Núcleo de execução: Dashboard, Metas, Gargalos, Pilares, Jornada
-3. Operação: Sala de Guerra, Áreas Mentor/Estrategista/Cliente
-4. Conteúdo + IA: Universidade, Meu Sócio IA, Relatórios PDF, Certificado
-5. Automações + dados demo + polimento visual
-
-Pronto para evoluir com integrações futuras (financeiro, calendário, WhatsApp).
+## Arquivos tocados
+- `supabase/functions/admin-invite/index.ts` — reescrito
+- `src/pages/AdminUsers.tsx` — UI refeita, sem campo senha, com auto-select de empresa
+- `src/pages/Auth.tsx` — adicionar modo "definir senha" para convidados
+- Auth config — adicionar redirect URL
