@@ -359,6 +359,59 @@ export type Database = {
           },
         ]
       }
+      invite_audit: {
+        Row: {
+          accepted_at: string | null
+          company_id: string | null
+          created_at: string
+          email: string
+          error_message: string | null
+          full_name: string | null
+          id: string
+          invited_by: string | null
+          invited_user_id: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          company_id?: string | null
+          created_at?: string
+          email: string
+          error_message?: string | null
+          full_name?: string | null
+          id?: string
+          invited_by?: string | null
+          invited_user_id?: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          company_id?: string | null
+          created_at?: string
+          email?: string
+          error_message?: string | null
+          full_name?: string | null
+          id?: string
+          invited_by?: string | null
+          invited_user_id?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invite_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_progress: {
         Row: {
           completed: boolean | null
