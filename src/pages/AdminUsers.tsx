@@ -49,10 +49,18 @@ export default function AdminUsers() {
     }
   }, [open, current?.id]);
 
-  if (!isStaff) return <Navigate to="/" replace />;
-
   const rolesOf = (uid: string) => roles.filter((r) => r.user_id === uid).map((r) => r.role);
   const companiesOf = (uid: string) => members.filter((m) => m.user_id === uid).map((m) => companies.find((c) => c.id === m.company_id)?.name).filter(Boolean);
+
+  const filtered = useMemo(() => profiles.filter((p) => {
+    const rs = roles.filter((r) => r.user_id === p.user_id).map((r) => r.role);
+    const cs = members.filter((m) => m.user_id === p.user_id).map((m) => m.company_id);
+    if (filterRole !== "all" && !rs.includes(filterRole)) return false;
+    if (filterCompany !== "all" && !cs.includes(filterCompany)) return false;
+    return true;
+  }), [profiles, roles, members, filterRole, filterCompany]);
+
+  if (!isStaff) return <Navigate to="/" replace />;
 
   const isClientRole = CLIENT_ROLES.includes(form.role);
   const canSubmit = form.full_name.trim().length >= 2 && /\S+@\S+\.\S+/.test(form.email) && (!isClientRole || !!form.company_id);
