@@ -10,13 +10,30 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ROLE_LABEL } from "@/lib/labels";
-import { Mail, UserPlus, Send, Loader2 } from "lucide-react";
+import { Mail, UserPlus, Send, Loader2, RotateCw, CheckCircle2, Clock, AlertTriangle, History } from "lucide-react";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 
 const ROLES = ["super_admin","mentor","estrategista","cliente_dono","gestor_cliente","colaborador_cliente"] as const;
 const CLIENT_ROLES = ["cliente_dono","gestor_cliente","colaborador_cliente"];
+
+type AuthStatus = "confirmado" | "pendente" | "expirado";
+type AuthUser = { id: string; email: string; status: AuthStatus; invited_at: string | null; confirmed_at: string | null; last_sign_in_at: string | null };
+
+const STATUS_LABEL: Record<AuthStatus, string> = { confirmado: "Confirmado", pendente: "Convite pendente", expirado: "Convite expirado" };
+const STATUS_VARIANT: Record<AuthStatus, "default" | "secondary" | "destructive" | "outline"> = {
+  confirmado: "default", pendente: "secondary", expirado: "destructive",
+};
+const STATUS_ICON: Record<AuthStatus, typeof CheckCircle2> = { confirmado: CheckCircle2, pendente: Clock, expirado: AlertTriangle };
+
+const AUDIT_LABEL: Record<string, string> = {
+  enviado: "Enviado", reenviado: "Reenviado", aceito: "Aceito", expirado: "Expirado", falhou: "Falhou",
+};
+const AUDIT_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  enviado: "secondary", reenviado: "outline", aceito: "default", expirado: "destructive", falhou: "destructive",
+};
 
 export default function AdminUsers() {
   const { isStaff, hasRole } = useAuth();
@@ -25,24 +42,31 @@ export default function AdminUsers() {
   const [roles, setRoles] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
+  const [authUsers, setAuthUsers] = useState<AuthUser[]>([]);
+  const [audit, setAudit] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
+  const [resendingId, setResendingId] = useState<string | null>(null);
   const [filterRole, setFilterRole] = useState<string>("all");
   const [filterCompany, setFilterCompany] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [form, setForm] = useState({ full_name: "", email: "", role: "cliente_dono" as typeof ROLES[number], company_id: "" });
 
   const load = async () => {
-    const [p, r, c, m] = await Promise.all([
+    const [p, r, c, m, a] = await Promise.all([
       supabase.from("profiles").select("*"),
       supabase.from("user_roles").select("*"),
       supabase.from("companies").select("id, name"),
       supabase.from("company_members").select("user_id, company_id, member_role"),
+      supabase.from("invite_audit").select("*").order("created_at", { ascending: false }).limit(200),
     ]);
-    setProfiles(p.data || []); setRoles(r.data || []); setCompanies(c.data || []); setMembers(m.data || []);
+    setProfiles(p.data || []); setRoles(r.data || []); setCompanies(c.data || []); setMembers(m.data || []); setAudit(a.data || []);
+
+    const { data: au } = await supabase.functions.invoke("admin-list-users", { body: {} });
+    if (au?.users) setAuthUsers(au.users);
   };
   useEffect(() => { load(); }, []);
 
-  // Auto-fill company when dialog opens
   useEffect(() => {
     if (open && !form.company_id && current?.id) {
       setForm((f) => ({ ...f, company_id: current.id }));
@@ -51,54 +75,60 @@ export default function AdminUsers() {
 
   const rolesOf = (uid: string) => roles.filter((r) => r.user_id === uid).map((r) => r.role);
   const companiesOf = (uid: string) => members.filter((m) => m.user_id === uid).map((m) => companies.find((c) => c.id === m.company_id)?.name).filter(Boolean);
+  const authOf = (uid: string): AuthUser | undefined => authUsers.find((u) => u.id === uid);
 
   const filtered = useMemo(() => profiles.filter((p) => {
     const rs = roles.filter((r) => r.user_id === p.user_id).map((r) => r.role);
     const cs = members.filter((m) => m.user_id === p.user_id).map((m) => m.company_id);
+    const st = authOf(p.user_id)?.status;
     if (filterRole !== "all" && !rs.includes(filterRole)) return false;
     if (filterCompany !== "all" && !cs.includes(filterCompany)) return false;
+    if (filterStatus !== "all" && st !== filterStatus) return false;
     return true;
-  }), [profiles, roles, members, filterRole, filterCompany]);
+  }), [profiles, roles, members, authUsers, filterRole, filterCompany, filterStatus]);
 
   if (!isStaff) return <Navigate to="/" replace />;
 
   const isClientRole = CLIENT_ROLES.includes(form.role);
   const canSubmit = form.full_name.trim().length >= 2 && /\S+@\S+\.\S+/.test(form.email) && (!isClientRole || !!form.company_id);
 
-  const invite = async (resend = false) => {
+  const invite = async () => {
     setSending(true);
     const payload = {
       email: form.email.trim().toLowerCase(),
       full_name: form.full_name.trim(),
       role: form.role,
       company_id: form.company_id || null,
-      resend,
     };
     const { data, error } = await supabase.functions.invoke("admin-invite", { body: payload });
     setSending(false);
     if (error || data?.error) { toast.error(data?.error || error?.message || "Falha ao enviar convite"); return; }
-    toast.success(resend
-      ? `Convite reenviado para ${payload.email}`
-      : `Convite enviado para ${payload.email}. Ele receberá um link para definir a senha.`);
+    toast.success(`Convite enviado para ${payload.email}. Ele receberá um link para definir a senha.`);
     setOpen(false);
     setForm({ full_name: "", email: "", role: "cliente_dono", company_id: current?.id || "" });
     load();
   };
 
-  const resendFor = async (email: string) => {
+  const resendInvite = async (p: any) => {
+    const au = authOf(p.user_id);
+    if (!au?.email) { toast.error("Email do usuário não encontrado"); return; }
+    const userRoles = rolesOf(p.user_id);
+    const role = userRoles[0] || "cliente_dono";
+    setResendingId(p.user_id);
     const { data, error } = await supabase.functions.invoke("admin-invite", {
-      body: { email, full_name: profiles.find((p) => p.user_id)?.full_name || email, role: "cliente_dono", company_id: null, resend: true },
+      body: { email: au.email, full_name: p.full_name || au.email, role, company_id: null, resend: true },
     });
+    setResendingId(null);
     if (error || data?.error) { toast.error(data?.error || error?.message); return; }
-    toast.success(`Convite reenviado para ${email}`);
+    toast.success(`Convite reenviado para ${au.email}`);
+    load();
   };
-
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Gerenciar usuários"
-        subtitle="Convide novos usuários por email, atribua papéis e vincule a empresas."
+        subtitle="Convide usuários por email, atribua papéis, vincule a empresas e acompanhe o status."
         action={
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -107,7 +137,7 @@ export default function AdminUsers() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Convidar novo usuário</DialogTitle>
-                <DialogDescription>O convidado receberá um email com link para acessar e definir a própria senha.</DialogDescription>
+                <DialogDescription>O convidado receberá um email com link único para acessar e definir a própria senha. Validade: 24h.</DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
                 <div>
@@ -147,7 +177,7 @@ export default function AdminUsers() {
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={() => invite(false)} disabled={!canSubmit || sending} className="bg-gradient-brand">
+                <Button onClick={invite} disabled={!canSubmit || sending} className="bg-gradient-brand">
                   {sending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
                   Enviar convite
                 </Button>
@@ -157,61 +187,125 @@ export default function AdminUsers() {
         }
       />
 
-      <Card className="p-4 shadow-card">
-        <div className="flex flex-wrap gap-3 items-center">
-          <div className="flex-1 min-w-[200px]">
-            <Label className="text-xs">Filtrar por papel</Label>
-            <Select value={filterRole} onValueChange={setFilterRole}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os papéis</SelectItem>
-                {ROLES.map((r) => <SelectItem key={r} value={r}>{ROLE_LABEL[r]}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex-1 min-w-[200px]">
-            <Label className="text-xs">Filtrar por empresa</Label>
-            <Select value={filterCompany} onValueChange={setFilterCompany}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as empresas</SelectItem>
-                {companies.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </Card>
+      <Tabs defaultValue="users" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="users">Usuários</TabsTrigger>
+          <TabsTrigger value="audit"><History className="h-3 w-3 mr-1" /> Auditoria de convites</TabsTrigger>
+        </TabsList>
 
-      <Card className="p-6 shadow-card">
-        <div className="space-y-2">
-          {filtered.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8">Nenhum usuário encontrado com esses filtros.</p>
-          )}
-          {filtered.map((p) => {
-            const userRoles = rolesOf(p.user_id);
-            const userCompanies = companiesOf(p.user_id);
-            return (
-              <div key={p.user_id} className="flex items-center gap-4 p-3 rounded-lg border border-border">
-                <div className="h-10 w-10 rounded-full bg-gradient-brand text-primary-foreground font-bold flex items-center justify-center shrink-0">
-                  {(p.full_name || "?")[0]?.toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate">{p.full_name || "Sem nome"}</p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {userCompanies.length ? userCompanies.join(" · ") : "Sem empresa vinculada"}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-1 justify-end">
-                  {userRoles.map((r) => <Badge key={r} variant="secondary">{ROLE_LABEL[r]}</Badge>)}
-                </div>
+        <TabsContent value="users" className="space-y-4">
+          <Card className="p-4 shadow-card">
+            <div className="grid sm:grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs">Papel</Label>
+                <Select value={filterRole} onValueChange={setFilterRole}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os papéis</SelectItem>
+                    {ROLES.map((r) => <SelectItem key={r} value={r}>{ROLE_LABEL[r]}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
-            );
-          })}
-        </div>
-      </Card>
+              <div>
+                <Label className="text-xs">Empresa</Label>
+                <Select value={filterCompany} onValueChange={setFilterCompany}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {companies.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Status</Label>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="confirmado">Confirmados</SelectItem>
+                    <SelectItem value="pendente">Convite pendente</SelectItem>
+                    <SelectItem value="expirado">Convite expirado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6 shadow-card">
+            <div className="space-y-2">
+              {filtered.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-8">Nenhum usuário encontrado.</p>
+              )}
+              {filtered.map((p) => {
+                const userRoles = rolesOf(p.user_id);
+                const userCompanies = companiesOf(p.user_id);
+                const au = authOf(p.user_id);
+                const status = au?.status || "pendente";
+                const StatusIcon = STATUS_ICON[status];
+                const canResend = status === "pendente" || status === "expirado";
+                return (
+                  <div key={p.user_id} className="flex flex-wrap items-center gap-3 p-3 rounded-lg border border-border">
+                    <div className="h-10 w-10 rounded-full bg-gradient-brand text-primary-foreground font-bold flex items-center justify-center shrink-0">
+                      {(p.full_name || au?.email || "?")[0]?.toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold truncate">{p.full_name || "Sem nome"}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {au?.email || "—"} · {userCompanies.length ? userCompanies.join(" · ") : "Sem empresa"}
+                      </p>
+                    </div>
+                    <Badge variant={STATUS_VARIANT[status]} className="gap-1">
+                      <StatusIcon className="h-3 w-3" />
+                      {STATUS_LABEL[status]}
+                    </Badge>
+                    <div className="flex flex-wrap gap-1">
+                      {userRoles.map((r) => <Badge key={r} variant="outline">{ROLE_LABEL[r]}</Badge>)}
+                    </div>
+                    {canResend && (
+                      <Button size="sm" variant="ghost" onClick={() => resendInvite(p)} disabled={resendingId === p.user_id}>
+                        {resendingId === p.user_id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCw className="h-3 w-3 mr-1" />}
+                        Reenviar
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="audit" className="space-y-4">
+          <Card className="p-6 shadow-card">
+            <div className="space-y-2">
+              {audit.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-8">Nenhum convite registrado ainda.</p>
+              )}
+              {audit.map((a) => {
+                const company = companies.find((c) => c.id === a.company_id);
+                const inviter = profiles.find((p) => p.user_id === a.invited_by);
+                return (
+                  <div key={a.id} className="flex flex-wrap items-center gap-3 p-3 rounded-lg border border-border text-sm">
+                    <Badge variant={AUDIT_VARIANT[a.status] || "secondary"}>{AUDIT_LABEL[a.status] || a.status}</Badge>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{a.email} · <span className="text-muted-foreground font-normal">{ROLE_LABEL[a.role]}</span></p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {company?.name || "Sem empresa"} · convidado por {inviter?.full_name || "—"}
+                        {a.error_message && <span className="text-destructive"> · {a.error_message}</span>}
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground whitespace-nowrap">
+                      {new Date(a.created_at).toLocaleString("pt-BR")}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <p className="text-xs text-muted-foreground flex items-center gap-2">
-        <Mail className="h-3 w-3" /> Convites são enviados por email com link único. Validade: 24h.
+        <Mail className="h-3 w-3" /> Convites por email com link único · validade 24h · log de auditoria completo
       </p>
     </div>
   );
