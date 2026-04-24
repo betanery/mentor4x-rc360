@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LayoutDashboard, Target, AlertTriangle, Compass, Map, Swords, Users, Briefcase, GraduationCap, Sparkles, FileText, Award, LogOut, Bell, Menu, X } from "lucide-react";
+import { LayoutDashboard, Target, AlertTriangle, Compass, Map, Swords, Users, Briefcase, GraduationCap, Sparkles, FileText, Award, LogOut, Bell, Menu, X, Building2 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { ROLE_LABEL } from "@/lib/labels";
@@ -27,6 +27,7 @@ const NAV = [
 const STAFF_NAV = [
   { to: "/mentor", label: "Área do Mentor", icon: Users, role: ["super_admin","mentor"] as const },
   { to: "/estrategista", label: "Área Estrategista", icon: Briefcase, role: ["super_admin","mentor","estrategista"] as const },
+  { to: "/empresas", label: "Empresas", icon: Building2, role: ["super_admin","mentor","estrategista"] as const },
 ];
 
 export function AppLayout() {
@@ -52,13 +53,20 @@ export function AppLayout() {
           </Button>
         </div>
 
-        {companies.length > 1 && (
-          <div className="p-4 border-b border-sidebar-border">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/60 mb-1.5 block">Empresa</label>
-            <Select value={current?.id} onValueChange={setCurrentId}>
-              <SelectTrigger className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground"><SelectValue /></SelectTrigger>
-              <SelectContent>{companies.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-            </Select>
+        {(companies.length > 1 || isStaff) && (
+          <div className="p-4 border-b border-sidebar-border space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/60 block">Empresa</label>
+            {companies.length > 0 && (
+              <Select value={current?.id} onValueChange={setCurrentId}>
+                <SelectTrigger className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground"><SelectValue /></SelectTrigger>
+                <SelectContent>{companies.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+              </Select>
+            )}
+            {isStaff && (
+              <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent" onClick={() => { setOpen(false); nav("/empresas"); }}>
+                <Building2 className="h-4 w-4 mr-2" /> Nova empresa
+              </Button>
+            )}
           </div>
         )}
 
