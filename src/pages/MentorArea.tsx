@@ -4,9 +4,10 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CHAOS_LABEL, STAGE_LABEL, formatBRL } from "@/lib/labels";
-import { Building2, AlertTriangle, TrendingDown, Target } from "lucide-react";
+import { Building2, AlertTriangle, TrendingDown, Target, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCompany } from "@/hooks/useCompany";
+import { Button } from "@/components/ui/button";
 
 export default function MentorArea() {
   const [companies, setCompanies] = useState<any[]>([]);
@@ -30,7 +31,15 @@ export default function MentorArea() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Área do Mentor" subtitle="Visão consolidada de todos os clientes da mentoria." />
+      <PageHeader
+        title="Área do Mentor"
+        subtitle="Visão consolidada de todos os clientes da mentoria."
+        action={
+          <Link to="/empresas">
+            <Button className="bg-gradient-brand"><Plus className="h-4 w-4 mr-1" /> Cadastrar empresa</Button>
+          </Link>
+        }
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-5 shadow-card">

@@ -23,6 +23,7 @@ import Reports from "./pages/Reports";
 import Certificates from "./pages/Certificates";
 import Notifications from "./pages/Notifications";
 import AdminUsers from "./pages/AdminUsers";
+import AdminCompanies from "./pages/AdminCompanies";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -52,6 +53,7 @@ const App = () => (
                 <Route path="/mentor" element={<ProtectedRoute allow={["super_admin","mentor"]}><MentorArea /></ProtectedRoute>} />
                 <Route path="/estrategista" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><StrategistArea /></ProtectedRoute>} />
                 <Route path="/admin/usuarios" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><AdminUsers /></ProtectedRoute>} />
+                <Route path="/empresas" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><AdminCompanies /></ProtectedRoute>} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
