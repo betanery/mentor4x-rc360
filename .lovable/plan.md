@@ -1,54 +1,60 @@
 
-# Convite por email com seleção de role + vínculo automático
+# Cadastro de empresas (CRUD na Área do Mentor)
 
-A tela `/admin/usuarios` (`AdminUsers.tsx`) já existe e chama a edge function `admin-invite`, mas a UX atual exige senha temporária e não envia email real. Vou substituir por um fluxo de convite por email de verdade.
+Hoje só dá para cadastrar empresa via banco — não existe tela. Vou adicionar um CRUD completo de empresas, acessível apenas para staff (`super_admin`, `mentor`, `estrategista`), com vínculo automático do criador como mentor responsável.
 
-## O que muda
+## O que vou fazer
 
-### 1. Edge function `admin-invite` (reescrita)
-- Remove o fluxo de `createUser` com senha.
-- Passa a usar `supabase.auth.admin.inviteUserByEmail(email, { redirectTo, data: { full_name } })` — Supabase envia o email de convite com link mágico para o usuário definir a própria senha.
-- Após criar o usuário convidado:
-  - Insere em `user_roles` (role escolhida).
-  - Se `company_id` informado → insere em `company_members` com `member_role`.
-  - Se a role for de cliente (`cliente_dono`, `gestor_cliente`, `colaborador_cliente`) e nenhum `company_id` foi passado, retorna erro 400 (cliente precisa de empresa).
-  - Para staff (`mentor`, `estrategista`), `company_id` é opcional.
-- Mantém checagens: só staff convida; só `super_admin` cria outro `super_admin`.
-- Trata caso "email já existe" com mensagem amigável.
+### 1. Nova página `/empresas` (Admin → Empresas)
+Tela de listagem + cadastro, no mesmo padrão visual do `AdminUsers`.
 
-### 2. Tela `AdminUsers.tsx` (refeita)
-- **Form de convite (Dialog):**
-  - Campo: Nome completo
-  - Campo: Email
-  - Select: Role (com labels em PT)
-  - Select: Empresa — pré-preenchido automaticamente com a empresa ativa do contexto (`useCompany`); obrigatório quando role é de cliente, opcional para staff
-  - Remove campo "Senha temporária"
-  - Botão: "Enviar convite"
-- **Feedback:** toast verde "Convite enviado para {email}. Ele receberá um link para definir a senha."
-- **Lista de usuários** (mantida + melhorada):
-  - Mostra nome, email (vindo de auth via lookup), roles em badges, empresas vinculadas
-  - Filtro por role e por empresa
-  - Ação "Reenviar convite" para usuários ainda não confirmados
+**Listagem (tabela):**
+- Nome, segmento, estágio da jornada, nível de caos, score, data de início, ações
+- Filtros: busca por nome, filtro por estágio e por nível de caos
+- Badge colorido para `chaos_level` e `journey_stage`
 
-### 3. Auto-vínculo à empresa do Super Admin
-- O `company_id` no form vem por padrão de `useCompany().currentCompany?.id` (a empresa ativa selecionada no header).
-- Super Admin pode trocar para qualquer empresa via Select; cliente_dono/gestor não chegam nessa tela (já bloqueado por `isStaff`).
+**Botão "Nova empresa" → Dialog:**
+- Nome (obrigatório)
+- Segmento
+- Estágio da jornada (`mes_1` … `mes_4`) — default `mes_1`
+- Nível de caos (`leve`, `moderado`, `severo`, `total`) — default `moderado`
+- Receita projetada (R$)
+- Data de início (default hoje)
+- Previsão de conclusão
+- Observações
+- Upload de logo (bucket `avatars`, opcional)
 
-### 4. Tela `/auth` — fluxo de definição de senha pós-convite
-- Detecta `type=invite` ou `type=recovery` na URL (Supabase redireciona com `access_token` no hash).
-- Quando detectado, mostra formulário "Defina sua senha" em vez do login.
-- Ao salvar: `supabase.auth.updateUser({ password })` → redireciona para `/`.
+Ao salvar:
+1. `INSERT` em `companies`
+2. `INSERT` em `company_members` vinculando o usuário atual como `mentor` da empresa (`is_primary = true` se for a primeira empresa do usuário)
+3. Toast de sucesso e refresh da lista + do `useCompany`
 
-### 5. Configuração necessária
-- A URL de redirect do convite será `${window.location.origin}/auth` — precisa estar liberada nas URLs permitidas. Vou configurar `site_url` e `additional_redirect_urls` via tool de auth config para incluir o domínio de preview e produção.
+**Ações na linha:**
+- **Editar** → mesmo Dialog em modo edição
+- **Definir como ativa** → chama `setCurrentId` do contexto e troca a empresa do header
+- **Arquivar** (soft) — não vou implementar agora porque a tabela não tem coluna `archived_at`; deixo só Editar + Definir ativa
 
-## Detalhes técnicos
-- A função `inviteUserByEmail` usa o template de email padrão do Supabase ("Invite user"). Não vou configurar templates customizados de marca neste passo (pode ser feito depois com setup de domínio de email).
-- O `handle_new_user` trigger já cria o `profile` automaticamente quando o usuário aceita o convite e faz primeiro login, então não precisa inserir profile manualmente.
-- Validação com zod no edge function (email válido, role no enum, company_id uuid quando presente).
+### 2. Atalhos de acesso
+- Adicionar item **"Empresas"** no menu lateral em `AppLayout.tsx`, dentro do bloco "Operação" (visível só para staff), com ícone `Building2`
+- Adicionar botão **"Cadastrar empresa"** no topo da `MentorArea.tsx` que leva para `/empresas`
+- Adicionar botão **"+ Nova empresa"** dentro do Select de empresas no header (`AppLayout.tsx`) quando o usuário for staff — atalho rápido
+
+### 3. Rota
+- Registrar `/empresas` em `App.tsx` dentro do `ProtectedRoute` com guard de `isStaff`
+- Reutilizar o componente `ProtectedRoute` (passar prop `staffOnly` se já existir; caso não, adicionar)
+
+### 4. Atualizações no contexto
+- Após criar empresa, chamar `refresh()` do `useCompany` para a nova empresa aparecer no Select do header imediatamente
+- Se for a primeira empresa do usuário, marcar como ativa automaticamente
+
+## Regras de segurança
+- RLS já existe e cobre tudo: `companies_staff_modify` (ALL, `is_staff(auth.uid())`) e `members_staff_modify` (ALL, `is_staff(auth.uid())`)
+- Validação no front com zod (nome mínimo 2 caracteres, números não negativos)
+- Não preciso de migration nem edge function — operação direta via SDK
 
 ## Arquivos tocados
-- `supabase/functions/admin-invite/index.ts` — reescrito
-- `src/pages/AdminUsers.tsx` — UI refeita, sem campo senha, com auto-select de empresa
-- `src/pages/Auth.tsx` — adicionar modo "definir senha" para convidados
-- Auth config — adicionar redirect URL
+- `src/pages/AdminCompanies.tsx` — novo, CRUD completo
+- `src/App.tsx` — registrar rota `/empresas`
+- `src/components/AppLayout.tsx` — item de menu + atalho no Select
+- `src/pages/MentorArea.tsx` — botão "Cadastrar empresa"
+- `src/components/ProtectedRoute.tsx` — adicionar guard `staffOnly` se ainda não houver
