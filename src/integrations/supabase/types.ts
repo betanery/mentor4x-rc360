@@ -412,6 +412,42 @@ export type Database = {
           },
         ]
       }
+      journey_checklist: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          done: boolean
+          id: string
+          item_key: string
+          item_type: string
+          stage: string
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          done?: boolean
+          id?: string
+          item_key: string
+          item_type: string
+          stage: string
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          done?: boolean
+          id?: string
+          item_key?: string
+          item_type?: string
+          stage?: string
+        }
+        Relationships: []
+      }
       lesson_progress: {
         Row: {
           completed: boolean | null
