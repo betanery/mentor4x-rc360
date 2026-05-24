@@ -37,9 +37,28 @@ export function AppLayout() {
   const { companies, current, setCurrentId } = useCompany();
   const nav = useNavigate();
   const [open, setOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
 
   const initial = (user?.email || "?")[0].toUpperCase();
   const visibleStaff = STAFF_NAV.filter(n => n.role.some(r => roles.includes(r as any)));
+
+  useEffect(() => {
+    if (!user) { setUnread(0); return; }
+    const loadUnread = async () => {
+      const { count } = await supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("read", false);
+      setUnread(count || 0);
+    };
+    loadUnread();
+    const ch = supabase
+      .channel(`notif-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, loadUnread)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-gradient-surface flex">
