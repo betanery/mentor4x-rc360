@@ -1,23 +1,49 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
+import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
-import { Award, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Award, CheckCircle2, Download, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 export default function Certificates() {
   const { current } = useCompany();
+  const { isStaff } = useAuth();
   const [certs, setCerts] = useState<any[]>([]);
+  const [issuing, setIssuing] = useState(false);
 
-  useEffect(() => {
+  const load = async () => {
     if (!current) return;
-    supabase.from("certificates").select("*").eq("company_id", current.id).then(({ data }) => setCerts(data || []));
-  }, [current]);
+    const { data } = await supabase.from("certificates").select("*").eq("company_id", current.id).order("issued_at", { ascending: false });
+    setCerts(data || []);
+  };
+  useEffect(() => { load(); }, [current]);
 
   if (!current) return null;
   const completed = current.journey_stage === "concluido";
+
+  const issue = async () => {
+    setIssuing(true);
+    const { error } = await supabase.functions.invoke("ai-action", {
+      body: { action: "issue_certificate", company_id: current.id },
+    });
+    setIssuing(false);
+    if (error) { toast.error("Erro ao emitir certificado"); return; }
+    toast.success("Certificado emitido!");
+    load();
+  };
+
+  const download = async (path: string, code: string) => {
+    const { data, error } = await supabase.storage.from("reports").createSignedUrl(path, 300);
+    if (error || !data) { toast.error("Não foi possível abrir o certificado"); return; }
+    const a = document.createElement("a");
+    a.href = data.signedUrl; a.download = `certificado-${code}.pdf`; a.target = "_blank";
+    document.body.appendChild(a); a.click(); a.remove();
+  };
 
   return (
     <div className="space-y-6">
@@ -33,6 +59,19 @@ export default function Certificates() {
               ? `${current.name} completou a jornada de 4 meses do método MENTOR 4X. Saiu do caos para o controle.`
               : `${current.name} está atualmente em ${current.journey_stage.replace("_", " ")}. Conclua os 4 estágios para receber o certificado oficial.`}
           </p>
+          {isStaff && completed && (
+            <Button onClick={issue} disabled={issuing} className="mt-6 bg-gold text-gold-foreground hover:bg-gold/90">
+              <Sparkles className="h-4 w-4 mr-2" />{issuing ? "Emitindo..." : "Emitir novo certificado em PDF"}
+            </Button>
+          )}
+          {isStaff && !completed && (
+            <p className="text-xs text-primary-foreground/60 mt-4">
+              Como staff você pode emitir o certificado mesmo antes da conclusão para teste.
+              <Button onClick={issue} disabled={issuing} variant="ghost" size="sm" className="ml-2 text-gold hover:bg-gold/10">
+                Emitir mesmo assim
+              </Button>
+            </p>
+          )}
         </div>
       </Card>
 
@@ -46,6 +85,11 @@ export default function Certificates() {
                 <p className="font-bold">Certificado #{c.code}</p>
                 <p className="text-xs text-muted-foreground">Emitido em {format(new Date(c.issued_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
               </div>
+              {c.pdf_url && (
+                <Button variant="outline" onClick={() => download(c.pdf_url, c.code)}>
+                  <Download className="h-4 w-4 mr-1" /> PDF
+                </Button>
+              )}
             </Card>
           ))}
         </div>
