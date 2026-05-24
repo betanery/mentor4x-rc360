@@ -200,6 +200,32 @@ export default function AdminCompanies() {
                 </DialogDescription>
               </DialogHeader>
               <div className="grid sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2 flex items-center gap-4">
+                  <div className="h-16 w-16 rounded-xl bg-muted overflow-hidden flex items-center justify-center shrink-0 border">
+                    {form.logo_url ? (
+                      <img src={form.logo_url} alt="Logo" className="h-full w-full object-cover" />
+                    ) : (
+                      <Building2 className="h-7 w-7 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <Label>Logo (máx 2MB)</Label>
+                    <div className="flex gap-2 items-center mt-1">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => e.target.files?.[0] && uploadLogo(e.target.files[0])}
+                        disabled={uploading}
+                      />
+                      {uploading && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {form.logo_url && (
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setForm({ ...form, logo_url: "" })}>
+                          Remover
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
                 <div className="sm:col-span-2">
                   <Label>Nome da empresa *</Label>
                   <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ex: Acme Ltda" />
