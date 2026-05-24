@@ -5,6 +5,52 @@ Mapeei rotas, páginas, hooks, RLS, edge functions e fluxos. Abaixo um diagnóst
 
 ---
 
+## ✅ SPRINTS EXECUTADOS
+
+### Sprint 1 — Segurança e bugs críticos (concluído)
+- [x] Edge functions `chat` e `ai-action` agora validam JWT e membership da empresa
+- [x] Log de IA movido para server-side (dentro da edge function `chat`)
+- [x] Dashboard: score evolution agora usa `pillar_scores` reais agregados por semana
+- [x] RLS: restringida edição cross-mentor em `companies` (apenas super_admin ou mentor vinculado à empresa)
+- [x] Notifications: filtro por `user_id` + badge no header
+- [x] Triggers de `updated_at` em `companies`, `goals`, `bottlenecks`
+- [x] Troca de empresa via header atualiza contexto
+
+### Sprint 2 — UX e robustez (concluído)
+- [x] Bucket `avatars` com upload de logo em `AdminCompanies` (preview + remoção)
+- [x] Bucket `evidences` (privado) com upload de evidências em `Goals`
+- [x] `Goals` migrado para React Query com cache invalidation
+- [x] `mentor_comment` em metas com UI de feedback do mentor
+- [x] Tipos do Supabase (`Tables<"goals">`) integrados
+
+### Sprint 3 — PDFs, certificação e WarRoom completo (concluído)
+- [x] Edge function `ai-action` gera PDFs reais com `jsPDF` (relatório mensal, certificados)
+- [x] Bucket `reports` privado com signed URLs para download seguro
+- [x] `University.tsx`: progresso real por aula (`lesson_progress`)
+- [x] `Certificates.tsx`: emissão com código de validação único
+- [x] `WarRoom.tsx`: abas Cadência + Reuniões (agendamento) + Notas (públicas/privadas)
+- [x] RLS para bucket `reports`
+
+### Sprint 4 — Automação e Jornada (concluído)
+- [x] Triggers de notificação automática: nova reunião, meta atrasada/concluída, novo score de pilar
+- [x] Tabela `journey_checklist` com progresso persistido por empresa
+- [x] `Journey.tsx`: barra de progresso por estágio + botão "Avançar fase" (staff only)
+- [x] `Pillars.tsx`: formulário de score do mentor + radar chart com Recharts
+- [x] `Notifications.tsx`: React Query + realtime via Supabase Channels + "Marcar todas como lidas"
+
+### Sprint 5 — Sócio IA com function-calling real (concluído)
+- [x] Edge function `socio-tools` com function-calling (criar meta, gargalo, reunião)
+- [x] Aba "Ações" no Sócio IA: propostas com confirmação humana antes da execução
+- [x] Empty-state do Dashboard melhorado (links para Empresas/Notificações)
+
+### Sprint 6 — Polimento e publicação (em andamento)
+- [x] Migration de segurança: revoga EXECUTE de funções SECURITY DEFINER para public/anon
+- [x] Migration de segurança: DELETE policy em `avatars` e `invite_audit`
+- [ ] Ativar leaked password protection (configuração no painel)
+- [ ] Publicar app
+
+---
+
 ## 🐞 BUGS / CORREÇÕES (alta prioridade)
 
 ### 1. `Notifications.tsx` — sem filtro por usuário
