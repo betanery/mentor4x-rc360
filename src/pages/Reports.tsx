@@ -23,13 +23,21 @@ export default function Reports() {
   const generate = async () => {
     if (!current) return;
     setGenerating(true);
-    const { data, error } = await supabase.functions.invoke("ai-action", {
+    const { error } = await supabase.functions.invoke("ai-action", {
       body: { action: "monthly_report", company_id: current.id },
     });
     setGenerating(false);
     if (error) { toast.error("Erro ao gerar relatório"); return; }
-    toast.success("Relatório mensal gerado");
+    toast.success("Relatório mensal gerado em PDF");
     load();
+  };
+
+  const download = async (path: string, title: string) => {
+    const { data, error } = await supabase.storage.from("reports").createSignedUrl(path, 300);
+    if (error || !data) { toast.error("Não foi possível abrir o PDF"); return; }
+    const a = document.createElement("a");
+    a.href = data.signedUrl; a.download = `${title}.pdf`; a.target = "_blank";
+    document.body.appendChild(a); a.click(); a.remove();
   };
 
   return (
@@ -62,7 +70,11 @@ export default function Reports() {
                 </div>
               )}
             </div>
-            {r.pdf_url && <Button variant="outline" asChild><a href={r.pdf_url} target="_blank"><Download className="h-4 w-4 mr-1" /> PDF</a></Button>}
+            {r.pdf_url && (
+              <Button variant="outline" onClick={() => download(r.pdf_url, r.title)}>
+                <Download className="h-4 w-4 mr-1" /> PDF
+              </Button>
+            )}
           </Card>
         ))}
       </div>
