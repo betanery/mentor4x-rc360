@@ -331,8 +331,8 @@ export default function AdminCompanies() {
               const isActive = current?.id === r.id;
               return (
                 <div key={r.id} className="flex flex-wrap items-center gap-3 p-4 rounded-lg border border-border hover:border-gold transition-colors">
-                  <div className="h-12 w-12 rounded-xl bg-gradient-brand text-primary-foreground font-black flex items-center justify-center shrink-0">
-                    {r.name[0]?.toUpperCase()}
+                  <div className="h-12 w-12 rounded-xl overflow-hidden bg-gradient-brand text-primary-foreground font-black flex items-center justify-center shrink-0">
+                    {r.logo_url ? <img src={r.logo_url} alt={r.name} className="h-full w-full object-cover" /> : r.name[0]?.toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
