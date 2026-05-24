@@ -145,8 +145,13 @@ export function AppLayout() {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => nav("/notificacoes")}>
+            <Button variant="ghost" size="icon" className="relative" onClick={() => nav("/notificacoes")}>
               <Bell className="h-5 w-5" />
+              {unread > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-1 rounded-full bg-gold text-gold-foreground text-[10px] font-bold flex items-center justify-center">
+                  {unread > 99 ? "99+" : unread}
+                </Badge>
+              )}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
