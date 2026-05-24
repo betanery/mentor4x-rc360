@@ -35,13 +35,37 @@ export default function Dashboard() {
       setPillars(p.data || []);
       setMeetings(m.data || []);
 
-      // Mock 90-day score evolution from pillar_scores
+      // Real 90-day score evolution: average of pillar scores grouped per week (last 12 weeks)
+      const scores = (p.data || []) as Array<{ measured_at: string; score: number }>;
+      const buckets = new Map<string, { sum: number; n: number }>();
+      const weekKey = (d: Date) => {
+        const start = subDays(d, d.getDay()); // sunday-start
+        return format(start, "yyyy-MM-dd");
+      };
+      scores.forEach((s) => {
+        const d = parseISO(s.measured_at);
+        const k = weekKey(d);
+        const cur = buckets.get(k) || { sum: 0, n: 0 };
+        cur.sum += s.score; cur.n += 1;
+        buckets.set(k, cur);
+      });
       const history = Array.from({ length: 12 }, (_, i) => {
         const d = subDays(new Date(), (11 - i) * 7);
-        const baseScore = (current.overall_score || 50) - (11 - i) * 2.5;
-        return { date: format(d, "dd/MM", { locale: ptBR }), score: Math.max(20, Math.round(baseScore + Math.random() * 4)) };
+        const k = weekKey(d);
+        const v = buckets.get(k);
+        return {
+          date: format(d, "dd/MM", { locale: ptBR }),
+          score: v ? Math.round(v.sum / v.n) : null,
+        };
       });
-      setScoreHistory(history);
+      // Forward-fill nulls with last known score; if none, use overall_score
+      let last = current.overall_score || 0;
+      const filled = history.map((h) => {
+        if (h.score == null) return { ...h, score: last };
+        last = h.score;
+        return h;
+      });
+      setScoreHistory(filled);
     })();
   }, [current]);
 
