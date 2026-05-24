@@ -13,7 +13,8 @@ export default function Notifications() {
   const [items, setItems] = useState<any[]>([]);
 
   const load = async () => {
-    const { data } = await supabase.from("notifications").select("*").order("created_at", { ascending: false });
+    if (!user) return;
+    const { data } = await supabase.from("notifications").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(200);
     setItems(data || []);
   };
   useEffect(() => { load(); }, [user]);

@@ -77,9 +77,9 @@ export default function SocioIA() {
         }
       }
 
-      // Log
-      await supabase.from("ai_logs").insert({ user_id: user?.id, company_id: current.id, action: "chat", prompt: text, response: acc });
+      // ai_logs are inserted server-side by the chat edge function
     } catch (e: any) {
+
       setMessages((m) => [...m, { role: "assistant", content: `⚠️ ${e.message}` }]);
     } finally {
       setLoading(false);
