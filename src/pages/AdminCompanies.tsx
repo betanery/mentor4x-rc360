@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { CHAOS_LABEL, STAGE_LABEL, formatBRL } from "@/lib/labels";
-import { Building2, Plus, Pencil, Star, Loader2, Search } from "lucide-react";
+import { Building2, Plus, Pencil, Star, Loader2, Search, Upload } from "lucide-react";
 
 const STAGES = ["mes_1","mes_2","mes_3","mes_4","concluido"] as const;
 const CHAOS = ["leve","moderado","severo","total","escala"] as const;
@@ -55,6 +55,7 @@ const emptyForm = {
   started_at: new Date().toISOString().slice(0, 10),
   expected_completion: "",
   notes: "",
+  logo_url: "" as string | "",
 };
 
 export default function AdminCompanies() {
@@ -65,6 +66,7 @@ export default function AdminCompanies() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [search, setSearch] = useState("");
@@ -106,8 +108,23 @@ export default function AdminCompanies() {
       started_at: r.started_at || "",
       expected_completion: r.expected_completion || "",
       notes: r.notes || "",
+      logo_url: r.logo_url || "",
     });
     setOpen(true);
+  };
+
+  const uploadLogo = async (file: File) => {
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { toast.error("Máx 2MB"); return; }
+    setUploading(true);
+    const ext = file.name.split(".").pop() || "png";
+    const path = `companies/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, contentType: file.type });
+    if (error) { setUploading(false); toast.error(error.message); return; }
+    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+    setForm((f) => ({ ...f, logo_url: data.publicUrl }));
+    setUploading(false);
+    toast.success("Logo enviada");
   };
 
   const save = async () => {
@@ -126,6 +143,7 @@ export default function AdminCompanies() {
       started_at: parsed.data.started_at || null,
       expected_completion: parsed.data.expected_completion || null,
       notes: parsed.data.notes || null,
+      logo_url: form.logo_url || null,
     };
 
     if (editingId) {
@@ -182,6 +200,32 @@ export default function AdminCompanies() {
                 </DialogDescription>
               </DialogHeader>
               <div className="grid sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2 flex items-center gap-4">
+                  <div className="h-16 w-16 rounded-xl bg-muted overflow-hidden flex items-center justify-center shrink-0 border">
+                    {form.logo_url ? (
+                      <img src={form.logo_url} alt="Logo" className="h-full w-full object-cover" />
+                    ) : (
+                      <Building2 className="h-7 w-7 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <Label>Logo (máx 2MB)</Label>
+                    <div className="flex gap-2 items-center mt-1">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => e.target.files?.[0] && uploadLogo(e.target.files[0])}
+                        disabled={uploading}
+                      />
+                      {uploading && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {form.logo_url && (
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setForm({ ...form, logo_url: "" })}>
+                          Remover
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
                 <div className="sm:col-span-2">
                   <Label>Nome da empresa *</Label>
                   <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ex: Acme Ltda" />
@@ -287,8 +331,8 @@ export default function AdminCompanies() {
               const isActive = current?.id === r.id;
               return (
                 <div key={r.id} className="flex flex-wrap items-center gap-3 p-4 rounded-lg border border-border hover:border-gold transition-colors">
-                  <div className="h-12 w-12 rounded-xl bg-gradient-brand text-primary-foreground font-black flex items-center justify-center shrink-0">
-                    {r.name[0]?.toUpperCase()}
+                  <div className="h-12 w-12 rounded-xl overflow-hidden bg-gradient-brand text-primary-foreground font-black flex items-center justify-center shrink-0">
+                    {r.logo_url ? <img src={r.logo_url} alt={r.name} className="h-full w-full object-cover" /> : r.name[0]?.toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
