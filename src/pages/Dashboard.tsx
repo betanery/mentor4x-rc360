@@ -71,10 +71,17 @@ export default function Dashboard() {
 
   if (!current) {
     return (
-      <div className="max-w-2xl mx-auto py-20 text-center space-y-4">
+      <div className="max-w-2xl mx-auto py-20 text-center space-y-6">
         <Sparkles className="h-12 w-12 text-gold mx-auto" />
         <h2 className="text-2xl font-bold">Bem-vindo ao MENTOR 4X</h2>
-        <p className="text-muted-foreground">Você ainda não está vinculado a uma empresa. Fale com seu mentor para receber acesso.</p>
+        <p className="text-muted-foreground">
+          Você ainda não está vinculado a uma empresa. Peça ao seu mentor um convite, ou — se você é staff —
+          crie uma nova empresa para começar a operação.
+        </p>
+        <div className="flex justify-center gap-3">
+          <Link to="/empresas" className="text-sm font-semibold text-primary underline">Ir para Empresas</Link>
+          <Link to="/notificacoes" className="text-sm font-semibold text-royal underline">Ver notificações</Link>
+        </div>
       </div>
     );
   }
