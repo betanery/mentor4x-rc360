@@ -4,10 +4,12 @@ import { useCompany } from "@/hooks/useCompany";
 import { Logo } from "./Logo";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LayoutDashboard, Target, AlertTriangle, Compass, Map, Swords, Users, Briefcase, GraduationCap, Sparkles, FileText, Award, LogOut, Bell, Menu, X, Building2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { ROLE_LABEL } from "@/lib/labels";
 
@@ -35,9 +37,28 @@ export function AppLayout() {
   const { companies, current, setCurrentId } = useCompany();
   const nav = useNavigate();
   const [open, setOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
 
   const initial = (user?.email || "?")[0].toUpperCase();
   const visibleStaff = STAFF_NAV.filter(n => n.role.some(r => roles.includes(r as any)));
+
+  useEffect(() => {
+    if (!user) { setUnread(0); return; }
+    const loadUnread = async () => {
+      const { count } = await supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("read", false);
+      setUnread(count || 0);
+    };
+    loadUnread();
+    const ch = supabase
+      .channel(`notif-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, loadUnread)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-gradient-surface flex">
@@ -124,8 +145,13 @@ export function AppLayout() {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => nav("/notificacoes")}>
+            <Button variant="ghost" size="icon" className="relative" onClick={() => nav("/notificacoes")}>
               <Bell className="h-5 w-5" />
+              {unread > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-1 rounded-full bg-gold text-gold-foreground text-[10px] font-bold flex items-center justify-center">
+                  {unread > 99 ? "99+" : unread}
+                </Badge>
+              )}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

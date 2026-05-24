@@ -8,19 +8,47 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const token = authHeader.replace("Bearer ", "");
+
+    const authClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const { data: claimsData, error: claimsErr } = await authClient.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const userId = claimsData.claims.sub as string;
+
     const { messages, company_id } = await req.json();
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return new Response(JSON.stringify({ error: "messages required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
 
-    // Build context from company
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    // Membership check
     let context = "";
     if (company_id) {
-      const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const [{ data: isStaff }, { data: isMember }] = await Promise.all([
+        admin.rpc("is_staff", { _user_id: userId }),
+        admin.rpc("is_company_member", { _user_id: userId, _company_id: company_id }),
+      ]);
+      if (!isStaff && !isMember) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
       const [{ data: c }, { data: g }, { data: b }, { data: p }] = await Promise.all([
-        supabase.from("companies").select("*").eq("id", company_id).single(),
-        supabase.from("goals").select("title,status,financial_impact,pillar").eq("company_id", company_id).limit(20),
-        supabase.from("bottlenecks").select("name,urgency,estimated_value,resolved").eq("company_id", company_id).limit(10),
-        supabase.from("pillar_scores").select("pillar,score").eq("company_id", company_id).order("measured_at", { ascending: false }).limit(8),
+        admin.from("companies").select("*").eq("id", company_id).single(),
+        admin.from("goals").select("title,status,financial_impact,pillar").eq("company_id", company_id).limit(20),
+        admin.from("bottlenecks").select("name,urgency,estimated_value,resolved").eq("company_id", company_id).limit(10),
+        admin.from("pillar_scores").select("pillar,score").eq("company_id", company_id).order("measured_at", { ascending: false }).limit(8),
       ]);
       context = `\n\nCONTEXTO DA EMPRESA:\nNome: ${c?.name}\nEstágio: ${c?.journey_stage}\nCaos: ${c?.chaos_level}\nScore geral: ${c?.overall_score}\nDependência do dono: ${c?.owner_dependency}%\nReceita projetada: R$ ${c?.projected_revenue}\n\nMETAS (${g?.length || 0}): ${JSON.stringify(g)}\nGARGALOS: ${JSON.stringify(b)}\nSCORES PILARES: ${JSON.stringify(p)}`;
     }
@@ -46,7 +74,46 @@ Responda em português brasileiro, direto, executivo, com bullets quando útil. 
       return new Response(JSON.stringify({ error: t }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    return new Response(response.body, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
+    // Tee the stream: stream to client AND capture full response to log server-side
+    const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content ?? "";
+    const [clientStream, logStream] = response.body!.tee();
+
+    (async () => {
+      try {
+        const reader = logStream.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
+        let acc = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          let i: number;
+          while ((i = buf.indexOf("\n")) !== -1) {
+            let line = buf.slice(0, i); buf = buf.slice(i + 1);
+            if (line.endsWith("\r")) line = line.slice(0, -1);
+            if (!line.startsWith("data: ")) continue;
+            const j = line.slice(6).trim();
+            if (j === "[DONE]") continue;
+            try {
+              const c = JSON.parse(j).choices?.[0]?.delta?.content;
+              if (c) acc += c;
+            } catch { /* partial chunk */ }
+          }
+        }
+        await admin.from("ai_logs").insert({
+          user_id: userId,
+          company_id: company_id ?? null,
+          action: "chat",
+          prompt: String(lastUserMsg).slice(0, 4000),
+          response: acc.slice(0, 8000),
+        });
+      } catch (e) {
+        console.error("ai_logs insert failed", e);
+      }
+    })();
+
+    return new Response(clientStream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
