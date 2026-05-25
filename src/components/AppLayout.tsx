@@ -30,6 +30,7 @@ const STAFF_NAV = [
   { to: "/mentor", label: "Área do Mentor", icon: Users, role: ["super_admin","mentor"] as const },
   { to: "/estrategista", label: "Área Estrategista", icon: Briefcase, role: ["super_admin","mentor","estrategista"] as const },
   { to: "/empresas", label: "Empresas", icon: Building2, role: ["super_admin","mentor","estrategista"] as const },
+  { to: "/admin/universidade", label: "Admin Universidade", icon: GraduationCap, role: ["super_admin","mentor","estrategista"] as const },
 ];
 
 export function AppLayout() {
