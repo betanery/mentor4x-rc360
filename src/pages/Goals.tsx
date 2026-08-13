@@ -29,6 +29,7 @@ export default function Goals() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
   const [mentorDraft, setMentorDraft] = useState("");
+  const [updateDraft, setUpdateDraft] = useState("");
   const [form, setForm] = useState({ title: "", description: "", pillar: "crescimento", indicator: "", financial_impact: "0", due_date: "", week_start: format(new Date(), "yyyy-MM-dd") });
 
   const { data: goals = [], isLoading } = useQuery({
@@ -42,6 +43,36 @@ export default function Goals() {
   });
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["goals", current?.id] });
+
+  const { data: updates = [] } = useQuery({
+    queryKey: ["goal_updates", detailId],
+    enabled: !!detailId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("goal_updates")
+        .select("*")
+        .eq("goal_id", detailId!)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return data as Tables<"goal_updates">[];
+    },
+  });
+
+  const addUpdateMut = useMutation({
+    mutationFn: async () => {
+      if (!detailId || !user) throw new Error("Sem meta");
+      const { error } = await supabase.from("goal_updates").insert({ goal_id: detailId, author_id: user.id, message: updateDraft });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setUpdateDraft("");
+      qc.invalidateQueries({ queryKey: ["goal_updates", detailId] });
+      toast.success("Atualização registrada");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
 
   const createMut = useMutation({
     mutationFn: async () => {
