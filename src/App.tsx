@@ -13,6 +13,8 @@ import Dashboard from "./pages/Dashboard";
 import Journey from "./pages/Journey";
 import Goals from "./pages/Goals";
 import Bottlenecks from "./pages/Bottlenecks";
+import Tasks from "./pages/Tasks";
+import Playbooks from "./pages/Playbooks";
 import Pillars from "./pages/Pillars";
 import WarRoom from "./pages/WarRoom";
 import MentorArea from "./pages/MentorArea";
@@ -44,6 +46,8 @@ const App = () => (
                 <Route path="/jornada" element={<Journey />} />
                 <Route path="/metas" element={<Goals />} />
                 <Route path="/gargalos" element={<Bottlenecks />} />
+                <Route path="/plano-acao" element={<Tasks />} />
+                <Route path="/playbooks" element={<Playbooks />} />
                 <Route path="/pilares" element={<Pillars />} />
                 <Route path="/sala-guerra" element={<WarRoom />} />
                 <Route path="/universidade" element={<University />} />

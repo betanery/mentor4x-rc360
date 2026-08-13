@@ -9,6 +9,7 @@ import { GraduationCap, Play, FileText, Clock, CheckCircle2 } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { toEmbedUrl, isDirectVideo } from "@/lib/video";
 
 export default function University() {
   const { user } = useAuth();
@@ -95,12 +96,27 @@ export default function University() {
       </div>
 
       <Dialog open={!!active} onOpenChange={(o) => !o && setActive(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{active?.title}</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">{active?.description}</p>
           {active?.video_url ? (
             <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-              <iframe src={active.video_url} className="w-full h-full" allowFullScreen />
+              {isDirectVideo(active.video_url) ? (
+                <video
+                  src={active.video_url}
+                  controls
+                  className="w-full h-full"
+                  onEnded={() => { if (!progress[active.id]?.completed) toggleComplete(active.id, true); }}
+                />
+              ) : (
+                <iframe
+                  src={toEmbedUrl(active.video_url)}
+                  title={active.title}
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                  allowFullScreen
+                />
+              )}
             </div>
           ) : (
             <div className="aspect-video bg-gradient-brand rounded-lg flex items-center justify-center text-primary-foreground">

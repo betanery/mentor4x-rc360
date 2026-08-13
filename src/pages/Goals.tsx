@@ -29,6 +29,7 @@ export default function Goals() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
   const [mentorDraft, setMentorDraft] = useState("");
+  const [updateDraft, setUpdateDraft] = useState("");
   const [form, setForm] = useState({ title: "", description: "", pillar: "crescimento", indicator: "", financial_impact: "0", due_date: "", week_start: format(new Date(), "yyyy-MM-dd") });
 
   const { data: goals = [], isLoading } = useQuery({
@@ -42,6 +43,36 @@ export default function Goals() {
   });
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["goals", current?.id] });
+
+  const { data: updates = [] } = useQuery({
+    queryKey: ["goal_updates", detailId],
+    enabled: !!detailId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("goal_updates")
+        .select("*")
+        .eq("goal_id", detailId!)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return data as Tables<"goal_updates">[];
+    },
+  });
+
+  const addUpdateMut = useMutation({
+    mutationFn: async () => {
+      if (!detailId || !user) throw new Error("Sem meta");
+      const { error } = await supabase.from("goal_updates").insert({ goal_id: detailId, author_id: user.id, message: updateDraft });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setUpdateDraft("");
+      qc.invalidateQueries({ queryKey: ["goal_updates", detailId] });
+      toast.success("Atualização registrada");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
 
   const createMut = useMutation({
     mutationFn: async () => {
@@ -197,7 +228,7 @@ export default function Goals() {
       </div>
 
       <Dialog open={!!detailId} onOpenChange={(o) => !o && setDetailId(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{detail?.title}</DialogTitle></DialogHeader>
           {detail && (
             <div className="space-y-4">
@@ -241,6 +272,25 @@ export default function Goals() {
                     {detail.mentor_comment || "Aguardando feedback do mentor."}
                   </p>
                 )}
+              </div>
+
+              <div>
+                <Label className="text-xs uppercase tracking-wide">Histórico de atualizações</Label>
+                <div className="mt-2 space-y-2">
+                  <Textarea value={updateDraft} onChange={(e) => setUpdateDraft(e.target.value)} rows={2} placeholder="O que avançou nesta meta?" />
+                  <Button size="sm" variant="outline" onClick={() => addUpdateMut.mutate()} disabled={!updateDraft.trim() || addUpdateMut.isPending}>
+                    Registrar atualização
+                  </Button>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {updates.length === 0 && <p className="text-xs text-muted-foreground">Nenhuma atualização registrada ainda.</p>}
+                  {updates.map((u) => (
+                    <div key={u.id} className="p-3 rounded-lg bg-muted/40 border border-border">
+                      <p className="text-sm whitespace-pre-wrap">{u.message}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">{format(new Date(u.created_at), "dd/MM/yyyy HH:mm")}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
