@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LayoutDashboard, Target, AlertTriangle, Compass, Map, Swords, Users, Briefcase, GraduationCap, Sparkles, FileText, Award, LogOut, Bell, Menu, X, Building2 } from "lucide-react";
+import { LayoutDashboard, Target, AlertTriangle, Compass, Map, Swords, Users, Briefcase, GraduationCap, Sparkles, FileText, Award, LogOut, Bell, Menu, X, Building2, ListChecks, BookOpen } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -17,10 +17,12 @@ const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/jornada", label: "Jornada 4 Meses", icon: Map },
   { to: "/metas", label: "Metas", icon: Target },
+  { to: "/plano-acao", label: "Plano de Ação", icon: ListChecks },
   { to: "/gargalos", label: "Top 5 Gargalos", icon: AlertTriangle },
   { to: "/pilares", label: "Pilares 4X", icon: Compass },
   { to: "/sala-guerra", label: "Sala de Guerra", icon: Swords },
   { to: "/universidade", label: "Universidade 4X", icon: GraduationCap },
+  { to: "/playbooks", label: "Playbooks", icon: BookOpen },
   { to: "/socio-ia", label: "Meu Sócio IA", icon: Sparkles, highlight: true },
   { to: "/relatorios", label: "Relatórios", icon: FileText },
   { to: "/certificados", label: "Certificação", icon: Award },
