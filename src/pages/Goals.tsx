@@ -228,7 +228,7 @@ export default function Goals() {
       </div>
 
       <Dialog open={!!detailId} onOpenChange={(o) => !o && setDetailId(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{detail?.title}</DialogTitle></DialogHeader>
           {detail && (
             <div className="space-y-4">
@@ -272,6 +272,25 @@ export default function Goals() {
                     {detail.mentor_comment || "Aguardando feedback do mentor."}
                   </p>
                 )}
+              </div>
+
+              <div>
+                <Label className="text-xs uppercase tracking-wide">Histórico de atualizações</Label>
+                <div className="mt-2 space-y-2">
+                  <Textarea value={updateDraft} onChange={(e) => setUpdateDraft(e.target.value)} rows={2} placeholder="O que avançou nesta meta?" />
+                  <Button size="sm" variant="outline" onClick={() => addUpdateMut.mutate()} disabled={!updateDraft.trim() || addUpdateMut.isPending}>
+                    Registrar atualização
+                  </Button>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {updates.length === 0 && <p className="text-xs text-muted-foreground">Nenhuma atualização registrada ainda.</p>}
+                  {updates.map((u) => (
+                    <div key={u.id} className="p-3 rounded-lg bg-muted/40 border border-border">
+                      <p className="text-sm whitespace-pre-wrap">{u.message}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">{format(new Date(u.created_at), "dd/MM/yyyy HH:mm")}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
