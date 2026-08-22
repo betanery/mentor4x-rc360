@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,8 +9,16 @@ import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
+function safeNext(raw: string | null): string {
+  if (!raw) return "/";
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/";
+  return raw;
+}
+
 export default function Auth() {
   const nav = useNavigate();
+  const [params] = useSearchParams();
+  const next = safeNext(params.get("next"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -29,8 +37,13 @@ export default function Auth() {
       return;
     }
 
-    supabase.auth.getSession().then(({ data }) => { if (data.session) nav("/"); });
-  }, [nav]);
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        if (next.startsWith("/.lovable/")) window.location.href = next;
+        else nav(next);
+      }
+    });
+  }, [nav, next]);
 
   const signIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,13 +51,17 @@ export default function Auth() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) toast.error(error.message);
-    else { toast.success("Bem-vindo de volta!"); nav("/"); }
+    else {
+      toast.success("Bem-vindo de volta!");
+      if (next.startsWith("/.lovable/")) window.location.href = next;
+      else nav(next);
+    }
   };
 
   const signInGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/` },
+      options: { redirectTo: `${window.location.origin}${next}` },
     });
     if (error) toast.error(error.message);
   };
@@ -60,7 +77,8 @@ export default function Auth() {
     // Clear hash and go to dashboard
     window.history.replaceState(null, "", window.location.pathname);
     toast.success("Senha definida! Bem-vindo(a) ao MENTOR 4X.");
-    nav("/");
+    if (next.startsWith("/.lovable/")) window.location.href = next;
+    else nav(next);
   };
 
   return (
