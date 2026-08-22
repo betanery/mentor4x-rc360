@@ -15,6 +15,7 @@ import { ROLE_LABEL } from "@/lib/labels";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/diagnostico", label: "Diagnóstico SEE_4X", icon: Stethoscope },
   { to: "/jornada", label: "Jornada SEE_4X", icon: Map },
   { to: "/metas", label: "Metas", icon: Target },
   { to: "/plano-acao", label: "Plano de Ação", icon: ListChecks },

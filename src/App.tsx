@@ -11,6 +11,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Journey from "./pages/Journey";
+import Diagnostic from "./pages/Diagnostic";
 import Goals from "./pages/Goals";
 import Bottlenecks from "./pages/Bottlenecks";
 import Tasks from "./pages/Tasks";
@@ -45,6 +46,7 @@ const App = () => (
               <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
               <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/diagnostico" element={<Diagnostic />} />
                 <Route path="/jornada" element={<Journey />} />
                 <Route path="/metas" element={<Goals />} />
                 <Route path="/gargalos" element={<Bottlenecks />} />
