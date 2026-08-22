@@ -101,7 +101,7 @@ export default function OAuthConsent() {
               </div>
               <h1 className="text-2xl font-bold">Conectar {clientName}</h1>
               <p className="text-sm text-muted-foreground">
-                {clientName} poderá ler e criar dados do MENTOR 4X <strong>em seu nome</strong> — empresas,
+                {clientName} poderá ler e criar dados do Mentor 4X <strong>em seu nome</strong> — empresas,
                 metas, tarefas, gargalos e scores aos quais você já tem acesso.
               </p>
             </div>

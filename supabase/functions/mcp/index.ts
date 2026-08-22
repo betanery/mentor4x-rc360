@@ -76,7 +76,7 @@ function jsonResult(payload) {
 var list_companies_default = defineTool({
   name: "list_companies",
   title: "Listar empresas",
-  description: "Lista as empresas que o usu\xE1rio conectado pode acessar no MENTOR 4X, com est\xE1gio da jornada, n\xEDvel de caos e score geral.",
+  description: "Lista as empresas que o usu\xE1rio conectado pode acessar no Mentor 4X, com o ciclo atual da Jornada SEE_4X, n\xEDvel de Improviso e score geral.",
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_input, ctx) => {
@@ -329,7 +329,7 @@ var mcp_default = defineMcp({
   name: "mentor-4x",
   title: "Mentor 4X",
   version: "0.1.0",
-  instructions: "Ferramentas do MENTOR 4X, sistema de execu\xE7\xE3o de mentoria empresarial. Use `list_companies` primeiro para descobrir as empresas acess\xEDveis e seus UUIDs, e `get_company_overview` para um diagn\xF3stico completo (scores por pilar, metas, gargalos e tarefas). As demais ferramentas leem e criam metas, tarefas do plano de a\xE7\xE3o, gargalos e scores de pilar. Todas as opera\xE7\xF5es respeitam as permiss\xF5es do usu\xE1rio conectado.",
+  instructions: "Ferramentas do Mentor 4X, plataforma do SEE_4X (Sistema de Estrutura\xE7\xE3o Empresarial 4X, RC360). Use `list_companies` primeiro para descobrir as empresas acess\xEDveis e seus UUIDs, e `get_company_overview` para um diagn\xF3stico completo (scores por pilar, metas, gargalos e tarefas). As demais ferramentas leem e criam metas, tarefas do plano de a\xE7\xE3o, gargalos e scores de pilar. Todas as opera\xE7\xF5es respeitam as permiss\xF5es do usu\xE1rio conectado.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated"

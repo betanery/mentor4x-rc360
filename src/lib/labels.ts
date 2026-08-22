@@ -1,28 +1,58 @@
-// Mapeamento de labels em PT-BR para enums do banco
+// Mapeamento de labels em PT-BR para enums do banco — vocabulário oficial SEE_4X
 
 export const ROLE_LABEL: Record<string, string> = {
   super_admin: "Super Admin",
-  mentor: "Mentor",
-  estrategista: "Estrategista",
-  cliente_dono: "Cliente Dono",
+  mentor: "Consultor 4X",
+  estrategista: "Estrategista 4X",
+  cliente_dono: "Cliente 4X (Dono)",
   gestor_cliente: "Gestor",
   colaborador_cliente: "Colaborador",
 };
 
-export const CHAOS_LABEL: Record<string, { label: string; color: string }> = {
-  total: { label: "Caos Total", color: "bg-destructive text-destructive-foreground" },
-  severo: { label: "Caos Severo", color: "bg-destructive/80 text-destructive-foreground" },
-  moderado: { label: "Caos Moderado", color: "bg-warning text-warning-foreground" },
-  leve: { label: "Caos Leve", color: "bg-info text-info-foreground" },
+// Improviso substitui a antiga linguagem de "caos". Variável independente da Maturidade.
+export const IMPROVISO_LABEL: Record<string, { label: string; color: string }> = {
+  total: { label: "Improviso Total", color: "bg-destructive text-destructive-foreground" },
+  severo: { label: "Improviso Severo", color: "bg-destructive/80 text-destructive-foreground" },
+  moderado: { label: "Improviso Moderado", color: "bg-warning text-warning-foreground" },
+  leve: { label: "Improviso Leve", color: "bg-info text-info-foreground" },
   escala: { label: "Em Escala", color: "bg-success text-success-foreground" },
 };
 
-export const STAGE_LABEL: Record<string, { label: string; subtitle: string }> = {
-  mes_1: { label: "Mês 1", subtitle: "Clareza + Prioridade" },
-  mes_2: { label: "Mês 2", subtitle: "Execução + Governança" },
-  mes_3: { label: "Mês 3", subtitle: "Performance + Consolidação" },
-  mes_4: { label: "Mês 4", subtitle: "Autonomia + Escala" },
-  concluido: { label: "Concluído", subtitle: "Empresa em controle" },
+// Jornada oficial SEE_4X — 6 ciclos. Valores legados (mes_1..mes_4) permanecem mapeados
+// para leitura de registros antigos, mas não são mais oferecidos na interface.
+export const CYCLE_LABEL: Record<string, { label: string; subtitle: string; output: string }> = {
+  ciclo_1: { label: "Ciclo 1", subtitle: "Clareza e Prioridade", output: "Diagnóstico validado, baseline, Top 5 e Plano de Execução." },
+  ciclo_2: { label: "Ciclo 2", subtitle: "Organização e Execução", output: "Responsáveis, controles mínimos, primeiras metas e revisão quinzenal." },
+  ciclo_3: { label: "Ciclo 3", subtitle: "Estruturação", output: "Padrões prioritários em uso, indicadores e evidências." },
+  ciclo_4: { label: "Ciclo 4", subtitle: "Fortalecimento", output: "Correções aplicadas e estruturas ganhando consistência." },
+  ciclo_5: { label: "Ciclo 5", subtitle: "Performance", output: "Resultados comparados à linha de base e decisões de performance." },
+  ciclo_6: { label: "Ciclo 6", subtitle: "Autonomia", output: "Reavaliação, antes/depois e Plano de Continuidade de 90 dias." },
+  concluido: { label: "Concluído", subtitle: "Empresa estruturada", output: "Plano de Continuidade de 90 dias em execução." },
+  // legado
+  mes_1: { label: "Ciclo 1", subtitle: "Clareza e Prioridade", output: "Diagnóstico validado, baseline, Top 5 e Plano de Execução." },
+  mes_2: { label: "Ciclo 2", subtitle: "Organização e Execução", output: "Responsáveis, controles mínimos, primeiras metas e revisão quinzenal." },
+  mes_3: { label: "Ciclo 4", subtitle: "Fortalecimento", output: "Correções aplicadas e estruturas ganhando consistência." },
+  mes_4: { label: "Ciclo 6", subtitle: "Autonomia", output: "Reavaliação, antes/depois e Plano de Continuidade de 90 dias." },
+};
+
+export const CYCLE_ORDER = ["ciclo_1", "ciclo_2", "ciclo_3", "ciclo_4", "ciclo_5", "ciclo_6", "concluido"] as const;
+
+// Os cinco Motores são cumulativos: cada ciclo destaca um foco sem desligar os anteriores.
+export const MOTORES = [
+  { key: "clareza", label: "Clareza", cycles: ["ciclo_1"] },
+  { key: "prioridade", label: "Prioridade", cycles: ["ciclo_1", "ciclo_2"] },
+  { key: "execucao", label: "Execução", cycles: ["ciclo_2", "ciclo_3"] },
+  { key: "governanca", label: "Governança", cycles: ["ciclo_4", "ciclo_5"] },
+  { key: "autonomia", label: "Autonomia", cycles: ["ciclo_6", "concluido"] },
+];
+
+export const MEETING_TYPE_LABEL: Record<string, string> = {
+  checkin_semanal: "Check-in semanal",
+  sala_guerra: "Sala de Guerra (quinzenal)",
+  estrategia: "Estratégia",
+  kickoff: "Kickoff",
+  review: "Review",
+  mentoria: "Check-in semanal",
 };
 
 export const GOAL_STATUS_LABEL: Record<string, { label: string; color: string }> = {

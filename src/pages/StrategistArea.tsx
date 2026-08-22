@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CHAOS_LABEL, formatBRL } from "@/lib/labels";
+import { IMPROVISO_LABEL, formatBRL } from "@/lib/labels";
 import { Copy, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 
@@ -46,12 +46,12 @@ export default function StrategistArea() {
 
         <TabsContent value="carteira" className="space-y-2">
           {companies.map((c) => {
-            const chaos = CHAOS_LABEL[c.chaos_level];
+            const improviso = IMPROVISO_LABEL[c.chaos_level];
             return (
               <Card key={c.id} className="p-4 shadow-card flex items-center gap-4">
                 <div className="h-10 w-10 rounded-lg bg-royal text-white font-bold flex items-center justify-center">{c.name[0]}</div>
                 <div className="flex-1">
-                  <div className="flex items-center gap-2"><h4 className="font-semibold">{c.name}</h4><Badge className={chaos.color} variant="secondary">{chaos.label}</Badge></div>
+                  <div className="flex items-center gap-2"><h4 className="font-semibold">{c.name}</h4><Badge className={improviso.color} variant="secondary">{improviso.label}</Badge></div>
                   <p className="text-xs text-muted-foreground">Score {c.overall_score} · {formatBRL(c.projected_revenue)}</p>
                 </div>
               </Card>

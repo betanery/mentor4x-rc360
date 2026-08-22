@@ -14,10 +14,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { CHAOS_LABEL, STAGE_LABEL, formatBRL } from "@/lib/labels";
+import { IMPROVISO_LABEL, CYCLE_LABEL, formatBRL } from "@/lib/labels";
 import { Building2, Plus, Pencil, Star, Loader2, Search, Upload } from "lucide-react";
 
-const STAGES = ["mes_1","mes_2","mes_3","mes_4","concluido"] as const;
+const STAGES = ["ciclo_1","ciclo_2","ciclo_3","ciclo_4","ciclo_5","ciclo_6","concluido"] as const;
 const CHAOS = ["leve","moderado","severo","total","escala"] as const;
 
 const schema = z.object({
@@ -49,7 +49,7 @@ type CompanyRow = {
 const emptyForm = {
   name: "",
   segment: "",
-  journey_stage: "mes_1" as typeof STAGES[number],
+  journey_stage: "ciclo_1" as typeof STAGES[number],
   chaos_level: "moderado" as typeof CHAOS[number],
   projected_revenue: "" as string | "",
   started_at: new Date().toISOString().slice(0, 10),
@@ -102,7 +102,7 @@ export default function AdminCompanies() {
     setForm({
       name: r.name,
       segment: r.segment || "",
-      journey_stage: (r.journey_stage as typeof STAGES[number]) || "mes_1",
+      journey_stage: (r.journey_stage as typeof STAGES[number]) || "ciclo_1",
       chaos_level: (r.chaos_level as typeof CHAOS[number]) || "moderado",
       projected_revenue: r.projected_revenue != null ? String(r.projected_revenue) : "",
       started_at: r.started_at || "",
@@ -155,7 +155,7 @@ export default function AdminCompanies() {
       const { data, error } = await supabase.from("companies").insert(payload).select("id").single();
       if (error || !data) { setSaving(false); toast.error(error?.message || "Falha ao criar empresa"); return; }
       const newId = data.id;
-      // Vincular criador como mentor
+      // Vincular criador como Consultor 4X
       const isFirst = rows.length === 0;
       if (user) {
         const { error: memErr } = await supabase.from("company_members").insert({
@@ -184,7 +184,7 @@ export default function AdminCompanies() {
     <div className="space-y-6">
       <PageHeader
         title="Empresas"
-        subtitle="Cadastre e gerencie todas as empresas atendidas pela mentoria."
+        subtitle="Cadastre e gerencie todas as empresas atendidas no SEE_4X."
         action={
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -196,7 +196,7 @@ export default function AdminCompanies() {
               <DialogHeader>
                 <DialogTitle>{editingId ? "Editar empresa" : "Cadastrar nova empresa"}</DialogTitle>
                 <DialogDescription>
-                  {editingId ? "Atualize os dados da empresa." : "Você será vinculado como mentor responsável automaticamente."}
+                  {editingId ? "Atualize os dados da empresa." : "Você será vinculado como Consultor 4X responsável automaticamente."}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid sm:grid-cols-2 gap-3">
@@ -239,16 +239,16 @@ export default function AdminCompanies() {
                   <Select value={form.journey_stage} onValueChange={(v) => setForm({ ...form, journey_stage: v as typeof STAGES[number] })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {STAGES.map((s) => <SelectItem key={s} value={s}>{STAGE_LABEL[s].label} · {STAGE_LABEL[s].subtitle}</SelectItem>)}
+                      {STAGES.map((s) => <SelectItem key={s} value={s}>{CYCLE_LABEL[s].label} · {CYCLE_LABEL[s].subtitle}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label>Nível de caos</Label>
+                  <Label>Nível de Improviso</Label>
                   <Select value={form.chaos_level} onValueChange={(v) => setForm({ ...form, chaos_level: v as typeof CHAOS[number] })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {CHAOS.map((c) => <SelectItem key={c} value={c}>{CHAOS_LABEL[c].label}</SelectItem>)}
+                      {CHAOS.map((c) => <SelectItem key={c} value={c}>{IMPROVISO_LABEL[c].label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -296,17 +296,17 @@ export default function AdminCompanies() {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                {STAGES.map((s) => <SelectItem key={s} value={s}>{STAGE_LABEL[s].label}</SelectItem>)}
+                {STAGES.map((s) => <SelectItem key={s} value={s}>{CYCLE_LABEL[s].label}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label className="text-xs">Nível de caos</Label>
+            <Label className="text-xs">Nível de Improviso</Label>
             <Select value={filterChaos} onValueChange={setFilterChaos}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                {CHAOS.map((c) => <SelectItem key={c} value={c}>{CHAOS_LABEL[c].label}</SelectItem>)}
+                {CHAOS.map((c) => <SelectItem key={c} value={c}>{IMPROVISO_LABEL[c].label}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -326,8 +326,8 @@ export default function AdminCompanies() {
         ) : (
           <div className="space-y-2">
             {filtered.map((r) => {
-              const chaos = CHAOS_LABEL[r.chaos_level];
-              const stage = STAGE_LABEL[r.journey_stage];
+              const improviso = IMPROVISO_LABEL[r.chaos_level];
+              const stage = CYCLE_LABEL[r.journey_stage];
               const isActive = current?.id === r.id;
               return (
                 <div key={r.id} className="flex flex-wrap items-center gap-3 p-4 rounded-lg border border-border hover:border-gold transition-colors">
@@ -338,7 +338,7 @@ export default function AdminCompanies() {
                     <div className="flex flex-wrap items-center gap-2">
                       <h4 className="font-bold">{r.name}</h4>
                       {isActive && <Badge className="bg-gold text-primary">Ativa</Badge>}
-                      {chaos && <Badge className={chaos.color} variant="secondary">{chaos.label}</Badge>}
+                      {improviso && <Badge className={improviso.color} variant="secondary">{improviso.label}</Badge>}
                       {stage && <Badge variant="outline">{stage.label} · {stage.subtitle}</Badge>}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1 truncate">

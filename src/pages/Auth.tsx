@@ -76,7 +76,7 @@ export default function Auth() {
     if (error) { toast.error(error.message); return; }
     // Clear hash and go to dashboard
     window.history.replaceState(null, "", window.location.pathname);
-    toast.success("Senha definida! Bem-vindo(a) ao MENTOR 4X.");
+    toast.success("Senha definida! Bem-vindo(a) ao Mentor 4X.");
     if (next.startsWith("/.lovable/")) window.location.href = next;
     else nav(next);
   };
@@ -90,16 +90,16 @@ export default function Auth() {
           <Logo dark />
         </div>
         <div className="relative space-y-6">
-          <p className="text-[10px] font-bold tracking-[0.4em] text-gold uppercase">Mentoria 4X · Premium</p>
+          <p className="text-[10px] font-bold tracking-[0.4em] text-gold uppercase">SEE_4X · RC360</p>
           <h1 className="text-5xl xl:text-6xl font-black leading-[1.05]">
             O céu não é<br /> o <span className="text-gold">limite.</span>
           </h1>
           <p className="text-lg text-primary-foreground/80 max-w-md">
-            Sua empresa está mais organizada hoje do que ontem. Transforme caos em lucro previsível por execução orientada.
+            Sua empresa está mais organizada hoje do que ontem. Transforme improviso em lucro previsível por execução orientada.
           </p>
         </div>
         <div className="relative text-xs text-primary-foreground/60">
-          © {new Date().getFullYear()} MENTOR 4X — Sistema interno de execução
+          © {new Date().getFullYear()} RC360 · Roberta Cardoso — Mentor 4X, plataforma do SEE_4X
         </div>
       </div>
 
@@ -163,7 +163,7 @@ export default function Auth() {
                 </Button>
 
                 <p className="text-xs text-center text-muted-foreground">
-                  Não tem conta? Este sistema é por <strong>convite</strong>. Fale com seu mentor ou administrador.
+                  Não tem conta? Este sistema é por <strong>convite</strong>. Fale com seu Consultor 4X ou administrador.
                 </p>
               </Card>
             </>

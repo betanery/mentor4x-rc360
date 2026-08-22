@@ -47,7 +47,7 @@ export default function Certificates() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Certificação MENTOR 4X" subtitle="Ao concluir a jornada, sua empresa recebe a certificação oficial do método." />
+      <PageHeader title="Certificação SEE_4X" subtitle="Ao concluir a jornada, sua empresa recebe a certificação oficial do método." />
 
       <Card className="p-12 shadow-elegant bg-gradient-brand text-primary-foreground relative overflow-hidden">
         <div className="absolute -top-20 -right-20 h-64 w-64 bg-gold/15 rounded-full blur-3xl" />
@@ -56,8 +56,8 @@ export default function Certificates() {
           <h2 className="text-3xl font-black mt-4">{completed ? "Empresa Certificada 4X" : "Certificação aguardando conclusão"}</h2>
           <p className="mt-3 text-primary-foreground/80">
             {completed
-              ? `${current.name} completou a jornada de 4 meses do método MENTOR 4X. Saiu do caos para o controle.`
-              : `${current.name} está atualmente em ${current.journey_stage.replace("_", " ")}. Conclua os 4 estágios para receber o certificado oficial.`}
+              ? `${current.name} concluiu a Jornada SEE_4X de 6 ciclos — do improviso à autonomia.`
+              : `${current.name} está atualmente em ${current.journey_stage.replace("_", " ")}. Conclua os 6 ciclos para receber o certificado oficial.`}
           </p>
           {isStaff && completed && (
             <Button onClick={issue} disabled={issuing} className="mt-6 bg-gold text-gold-foreground hover:bg-gold/90">

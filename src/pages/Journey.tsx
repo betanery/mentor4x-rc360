@@ -6,34 +6,45 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { STAGE_LABEL } from "@/lib/labels";
+import { CYCLE_LABEL, CYCLE_ORDER, MOTORES } from "@/lib/labels";
 import { CheckCircle2, Target, FileCheck, ArrowRight } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 const STAGES = [
   {
-    key: "mes_1", color: "from-primary to-royal",
-    objectives: ["Diagnóstico completo da empresa", "Definição dos 5 maiores gargalos", "Clareza de prioridades por pilar", "Calibração das metas semanais"],
-    deliverables: ["Mapa de caos → controle", "Top 5 gargalos com plano", "Painel de indicadores"],
+    key: "ciclo_1", color: "from-primary to-royal",
+    objectives: ["Diagnóstico SEE_4X validado", "Definição dos 5 maiores gargalos", "Clareza de prioridades por pilar", "Calibração das Metas Críticas do ciclo"],
+    deliverables: ["Mapa de Improviso", "Top 5 gargalos com plano", "Painel de indicadores (baseline)"],
   },
   {
-    key: "mes_2", color: "from-royal to-info",
-    objectives: ["Implementação da rotina semanal", "Sala de Guerra ativa", "Cobrança e accountability instalados", "Primeiros gargalos resolvidos"],
-    deliverables: ["Cadência semanal funcionando", "2 metas/semana com evidência", "Rituais de gestão instalados"],
+    key: "ciclo_2", color: "from-primary to-royal",
+    objectives: ["Responsáveis definidos por frente", "Controles mínimos instalados", "Check-in semanal ativo", "Sala de Guerra quinzenal em cadência"],
+    deliverables: ["Cadência de rituais funcionando", "Primeiras metas com evidência", "Accountability instalado"],
   },
   {
-    key: "mes_3", color: "from-info to-gold",
-    objectives: ["Performance dos pilares em alta", "Dependência do dono caindo", "Time assumindo execução", "Indicadores consolidados"],
-    deliverables: ["Score geral > 70", "Dependência < 50%", "Time treinado"],
+    key: "ciclo_3", color: "from-royal to-info",
+    objectives: ["Padrões prioritários em uso", "Indicadores mensurados com fonte", "Evidências anexadas às metas", "Gargalos críticos em correção"],
+    deliverables: ["Padrões documentados", "Indicadores em operação", "Evidências auditáveis"],
   },
   {
-    key: "mes_4", color: "from-gold to-gold-soft",
-    objectives: ["Empresa rodando sem o dono", "Score de escala atingido", "Cultura de execução enraizada", "Próximo nível desenhado"],
-    deliverables: ["Empresa em escala", "Plano dos próximos 12 meses", "Certificação MENTOR 4X"],
+    key: "ciclo_4", color: "from-info to-gold",
+    objectives: ["Correções aplicadas nos gargalos", "Estruturas ganhando consistência", "Dependência do dono caindo", "Time assumindo execução"],
+    deliverables: ["Top 5 reavaliado", "Dependência do dono < 50%", "Time treinado nos padrões"],
+  },
+  {
+    key: "ciclo_5", color: "from-info to-gold",
+    objectives: ["Resultados comparados ao baseline", "Decisões de performance registradas", "Score de Estruturação em alta", "Impacto econômico mensurado"],
+    deliverables: ["Comparativo antes/depois", "Registro de decisões", "Score de Estruturação > 70"],
+  },
+  {
+    key: "ciclo_6", color: "from-gold to-gold-soft",
+    objectives: ["Reavaliação completa do diagnóstico", "Empresa operando com autonomia", "Cultura de execução enraizada", "Continuidade desenhada"],
+    deliverables: ["Relatório antes/depois", "Plano de Continuidade de 90 dias", "Reavaliação SEE_4X registrada"],
   },
 ];
-const STAGE_ORDER = ["mes_1", "mes_2", "mes_3", "mes_4", "concluido"];
+const STAGE_ORDER = [...CYCLE_ORDER] as string[];
+
 
 export default function Journey() {
   const { current } = useCompany();
@@ -92,7 +103,7 @@ export default function Journey() {
   const overallProgress = useMemo(() => {
     if (!current) return 0;
     const idx = STAGE_ORDER.indexOf(current.journey_stage);
-    return Math.round((idx / 4) * 100);
+    return Math.round((Math.max(idx, 0) / 6) * 100);
   }, [current]);
 
   if (!current) return null;
@@ -100,7 +111,7 @@ export default function Journey() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Jornada 4 Meses" subtitle="A trilha completa da Mentoria 4X — do caos ao controle, e do controle à escala." />
+      <PageHeader title="Jornada SEE_4X — 6 Ciclos" subtitle="A trilha completa do Sistema de Estruturação Empresarial 4X — do improviso à autonomia." />
 
       <Card className="p-6 shadow-card bg-gradient-brand text-primary-foreground relative overflow-hidden">
         <div className="absolute -top-10 -right-10 h-48 w-48 bg-gold/15 rounded-full blur-3xl" />
@@ -114,15 +125,42 @@ export default function Journey() {
           </div>
           {isStaff && current.journey_stage !== "concluido" && (
             <Button onClick={() => advance.mutate()} disabled={advance.isPending} className="bg-gold text-primary hover:bg-gold/90">
-              Avançar fase <ArrowRight className="h-4 w-4 ml-2" />
+              Avançar ciclo <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           )}
         </div>
       </Card>
 
+      <Card className="p-5 shadow-card">
+        <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Cinco Motores · cumulativos</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {MOTORES.map((m, i) => {
+            const active = m.cycles.includes(current.journey_stage);
+            const reached = m.cycles.some((c) => STAGE_ORDER.indexOf(c) <= currentIdx);
+            return (
+              <div key={m.key} className="flex items-center gap-2">
+                <span
+                  className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-colors ${
+                    active
+                      ? "bg-gold text-gold-foreground border-gold"
+                      : reached
+                      ? "bg-primary/10 text-primary border-primary/20"
+                      : "bg-muted text-muted-foreground border-border"
+                  }`}
+                >
+                  {m.label}
+                </span>
+                {i < MOTORES.length - 1 && <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />}
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
       <div className="space-y-4">
         {STAGES.map((stage, i) => {
-          const meta = STAGE_LABEL[stage.key];
+          const meta = CYCLE_LABEL[stage.key];
+
           const isCurrent = current.journey_stage === stage.key;
           const isDone = currentIdx > i;
           return (
@@ -136,7 +174,9 @@ export default function Journey() {
                   <h3 className="text-2xl font-black mt-1">{meta.subtitle}</h3>
                   {isCurrent && <span className="inline-block mt-2 text-[10px] font-bold bg-gold/20 text-gold px-2 py-1 rounded">VOCÊ ESTÁ AQUI</span>}
                   {isDone && <span className="inline-block mt-2 text-[10px] font-bold bg-success/20 text-success px-2 py-1 rounded">CONCLUÍDO</span>}
+                  <p className="mt-3 text-xs text-muted-foreground"><span className="font-bold uppercase tracking-widest text-[10px] block mb-1">Saída principal</span>{meta.output}</p>
                 </div>
+
 
                 <div className="flex-1 grid md:grid-cols-2 gap-5">
                   <div>

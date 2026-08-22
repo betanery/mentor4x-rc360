@@ -16,7 +16,7 @@ export default defineMcp({
   title: "Mentor 4X",
   version: "0.1.0",
   instructions:
-    "Ferramentas do MENTOR 4X, sistema de execução de mentoria empresarial. Use `list_companies` primeiro para descobrir as empresas acessíveis e seus UUIDs, e `get_company_overview` para um diagnóstico completo (scores por pilar, metas, gargalos e tarefas). As demais ferramentas leem e criam metas, tarefas do plano de ação, gargalos e scores de pilar. Todas as operações respeitam as permissões do usuário conectado.",
+    "Ferramentas do Mentor 4X, plataforma do SEE_4X (Sistema de Estruturação Empresarial 4X, RC360). Use `list_companies` primeiro para descobrir as empresas acessíveis e seus UUIDs, e `get_company_overview` para um diagnóstico completo (scores por pilar, metas, gargalos e tarefas). As demais ferramentas leem e criam metas, tarefas do plano de ação, gargalos e scores de pilar. Todas as operações respeitam as permissões do usuário conectado.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated",

@@ -945,13 +945,25 @@ export type Database = {
         | "concluido"
         | "atrasado"
         | "bloqueado"
-      journey_stage: "mes_1" | "mes_2" | "mes_3" | "mes_4" | "concluido"
+      journey_stage:
+        | "mes_1"
+        | "mes_2"
+        | "mes_3"
+        | "mes_4"
+        | "ciclo_1"
+        | "ciclo_2"
+        | "ciclo_3"
+        | "ciclo_4"
+        | "ciclo_5"
+        | "ciclo_6"
+        | "concluido"
       meeting_type:
         | "sala_guerra"
         | "mentoria"
         | "estrategia"
         | "kickoff"
         | "review"
+        | "checkin_semanal"
       pillar: "crescimento" | "eficiencia" | "encantamento" | "lideranca"
     }
     CompositeTypes: {
@@ -1097,13 +1109,26 @@ export const Constants = {
         "atrasado",
         "bloqueado",
       ],
-      journey_stage: ["mes_1", "mes_2", "mes_3", "mes_4", "concluido"],
+      journey_stage: [
+        "mes_1",
+        "mes_2",
+        "mes_3",
+        "mes_4",
+        "ciclo_1",
+        "ciclo_2",
+        "ciclo_3",
+        "ciclo_4",
+        "ciclo_5",
+        "ciclo_6",
+        "concluido",
+      ],
       meeting_type: [
         "sala_guerra",
         "mentoria",
         "estrategia",
         "kickoff",
         "review",
+        "checkin_semanal",
       ],
       pillar: ["crescimento", "eficiencia", "encantamento", "lideranca"],
     },

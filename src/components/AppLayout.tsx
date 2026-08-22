@@ -15,7 +15,7 @@ import { ROLE_LABEL } from "@/lib/labels";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/jornada", label: "Jornada 4 Meses", icon: Map },
+  { to: "/jornada", label: "Jornada SEE_4X", icon: Map },
   { to: "/metas", label: "Metas", icon: Target },
   { to: "/plano-acao", label: "Plano de Ação", icon: ListChecks },
   { to: "/gargalos", label: "Top 5 Gargalos", icon: AlertTriangle },
@@ -29,8 +29,8 @@ const NAV = [
 ];
 
 const STAFF_NAV = [
-  { to: "/mentor", label: "Área do Mentor", icon: Users, role: ["super_admin","mentor"] as const },
-  { to: "/estrategista", label: "Área Estrategista", icon: Briefcase, role: ["super_admin","mentor","estrategista"] as const },
+  { to: "/mentor", label: "Área do Consultor 4X", icon: Users, role: ["super_admin","mentor"] as const },
+  { to: "/estrategista", label: "Área do Estrategista 4X", icon: Briefcase, role: ["super_admin","mentor","estrategista"] as const },
   { to: "/empresas", label: "Empresas", icon: Building2, role: ["super_admin","mentor","estrategista"] as const },
   { to: "/admin/universidade", label: "Admin Universidade", icon: GraduationCap, role: ["super_admin","mentor","estrategista"] as const },
 ];

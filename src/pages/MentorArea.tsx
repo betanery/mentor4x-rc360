@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CHAOS_LABEL, STAGE_LABEL, formatBRL } from "@/lib/labels";
+import { IMPROVISO_LABEL, CYCLE_LABEL, formatBRL } from "@/lib/labels";
 import { Building2, AlertTriangle, TrendingDown, Target, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCompany } from "@/hooks/useCompany";
@@ -32,8 +32,8 @@ export default function MentorArea() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Área do Mentor"
-        subtitle="Visão consolidada de todos os clientes da mentoria."
+        title="Área do Consultor 4X"
+        subtitle="Visão consolidada de todos os Clientes 4X da carteira."
         action={
           <Link to="/empresas">
             <Button className="bg-gradient-brand"><Plus className="h-4 w-4 mr-1" /> Cadastrar empresa</Button>
@@ -60,8 +60,8 @@ export default function MentorArea() {
         <h3 className="text-lg font-bold mb-4">Carteira de clientes</h3>
         <div className="space-y-2">
           {companies.map((c) => {
-            const chaos = CHAOS_LABEL[c.chaos_level];
-            const stage = STAGE_LABEL[c.journey_stage];
+            const improviso = IMPROVISO_LABEL[c.chaos_level];
+            const stage = CYCLE_LABEL[c.journey_stage];
             const lateGoals = stats.lateByCompany?.[c.id] || 0;
             return (
               <Link key={c.id} to="/" onClick={() => setCurrentId(c.id)}
@@ -72,7 +72,7 @@ export default function MentorArea() {
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <h4 className="font-bold">{c.name}</h4>
-                    <Badge className={chaos.color} variant="secondary">{chaos.label}</Badge>
+                    <Badge className={improviso.color} variant="secondary">{improviso.label}</Badge>
                     <Badge variant="outline">{stage.label} · {stage.subtitle}</Badge>
                     {lateGoals > 0 && <Badge variant="destructive">{lateGoals} metas atrasadas</Badge>}
                   </div>

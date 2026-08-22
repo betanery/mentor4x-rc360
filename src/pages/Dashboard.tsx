@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
-import { CHAOS_LABEL, STAGE_LABEL, GOAL_STATUS_LABEL, PILLAR_LABEL, formatBRL } from "@/lib/labels";
+import { IMPROVISO_LABEL, CYCLE_LABEL, CYCLE_ORDER, GOAL_STATUS_LABEL, PILLAR_LABEL, formatBRL } from "@/lib/labels";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Activity, Target, AlertTriangle, TrendingUp, Calendar, DollarSign, Users, Sparkles } from "lucide-react";
@@ -73,9 +73,9 @@ export default function Dashboard() {
     return (
       <div className="max-w-2xl mx-auto py-20 text-center space-y-6">
         <Sparkles className="h-12 w-12 text-gold mx-auto" />
-        <h2 className="text-2xl font-bold">Bem-vindo ao MENTOR 4X</h2>
+        <h2 className="text-2xl font-bold">Bem-vindo ao Mentor 4X</h2>
         <p className="text-muted-foreground">
-          Você ainda não está vinculado a uma empresa. Peça ao seu mentor um convite, ou — se você é staff —
+          Você ainda não está vinculado a uma empresa. Peça ao seu Consultor 4X um convite, ou — se você é staff —
           crie uma nova empresa para começar a operação.
         </p>
         <div className="flex justify-center gap-3">
@@ -86,8 +86,8 @@ export default function Dashboard() {
     );
   }
 
-  const chaos = CHAOS_LABEL[current.chaos_level];
-  const stage = STAGE_LABEL[current.journey_stage];
+  const improviso = IMPROVISO_LABEL[current.chaos_level];
+  const stage = CYCLE_LABEL[current.journey_stage];
 
   const weeklyGoals = goals.filter((g) => {
     if (!g.week_start) return false;
@@ -110,13 +110,13 @@ export default function Dashboard() {
       <PageHeader
         title={`Dashboard Executivo`}
         subtitle="Visão completa da execução, score e próximos passos da empresa."
-        action={<Badge className={`${chaos.color} text-xs px-3 py-1.5 font-bold`}>{chaos.label}</Badge>}
+        action={<Badge className={`${improviso.color} text-xs px-3 py-1.5 font-bold`}>{improviso.label}</Badge>}
       />
 
       {/* Hero KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Score Geral" value={current.overall_score} sub="0–100 pontos" icon={Activity} accent="primary" />
-        <StatCard label="Execução da semana" value={`${execRate}%`} sub={`${completedWeekly}/${weeklyGoals.length} metas`} icon={Target} accent="gold" />
+        <StatCard label="Índice de Execução" value={`${execRate}%`} sub={`${completedWeekly}/${weeklyGoals.length} metas`} icon={Target} accent="gold" />
         <StatCard label="Dependência do dono" value={`${current.owner_dependency}%`} sub="meta < 30%" icon={Users} accent={current.owner_dependency > 60 ? "destructive" : "info"} />
         <StatCard label="Receita projetada" value={formatBRL(current.projected_revenue)} sub="próximos 12 meses" icon={DollarSign} accent="success" />
       </div>
@@ -126,14 +126,14 @@ export default function Dashboard() {
         <Card className="lg:col-span-2 p-6 shadow-card overflow-hidden relative bg-gradient-brand text-primary-foreground">
           <div className="absolute top-0 right-0 w-64 h-64 bg-gold/10 rounded-full -translate-y-32 translate-x-32 blur-3xl" />
           <div className="relative">
-            <p className="text-[10px] font-bold tracking-widest text-gold uppercase">Estágio atual da Jornada</p>
+            <p className="text-[10px] font-bold tracking-widest text-gold uppercase">Ciclo atual da Jornada SEE_4X</p>
             <div className="mt-2 flex items-baseline gap-3">
               <h2 className="text-4xl font-black">{stage.label}</h2>
               <span className="text-gold font-semibold">{stage.subtitle}</span>
             </div>
             <div className="mt-6 flex items-center gap-2">
-              {["mes_1","mes_2","mes_3","mes_4"].map((s, i) => {
-                const active = ["mes_1","mes_2","mes_3","mes_4","concluido"].indexOf(current.journey_stage) >= i;
+              {CYCLE_ORDER.slice(0, 6).map((s, i) => {
+                const active = CYCLE_ORDER.indexOf(current.journey_stage as typeof CYCLE_ORDER[number]) >= i;
                 return <div key={s} className={`h-2 flex-1 rounded-full ${active ? "bg-gold" : "bg-primary-foreground/20"}`} />;
               })}
             </div>
@@ -141,7 +141,7 @@ export default function Dashboard() {
         </Card>
 
         <Card className="p-6 shadow-card">
-          <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Próxima reunião</p>
+          <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Próximo ritual</p>
           {meetings[0] ? (
             <div className="mt-2">
               <div className="text-lg font-bold">{meetings[0].title}</div>
@@ -151,7 +151,7 @@ export default function Dashboard() {
               </div>
             </div>
           ) : (
-            <p className="mt-2 text-sm text-muted-foreground">Nenhuma reunião agendada.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Nenhum ritual agendado.</p>
           )}
         </Card>
       </div>
@@ -210,10 +210,10 @@ export default function Dashboard() {
 
         <Card className="p-6 shadow-card">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold">Metas da semana</h3>
+            <h3 className="text-lg font-bold">Metas Críticas do ciclo</h3>
             <Link to="/metas" className="text-xs font-semibold text-royal hover:text-primary">Ver todas →</Link>
           </div>
-          {weeklyGoals.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma meta definida para esta semana.</p>}
+          {weeklyGoals.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma Meta Crítica definida para este ciclo.</p>}
           <div className="space-y-3">
             {weeklyGoals.slice(0, 4).map((g) => {
               const st = GOAL_STATUS_LABEL[g.status];
