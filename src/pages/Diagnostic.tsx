@@ -417,7 +417,19 @@ export default function Diagnostic() {
                           );
                         })}
                       </div>
+                      {isStaff && (
+                        <Button
+                          variant="outline"
+                          className="w-full mt-4"
+                          disabled={activeDiag.status !== "validado" || generateTop5.isPending}
+                          onClick={() => generateTop5.mutate()}
+                        >
+                          <ClipboardList className="h-4 w-4 mr-2" />
+                          {activeDiag.status === "validado" ? "Gerar Top 5 Gargalos" : "Valide para gerar gargalos"}
+                        </Button>
+                      )}
                     </Card>
+
                   </div>
 
                   <div className="grid gap-6 lg:grid-cols-2">
