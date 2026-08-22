@@ -33,7 +33,9 @@ import {
   type MaturityLevel,
   type Pillar,
   type RespondentGroup,
+  urgencyForImproviso,
 } from "@/lib/see4x";
+
 import { AlertTriangle, CheckCircle2, ClipboardList, Plus, ShieldCheck, Users } from "lucide-react";
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
