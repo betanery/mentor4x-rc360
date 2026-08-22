@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
         admin.from("bottlenecks").select("name,urgency,estimated_value,resolved").eq("company_id", company_id).limit(10),
         admin.from("pillar_scores").select("pillar,score").eq("company_id", company_id).order("measured_at", { ascending: false }).limit(8),
       ]);
-      context = `\n\nCONTEXTO DA EMPRESA:\nNome: ${c?.name}\nEstágio: ${c?.journey_stage}\nCaos: ${c?.chaos_level}\nScore geral: ${c?.overall_score}\nDependência do dono: ${c?.owner_dependency}%\nReceita projetada: R$ ${c?.projected_revenue}\n\nMETAS (${g?.length || 0}): ${JSON.stringify(g)}\nGARGALOS: ${JSON.stringify(b)}\nSCORES PILARES: ${JSON.stringify(p)}`;
+      context = `\n\nCONTEXTO DA EMPRESA:\nNome: ${c?.name}\nCiclo atual: ${c?.journey_stage}\nImproviso: ${c?.chaos_level}\nScore geral: ${c?.overall_score}\nDependência do dono: ${c?.owner_dependency}%\nReceita projetada: R$ ${c?.projected_revenue}\n\nMETAS (${g?.length || 0}): ${JSON.stringify(g)}\nGARGALOS: ${JSON.stringify(b)}\nSCORES PILARES: ${JSON.stringify(p)}`;
     }
 
     const systemPrompt = `Você é "Meu Sócio IA", o conselheiro estratégico do método SEE_4X (Sistema de Estruturação Empresarial 4X, RC360).
