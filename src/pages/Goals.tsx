@@ -74,6 +74,33 @@ export default function Goals() {
   });
 
 
+  const { data: bottlenecks = [] } = useQuery({
+    queryKey: ["bottlenecks", current?.id],
+    enabled: !!current,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("bottlenecks")
+        .select("id, name, blindspot_code, resolved")
+        .eq("company_id", current!.id)
+        .eq("resolved", false)
+        .limit(50);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Vincular a meta ao BlindSpot puxa o pilar e as capacidades correspondentes.
+  const pickBlindspot = (code: string) => {
+    const bs = blindspotByCode(code);
+    setForm((s) => ({
+      ...s,
+      blindspot_code: code,
+      capacity_code: "",
+      pillar: bs ? bs.pillar : s.pillar,
+    }));
+  };
+
+
   const createMut = useMutation({
     mutationFn: async () => {
       if (!current || !user) throw new Error("Sem empresa");
