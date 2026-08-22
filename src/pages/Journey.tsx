@@ -6,34 +6,45 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { STAGE_LABEL } from "@/lib/labels";
+import { CYCLE_LABEL, CYCLE_ORDER, MOTORES } from "@/lib/labels";
 import { CheckCircle2, Target, FileCheck, ArrowRight } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 const STAGES = [
   {
-    key: "mes_1", color: "from-primary to-royal",
-    objectives: ["Diagnóstico completo da empresa", "Definição dos 5 maiores gargalos", "Clareza de prioridades por pilar", "Calibração das metas semanais"],
-    deliverables: ["Mapa de caos → controle", "Top 5 gargalos com plano", "Painel de indicadores"],
+    key: "ciclo_1", color: "from-primary to-royal",
+    objectives: ["Diagnóstico SEE_4X validado", "Definição dos 5 maiores gargalos", "Clareza de prioridades por pilar", "Calibração das Metas Críticas do ciclo"],
+    deliverables: ["Mapa de Improviso", "Top 5 gargalos com plano", "Painel de indicadores (baseline)"],
   },
   {
-    key: "mes_2", color: "from-royal to-info",
-    objectives: ["Implementação da rotina semanal", "Sala de Guerra ativa", "Cobrança e accountability instalados", "Primeiros gargalos resolvidos"],
-    deliverables: ["Cadência semanal funcionando", "2 metas/semana com evidência", "Rituais de gestão instalados"],
+    key: "ciclo_2", color: "from-primary to-royal",
+    objectives: ["Responsáveis definidos por frente", "Controles mínimos instalados", "Check-in semanal ativo", "Sala de Guerra quinzenal em cadência"],
+    deliverables: ["Cadência de rituais funcionando", "Primeiras metas com evidência", "Accountability instalado"],
   },
   {
-    key: "mes_3", color: "from-info to-gold",
-    objectives: ["Performance dos pilares em alta", "Dependência do dono caindo", "Time assumindo execução", "Indicadores consolidados"],
-    deliverables: ["Score geral > 70", "Dependência < 50%", "Time treinado"],
+    key: "ciclo_3", color: "from-royal to-info",
+    objectives: ["Padrões prioritários em uso", "Indicadores mensurados com fonte", "Evidências anexadas às metas", "Gargalos críticos em correção"],
+    deliverables: ["Padrões documentados", "Indicadores em operação", "Evidências auditáveis"],
   },
   {
-    key: "mes_4", color: "from-gold to-gold-soft",
-    objectives: ["Empresa rodando sem o dono", "Score de escala atingido", "Cultura de execução enraizada", "Próximo nível desenhado"],
-    deliverables: ["Empresa em escala", "Plano dos próximos 12 meses", "Certificação MENTOR 4X"],
+    key: "ciclo_4", color: "from-info to-gold",
+    objectives: ["Correções aplicadas nos gargalos", "Estruturas ganhando consistência", "Dependência do dono caindo", "Time assumindo execução"],
+    deliverables: ["Top 5 reavaliado", "Dependência do dono < 50%", "Time treinado nos padrões"],
+  },
+  {
+    key: "ciclo_5", color: "from-info to-gold",
+    objectives: ["Resultados comparados ao baseline", "Decisões de performance registradas", "Score de Estruturação em alta", "Impacto econômico mensurado"],
+    deliverables: ["Comparativo antes/depois", "Registro de decisões", "Score de Estruturação > 70"],
+  },
+  {
+    key: "ciclo_6", color: "from-gold to-gold-soft",
+    objectives: ["Reavaliação completa do diagnóstico", "Empresa operando com autonomia", "Cultura de execução enraizada", "Continuidade desenhada"],
+    deliverables: ["Relatório antes/depois", "Plano de Continuidade de 90 dias", "Reavaliação SEE_4X registrada"],
   },
 ];
-const STAGE_ORDER = ["mes_1", "mes_2", "mes_3", "mes_4", "concluido"];
+const STAGE_ORDER = [...CYCLE_ORDER] as string[];
+
 
 export default function Journey() {
   const { current } = useCompany();
