@@ -12,6 +12,7 @@ import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianG
 import { format, subDays, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Link } from "react-router-dom";
+import { MATURITY_LABEL, blindspotByCode, improvisoBand, type MaturityLevel } from "@/lib/see4x";
 
 export default function Dashboard() {
   const { current } = useCompany();
@@ -20,20 +21,23 @@ export default function Dashboard() {
   const [pillars, setPillars] = useState<any[]>([]);
   const [meetings, setMeetings] = useState<any[]>([]);
   const [scoreHistory, setScoreHistory] = useState<any[]>([]);
+  const [diagnostic, setDiagnostic] = useState<any | null>(null);
 
   useEffect(() => {
     if (!current) return;
     (async () => {
-      const [g, b, p, m] = await Promise.all([
+      const [g, b, p, m, d] = await Promise.all([
         supabase.from("goals").select("*").eq("company_id", current.id).order("due_date", { ascending: true }),
         supabase.from("bottlenecks").select("*").eq("company_id", current.id).eq("resolved", false).order("urgency", { ascending: false }).limit(5),
         supabase.from("pillar_scores").select("*").eq("company_id", current.id).order("measured_at", { ascending: false }),
         supabase.from("meetings").select("*").eq("company_id", current.id).gte("scheduled_at", new Date().toISOString()).order("scheduled_at").limit(1),
+        supabase.from("diagnostics").select("*").eq("company_id", current.id).eq("status", "validado").order("version", { ascending: false }).limit(1),
       ]);
       setGoals(g.data || []);
       setBottlenecks(b.data || []);
       setPillars(p.data || []);
       setMeetings(m.data || []);
+      setDiagnostic((d.data || [])[0] || null);
 
       // Real 90-day score evolution: average of pillar scores grouped per week (last 12 weeks)
       const scores = (p.data || []) as Array<{ measured_at: string; score: number }>;
@@ -112,6 +116,63 @@ export default function Dashboard() {
         subtitle="Visão completa da execução, score e próximos passos da empresa."
         action={<Badge className={`${improviso.color} text-xs px-3 py-1.5 font-bold`}>{improviso.label}</Badge>}
       />
+
+
+      {/* Bloco Classificação — baseline oficial do Diagnóstico SEE_4X */}
+      <Card className="p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-gold">Classificação</p>
+            <p className="text-xs text-muted-foreground">
+              {diagnostic
+                ? `Diagnóstico v${diagnostic.version} validado em ${new Date(diagnostic.validated_at).toLocaleDateString("pt-BR")}`
+                : "Nenhum diagnóstico validado — a classificação abaixo ainda não tem baseline oficial."}
+            </p>
+          </div>
+          <Link to="/diagnostico" className="text-sm font-semibold text-primary underline">
+            {diagnostic ? "Ver diagnóstico →" : "Fazer diagnóstico →"}
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div>
+            <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground mb-1.5">Maturidade</p>
+            {diagnostic?.maturity ? (
+              <Badge className={MATURITY_LABEL[diagnostic.maturity as MaturityLevel].color}>
+                {MATURITY_LABEL[diagnostic.maturity as MaturityLevel].label}
+              </Badge>
+            ) : (
+              <span className="text-sm text-muted-foreground">Não validada</span>
+            )}
+          </div>
+          <div>
+            <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground mb-1.5">Improviso geral</p>
+            {diagnostic?.improviso_score != null ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-black">{diagnostic.improviso_score}</span>
+                <Badge className={improvisoBand(diagnostic.improviso_score).color}>{improvisoBand(diagnostic.improviso_score).label}</Badge>
+              </div>
+            ) : (
+              <Badge className={improviso.color}>{improviso.label}</Badge>
+            )}
+          </div>
+          <div>
+            <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground mb-1.5">Pilar prioritário</p>
+            <span className="text-sm font-semibold">
+              {diagnostic?.priority_pillar ? PILLAR_LABEL[diagnostic.priority_pillar].label : "—"}
+            </span>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground mb-1.5">BlindSpot prioritário</p>
+            <span className="text-sm font-semibold">
+              {diagnostic?.priority_blindspot ? blindspotByCode(diagnostic.priority_blindspot)?.title ?? diagnostic.priority_blindspot : "—"}
+            </span>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground mb-1.5">IDD</p>
+            <span className="text-xl font-black">{diagnostic?.idd_score != null ? `${diagnostic.idd_score}%` : `${current.owner_dependency}%`}</span>
+          </div>
+        </div>
+      </Card>
 
       {/* Hero KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
