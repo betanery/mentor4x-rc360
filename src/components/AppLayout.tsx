@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LayoutDashboard, Target, AlertTriangle, Compass, Map, Swords, Users, Briefcase, GraduationCap, Sparkles, FileText, Award, LogOut, Bell, Menu, X, Building2, ListChecks, BookOpen } from "lucide-react";
+import { LayoutDashboard, Target, AlertTriangle, Compass, Map, Swords, Users, Briefcase, GraduationCap, Sparkles, FileText, Award, LogOut, Bell, Menu, X, Building2, ListChecks, BookOpen, Stethoscope } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ import { ROLE_LABEL } from "@/lib/labels";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/diagnostico", label: "Diagnóstico SEE_4X", icon: Stethoscope },
   { to: "/jornada", label: "Jornada SEE_4X", icon: Map },
   { to: "/metas", label: "Metas", icon: Target },
   { to: "/plano-acao", label: "Plano de Ação", icon: ListChecks },
