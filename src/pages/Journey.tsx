@@ -103,7 +103,7 @@ export default function Journey() {
   const overallProgress = useMemo(() => {
     if (!current) return 0;
     const idx = STAGE_ORDER.indexOf(current.journey_stage);
-    return Math.round((idx / 4) * 100);
+    return Math.round((Math.max(idx, 0) / 6) * 100);
   }, [current]);
 
   if (!current) return null;
@@ -111,7 +111,7 @@ export default function Journey() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Jornada 4 Meses" subtitle="A trilha completa da Mentoria 4X — do caos ao controle, e do controle à escala." />
+      <PageHeader title="Jornada SEE_4X — 6 Ciclos" subtitle="A trilha completa do Sistema de Estruturação Empresarial 4X — do improviso à autonomia." />
 
       <Card className="p-6 shadow-card bg-gradient-brand text-primary-foreground relative overflow-hidden">
         <div className="absolute -top-10 -right-10 h-48 w-48 bg-gold/15 rounded-full blur-3xl" />
@@ -125,15 +125,42 @@ export default function Journey() {
           </div>
           {isStaff && current.journey_stage !== "concluido" && (
             <Button onClick={() => advance.mutate()} disabled={advance.isPending} className="bg-gold text-primary hover:bg-gold/90">
-              Avançar fase <ArrowRight className="h-4 w-4 ml-2" />
+              Avançar ciclo <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           )}
         </div>
       </Card>
 
+      <Card className="p-5 shadow-card">
+        <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Cinco Motores · cumulativos</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {MOTORES.map((m, i) => {
+            const active = m.cycles.includes(current.journey_stage);
+            const reached = m.cycles.some((c) => STAGE_ORDER.indexOf(c) <= currentIdx);
+            return (
+              <div key={m.key} className="flex items-center gap-2">
+                <span
+                  className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-colors ${
+                    active
+                      ? "bg-gold text-gold-foreground border-gold"
+                      : reached
+                      ? "bg-primary/10 text-primary border-primary/20"
+                      : "bg-muted text-muted-foreground border-border"
+                  }`}
+                >
+                  {m.label}
+                </span>
+                {i < MOTORES.length - 1 && <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />}
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
       <div className="space-y-4">
         {STAGES.map((stage, i) => {
-          const meta = STAGE_LABEL[stage.key];
+          const meta = CYCLE_LABEL[stage.key];
+
           const isCurrent = current.journey_stage === stage.key;
           const isDone = currentIdx > i;
           return (
