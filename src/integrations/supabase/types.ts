@@ -262,6 +262,115 @@ export type Database = {
         }
         Relationships: []
       }
+      diagnostic_responses: {
+        Row: {
+          answers: Json
+          diagnostic_id: string
+          id: string
+          respondent_group: Database["public"]["Enums"]["respondent_group"]
+          respondent_name: string | null
+          respondent_user_id: string | null
+          submitted_at: string
+        }
+        Insert: {
+          answers?: Json
+          diagnostic_id: string
+          id?: string
+          respondent_group?: Database["public"]["Enums"]["respondent_group"]
+          respondent_name?: string | null
+          respondent_user_id?: string | null
+          submitted_at?: string
+        }
+        Update: {
+          answers?: Json
+          diagnostic_id?: string
+          id?: string
+          respondent_group?: Database["public"]["Enums"]["respondent_group"]
+          respondent_name?: string | null
+          respondent_user_id?: string | null
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagnostic_responses_diagnostic_id_fkey"
+            columns: ["diagnostic_id"]
+            isOneToOne: false
+            referencedRelation: "diagnostics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      diagnostics: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          idd_score: number | null
+          improviso_score: number | null
+          maturity: Database["public"]["Enums"]["maturity_level"] | null
+          mode: Database["public"]["Enums"]["diagnostic_mode"]
+          notes: string | null
+          priority_blindspot: string | null
+          priority_pillar: Database["public"]["Enums"]["pillar"] | null
+          results: Json | null
+          status: Database["public"]["Enums"]["diagnostic_status"]
+          title: string | null
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+          version: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          idd_score?: number | null
+          improviso_score?: number | null
+          maturity?: Database["public"]["Enums"]["maturity_level"] | null
+          mode?: Database["public"]["Enums"]["diagnostic_mode"]
+          notes?: string | null
+          priority_blindspot?: string | null
+          priority_pillar?: Database["public"]["Enums"]["pillar"] | null
+          results?: Json | null
+          status?: Database["public"]["Enums"]["diagnostic_status"]
+          title?: string | null
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          version?: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          idd_score?: number | null
+          improviso_score?: number | null
+          maturity?: Database["public"]["Enums"]["maturity_level"] | null
+          mode?: Database["public"]["Enums"]["diagnostic_mode"]
+          notes?: string | null
+          priority_blindspot?: string | null
+          priority_pillar?: Database["public"]["Enums"]["pillar"] | null
+          results?: Json | null
+          status?: Database["public"]["Enums"]["diagnostic_status"]
+          title?: string | null
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagnostics_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goal_updates: {
         Row: {
           author_id: string | null
@@ -939,6 +1048,8 @@ export type Database = {
         | "colaborador_cliente"
       bottleneck_urgency: "baixa" | "media" | "alta" | "critica"
       chaos_level: "total" | "severo" | "moderado" | "leve" | "escala"
+      diagnostic_mode: "lead" | "cliente"
+      diagnostic_status: "rascunho" | "consolidado" | "validado"
       goal_status:
         | "nao_iniciado"
         | "em_andamento"
@@ -957,6 +1068,12 @@ export type Database = {
         | "ciclo_5"
         | "ciclo_6"
         | "concluido"
+      maturity_level:
+        | "inicial"
+        | "emergente"
+        | "estruturada"
+        | "escalavel"
+        | "autonoma"
       meeting_type:
         | "sala_guerra"
         | "mentoria"
@@ -965,6 +1082,7 @@ export type Database = {
         | "review"
         | "checkin_semanal"
       pillar: "crescimento" | "eficiencia" | "encantamento" | "lideranca"
+      respondent_group: "dono_socio" | "gestor" | "equipe"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1102,6 +1220,8 @@ export const Constants = {
       ],
       bottleneck_urgency: ["baixa", "media", "alta", "critica"],
       chaos_level: ["total", "severo", "moderado", "leve", "escala"],
+      diagnostic_mode: ["lead", "cliente"],
+      diagnostic_status: ["rascunho", "consolidado", "validado"],
       goal_status: [
         "nao_iniciado",
         "em_andamento",
@@ -1122,6 +1242,13 @@ export const Constants = {
         "ciclo_6",
         "concluido",
       ],
+      maturity_level: [
+        "inicial",
+        "emergente",
+        "estruturada",
+        "escalavel",
+        "autonoma",
+      ],
       meeting_type: [
         "sala_guerra",
         "mentoria",
@@ -1131,6 +1258,7 @@ export const Constants = {
         "checkin_semanal",
       ],
       pillar: ["crescimento", "eficiencia", "encantamento", "lideranca"],
+      respondent_group: ["dono_socio", "gestor", "equipe"],
     },
   },
 } as const
