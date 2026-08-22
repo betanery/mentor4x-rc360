@@ -155,7 +155,7 @@ export default function AdminCompanies() {
       const { data, error } = await supabase.from("companies").insert(payload).select("id").single();
       if (error || !data) { setSaving(false); toast.error(error?.message || "Falha ao criar empresa"); return; }
       const newId = data.id;
-      // Vincular criador como mentor
+      // Vincular criador como Consultor 4X
       const isFirst = rows.length === 0;
       if (user) {
         const { error: memErr } = await supabase.from("company_members").insert({
@@ -196,7 +196,7 @@ export default function AdminCompanies() {
               <DialogHeader>
                 <DialogTitle>{editingId ? "Editar empresa" : "Cadastrar nova empresa"}</DialogTitle>
                 <DialogDescription>
-                  {editingId ? "Atualize os dados da empresa." : "Você será vinculado como mentor responsável automaticamente."}
+                  {editingId ? "Atualize os dados da empresa." : "Você será vinculado como Consultor 4X responsável automaticamente."}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid sm:grid-cols-2 gap-3">

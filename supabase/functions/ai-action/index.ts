@@ -26,7 +26,7 @@ function buildReportPdf(title: string, companyName: string, body: string): Uint8
   doc.setTextColor(255, 215, 130);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
-  doc.text("MENTOR 4X", 40, 35);
+  doc.text("RC360 · MENTOR 4X", 40, 35);
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(18);
   doc.text(title, 40, 60);
@@ -60,7 +60,7 @@ function buildCertificatePdf(companyName: string, code: string): Uint8Array {
   doc.setDrawColor(212, 175, 55); doc.setLineWidth(4);
   doc.rect(25, 25, w - 50, h - 50);
   doc.setTextColor(212, 175, 55); doc.setFont("helvetica", "bold"); doc.setFontSize(14);
-  doc.text("MENTOR 4X — CERTIFICAÇÃO OFICIAL", w / 2, 90, { align: "center" });
+  doc.text("SEE_4X — CERTIFICAÇÃO OFICIAL · RC360", w / 2, 90, { align: "center" });
   doc.setTextColor(255, 255, 255); doc.setFontSize(36);
   doc.text("Certificado de Conclusão", w / 2, 180, { align: "center" });
   doc.setFontSize(14); doc.setFont("helvetica", "normal");
@@ -68,7 +68,7 @@ function buildCertificatePdf(companyName: string, code: string): Uint8Array {
   doc.setFont("helvetica", "bold"); doc.setFontSize(28); doc.setTextColor(212, 175, 55);
   doc.text(companyName, w / 2, 280, { align: "center" });
   doc.setFont("helvetica", "normal"); doc.setFontSize(13); doc.setTextColor(255, 255, 255);
-  const txt = "Por concluir a jornada de 4 meses do método MENTOR 4X,\nsaindo do caos para o controle e estabelecendo uma operação em escala.";
+  const txt = "Por concluir a Jornada SEE_4X de 6 ciclos,\nevoluindo do improviso à autonomia com execução estruturada.";
   doc.text(txt, w / 2, 340, { align: "center" });
   doc.setFontSize(11); doc.setTextColor(200, 200, 220);
   doc.text(`Código de validação: ${code}`, w / 2, h - 80, { align: "center" });
@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
     if (action === "weekly_summary") {
       const text = await callAI(
         `Gere uma ata executiva da reunião semanal em markdown:\n\nFEITO:\n${payload?.done ?? ""}\n\nTRAVOU:\n${payload?.blocked ?? ""}\n\nINDICADORES:\n${payload?.indicators ?? ""}\n\nPRÓXIMOS PASSOS:\n${payload?.next_steps ?? ""}\n\nDECISÕES:\n${payload?.decisions ?? ""}`,
-        "Você gera atas executivas concisas e claras do método MENTOR 4X."
+        "Você gera atas executivas concisas e claras do método SEE_4X. A ata é um rascunho até revisão humana."
       );
       await admin.from("ai_logs").insert({ user_id: userId, company_id: company_id ?? null, action, prompt: JSON.stringify(payload).slice(0, 4000), response: text.slice(0, 8000) });
       return new Response(JSON.stringify({ text }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -128,8 +128,8 @@ Deno.serve(async (req) => {
       const { data: g } = await admin.from("goals").select("*").eq("company_id", company_id);
       const { data: b } = await admin.from("bottlenecks").select("*").eq("company_id", company_id);
       const text = await callAI(
-        `Gere o relatório mensal MENTOR 4X em texto corrido (sem markdown) para ${c?.name}. Inclua seções: 1) Evolução do score (${c?.overall_score}/100), 2) Metas (${g?.filter((x:any)=>x.status==='concluido').length}/${g?.length} concluídas), 3) Gargalos (${b?.filter((x:any)=>x.resolved).length}/${b?.length} resolvidos), 4) Próximos focos, 5) ROI percebido. Use parágrafos curtos.`,
-        "Você gera relatórios executivos premium do método MENTOR 4X em português."
+        `Gere o relatório do ciclo SEE_4X em texto corrido (sem markdown) para ${c?.name}. Inclua seções: 1) Evolução do score (${c?.overall_score}/100), 2) Metas (${g?.filter((x:any)=>x.status==='concluido').length}/${g?.length} concluídas), 3) Gargalos (${b?.filter((x:any)=>x.resolved).length}/${b?.length} resolvidos), 4) Próximos focos, 5) ROI percebido. Use parágrafos curtos.`,
+        "Você gera relatórios executivos premium do método SEE_4X (RC360) em português."
       );
       const title = `Relatório mensal — ${new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}`;
       const pdf = buildReportPdf(title, c?.name ?? "Empresa", text);

@@ -76,7 +76,7 @@ export default function Auth() {
     if (error) { toast.error(error.message); return; }
     // Clear hash and go to dashboard
     window.history.replaceState(null, "", window.location.pathname);
-    toast.success("Senha definida! Bem-vindo(a) ao MENTOR 4X.");
+    toast.success("Senha definida! Bem-vindo(a) ao Mentor 4X.");
     if (next.startsWith("/.lovable/")) window.location.href = next;
     else nav(next);
   };
@@ -163,7 +163,7 @@ export default function Auth() {
                 </Button>
 
                 <p className="text-xs text-center text-muted-foreground">
-                  Não tem conta? Este sistema é por <strong>convite</strong>. Fale com seu mentor ou administrador.
+                  Não tem conta? Este sistema é por <strong>convite</strong>. Fale com seu Consultor 4X ou administrador.
                 </p>
               </Card>
             </>

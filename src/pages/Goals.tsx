@@ -254,7 +254,7 @@ export default function Goals() {
               </div>
 
               <div>
-                <Label className="text-xs uppercase tracking-wide">Comentário do mentor</Label>
+                <Label className="text-xs uppercase tracking-wide">Parecer do Consultor 4X</Label>
                 {isStaff ? (
                   <>
                     <Textarea value={mentorDraft} onChange={(e) => setMentorDraft(e.target.value)} rows={3} placeholder="Feedback, próximos passos..." className="mt-1" />
@@ -269,7 +269,7 @@ export default function Goals() {
                   </>
                 ) : (
                   <p className="mt-1 text-sm whitespace-pre-wrap p-3 bg-muted/40 rounded-lg">
-                    {detail.mentor_comment || "Aguardando feedback do mentor."}
+                    {detail.mentor_comment || "Aguardando parecer do Consultor 4X."}
                   </p>
                 )}
               </div>

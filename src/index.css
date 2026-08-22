@@ -2,8 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* MENTOR 4X — Design System Premium
-   Paleta: Azul profundo #112145, Azul royal #124378, Dourado #CEA32A, Bege #F8E19C
+/* Mentor 4X · SEE_4X — Design System Premium RC360
+   Paleta: Azul profundo #112145, Azul royal #124378, Dourado #C18A09, Bege #F8E19C
    Tipografia: Montserrat
 */
 
@@ -29,7 +29,7 @@
     --royal-foreground: 0 0% 100%;
 
     /* Dourado */
-    --gold: 45 67% 49%;                /* #CEA32A */
+    --gold: 44 91% 40%;                /* #C18A09 */
     --gold-foreground: 222 60% 17%;
     --gold-soft: 47 88% 79%;           /* #F8E19C */
 
@@ -57,13 +57,13 @@
 
     /* Gradients */
     --gradient-brand: linear-gradient(135deg, hsl(222 60% 17%) 0%, hsl(211 73% 27%) 100%);
-    --gradient-gold: linear-gradient(135deg, hsl(45 67% 49%) 0%, hsl(47 88% 79%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(222 60% 17%) 0%, hsl(211 73% 27%) 60%, hsl(45 67% 49%) 130%);
+    --gradient-gold: linear-gradient(135deg, hsl(44 91% 40%) 0%, hsl(47 88% 79%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(222 60% 17%) 0%, hsl(211 73% 27%) 60%, hsl(44 91% 40%) 130%);
     --gradient-surface: linear-gradient(180deg, hsl(210 40% 99%) 0%, hsl(210 40% 96%) 100%);
 
     /* Shadows */
     --shadow-elegant: 0 10px 40px -10px hsl(222 60% 17% / 0.18);
-    --shadow-gold: 0 8px 30px -8px hsl(45 67% 49% / 0.35);
+    --shadow-gold: 0 8px 30px -8px hsl(44 91% 40% / 0.35);
     --shadow-card: 0 1px 3px hsl(222 60% 17% / 0.04), 0 4px 20px -8px hsl(222 60% 17% / 0.08);
     --shadow-soft: 0 1px 2px hsl(222 60% 17% / 0.05);
 
@@ -72,12 +72,12 @@
     /* Sidebar */
     --sidebar-background: 222 60% 17%;
     --sidebar-foreground: 210 30% 92%;
-    --sidebar-primary: 45 67% 49%;
+    --sidebar-primary: 44 91% 40%;
     --sidebar-primary-foreground: 222 60% 17%;
     --sidebar-accent: 211 73% 22%;
     --sidebar-accent-foreground: 47 88% 92%;
     --sidebar-border: 211 50% 22%;
-    --sidebar-ring: 45 67% 49%;
+    --sidebar-ring: 44 91% 40%;
   }
 
   .dark {

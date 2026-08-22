@@ -44,7 +44,7 @@ export default function Reports() {
     <div className="space-y-6">
       <PageHeader
         title="Relatórios Premium"
-        subtitle="PDFs com a evolução completa da empresa, gerados pela IA com identidade MENTOR 4X."
+        subtitle="PDFs com a evolução completa da empresa, gerados pela IA com identidade RC360 · SEE_4X."
         action={<Button onClick={generate} disabled={generating} className="bg-gradient-brand"><Plus className="h-4 w-4 mr-1" /> {generating ? "Gerando..." : "Gerar relatório mensal"}</Button>}
       />
 

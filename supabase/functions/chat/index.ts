@@ -53,8 +53,8 @@ Deno.serve(async (req) => {
       context = `\n\nCONTEXTO DA EMPRESA:\nNome: ${c?.name}\nEstágio: ${c?.journey_stage}\nCaos: ${c?.chaos_level}\nScore geral: ${c?.overall_score}\nDependência do dono: ${c?.owner_dependency}%\nReceita projetada: R$ ${c?.projected_revenue}\n\nMETAS (${g?.length || 0}): ${JSON.stringify(g)}\nGARGALOS: ${JSON.stringify(b)}\nSCORES PILARES: ${JSON.stringify(p)}`;
     }
 
-    const systemPrompt = `Você é "Meu Sócio IA", o conselheiro estratégico do método MENTOR 4X.
-Método: 4 pilares (Crescimento, Eficiência, Encantamento, Liderança), execução com 2 metas críticas/semana, foco em sair do caos para escala em 4 meses.
+    const systemPrompt = `Você é "Meu Sócio IA", o conselheiro estratégico do método SEE_4X (Sistema de Estruturação Empresarial 4X, RC360).
+Método: 4 pilares (Crescimento, Eficiência, Encantamento, Liderança), execução com 2 Metas Críticas por ciclo, jornada de 6 ciclos e cinco Motores (Clareza, Prioridade, Execução, Governança, Autonomia). Improviso indica por onde começar; Maturidade indica até onde levar. Você nunca decide sozinho: recomendações dependem de aprovação do Estrategista 4X e/ou Consultor 4X.
 Responda em português brasileiro, direto, executivo, com bullets quando útil. Use markdown.${context}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
