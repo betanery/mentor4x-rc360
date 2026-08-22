@@ -106,7 +106,7 @@ export default function Diagnostic() {
   );
 
   // Resultado oficial gravado na validação; enquanto isso, cálculo ao vivo das respostas.
-  const stored = (activeDiag?.results ?? null) as ReturnType<typeof computeDiagnostic> | null;
+  const stored = (activeDiag?.results ?? null) as unknown as ReturnType<typeof computeDiagnostic> | null;
   const result = activeDiag?.status === "validado" ? stored ?? live : live;
 
   const createDiag = useMutation({
