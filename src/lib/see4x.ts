@@ -298,3 +298,14 @@ export function computeDiagnostic(responses: ResponseInput[]): DiagnosticResult 
 }
 
 export const blindspotByCode = (code: string) => BLINDSPOTS.find((b) => b.code === code);
+
+export const capacityByCode = (code: string) => CAPACITIES.find((c) => c.code === code);
+
+/** Urgência do gargalo derivada do Improviso do BlindSpot. */
+export function urgencyForImproviso(score: number): "baixa" | "media" | "alta" | "critica" {
+  if (score >= 80) return "critica";
+  if (score >= 60) return "alta";
+  if (score >= 40) return "media";
+  return "baixa";
+}
+
