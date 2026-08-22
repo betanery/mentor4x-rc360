@@ -12,7 +12,7 @@ export default defineTool({
     title: z.string().describe("Título da meta, objetivo e mensurável."),
     description: z.string().optional().describe("Detalhes do plano de execução."),
     pillar: z
-      .enum(["pessoas", "processos", "produto", "performance"])
+      .enum(["crescimento", "eficiencia", "encantamento", "lideranca"])
       .optional()
       .describe("Pilar 4X relacionado, se aplicável."),
     indicator: z.string().optional().describe("Indicador de sucesso (KPI)."),
