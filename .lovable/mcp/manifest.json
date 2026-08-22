@@ -1,0 +1,355 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.3",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://fjgdcmtwstmslmbxlsga.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "mentor-4x",
+      "version": "0.1.0",
+      "title": "Mentor 4X"
+    },
+    "tools": [
+      {
+        "name": "list_companies",
+        "title": "Listar empresas",
+        "description": "Lista as empresas que o usuário conectado pode acessar no MENTOR 4X, com estágio da jornada, nível de caos e score geral.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_company_overview",
+        "title": "Diagnóstico da empresa",
+        "description": "Retorna o panorama de uma empresa: dados gerais, últimos scores por pilar, metas em aberto, gargalos não resolvidos e tarefas pendentes.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "company_id": {
+              "type": "string",
+              "description": "UUID da empresa (use list_companies para descobrir)."
+            }
+          },
+          "required": [
+            "company_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_goals",
+        "title": "Listar metas",
+        "description": "Lista as metas (semanais/mensais) de uma empresa no MENTOR 4X. Opcionalmente filtra por status.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "company_id": {
+              "type": "string",
+              "description": "UUID da empresa."
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "nao_iniciado",
+                "em_andamento",
+                "concluido",
+                "atrasado",
+                "bloqueado"
+              ],
+              "description": "Filtro opcional por status da meta."
+            }
+          },
+          "required": [
+            "company_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_goal",
+        "title": "Criar meta",
+        "description": "Cria uma nova meta de execução para uma empresa do MENTOR 4X. Use após confirmar a empresa correta com list_companies.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "company_id": {
+              "type": "string",
+              "description": "UUID da empresa."
+            },
+            "title": {
+              "type": "string",
+              "description": "Título da meta, objetivo e mensurável."
+            },
+            "description": {
+              "type": "string",
+              "description": "Detalhes do plano de execução."
+            },
+            "pillar": {
+              "type": "string",
+              "enum": [
+                "crescimento",
+                "eficiencia",
+                "encantamento",
+                "lideranca"
+              ],
+              "description": "Pilar 4X relacionado, se aplicável."
+            },
+            "indicator": {
+              "type": "string",
+              "description": "Indicador de sucesso (KPI)."
+            },
+            "due_date": {
+              "type": "string",
+              "description": "Prazo no formato YYYY-MM-DD."
+            },
+            "financial_impact": {
+              "type": "number",
+              "description": "Impacto financeiro estimado em BRL."
+            }
+          },
+          "required": [
+            "company_id",
+            "title"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_tasks",
+        "title": "Listar plano de ação",
+        "description": "Lista as tarefas do plano de ação de uma empresa. Por padrão só as pendentes.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "company_id": {
+              "type": "string",
+              "description": "UUID da empresa."
+            },
+            "include_done": {
+              "type": "boolean",
+              "description": "Se true, inclui também tarefas concluídas."
+            }
+          },
+          "required": [
+            "company_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_task",
+        "title": "Criar tarefa",
+        "description": "Adiciona uma tarefa ao plano de ação de uma empresa do MENTOR 4X.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "company_id": {
+              "type": "string",
+              "description": "UUID da empresa."
+            },
+            "title": {
+              "type": "string",
+              "description": "Título curto e acionável da tarefa."
+            },
+            "description": {
+              "type": "string",
+              "description": "Detalhes da execução."
+            },
+            "due_date": {
+              "type": "string",
+              "description": "Prazo no formato YYYY-MM-DD."
+            }
+          },
+          "required": [
+            "company_id",
+            "title"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_bottlenecks",
+        "title": "Listar gargalos",
+        "description": "Lista os gargalos (bottlenecks) mapeados de uma empresa, com urgência, progresso da correção e valor estimado.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "company_id": {
+              "type": "string",
+              "description": "UUID da empresa."
+            },
+            "include_resolved": {
+              "type": "boolean",
+              "description": "Se true, inclui gargalos já resolvidos."
+            }
+          },
+          "required": [
+            "company_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_bottleneck",
+        "title": "Registrar gargalo",
+        "description": "Registra um novo gargalo operacional de uma empresa do MENTOR 4X, com urgência e plano de correção.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "company_id": {
+              "type": "string",
+              "description": "UUID da empresa."
+            },
+            "name": {
+              "type": "string",
+              "description": "Nome do gargalo."
+            },
+            "area": {
+              "type": "string",
+              "description": "Área da empresa afetada (ex.: comercial, financeiro)."
+            },
+            "impact": {
+              "type": "string",
+              "description": "Descrição do impacto no negócio."
+            },
+            "urgency": {
+              "type": "string",
+              "enum": [
+                "baixa",
+                "media",
+                "alta",
+                "critica"
+              ],
+              "description": "Urgência do gargalo. Padrão: media."
+            },
+            "correction_plan": {
+              "type": "string",
+              "description": "Plano de correção proposto."
+            },
+            "estimated_value": {
+              "type": "number",
+              "description": "Valor estimado em BRL travado por este gargalo."
+            }
+          },
+          "required": [
+            "company_id",
+            "name"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "record_pillar_score",
+        "title": "Registrar score de pilar",
+        "description": "Registra uma nova nota (0 a 100) para um pilar do método 4X de uma empresa, com pontos cegos e recomendações. Requer permissão de mentor/estrategista.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "company_id": {
+              "type": "string",
+              "description": "UUID da empresa."
+            },
+            "pillar": {
+              "type": "string",
+              "enum": [
+                "crescimento",
+                "eficiencia",
+                "encantamento",
+                "lideranca"
+              ],
+              "description": "Pilar do método 4X."
+            },
+            "score": {
+              "type": "number",
+              "description": "Nota de 0 a 100."
+            },
+            "blind_spots": {
+              "type": "string",
+              "description": "Pontos cegos identificados."
+            },
+            "recommendations": {
+              "type": "string",
+              "description": "Recomendações de ação."
+            }
+          },
+          "required": [
+            "company_id",
+            "pillar",
+            "score"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
