@@ -26,10 +26,10 @@ const BLOCKS = [
 ];
 
 const MEETING_TYPES = [
-  { value: "mentoria", label: "Mentoria" },
+  { value: "checkin_semanal", label: "Check-in semanal" },
   { value: "estrategia", label: "Estratégia" },
-  { value: "sala_guerra", label: "Sala de Guerra" },
-  { value: "checkin", label: "Check-in" },
+  { value: "sala_guerra", label: "Sala de Guerra (quinzenal)" },
+  
 ];
 
 export default function WarRoom() {
@@ -44,7 +44,7 @@ export default function WarRoom() {
   const [meetings, setMeetings] = useState<any[]>([]);
   const [notesByMeeting, setNotesByMeeting] = useState<Record<string, any[]>>({});
   const [newMeetingOpen, setNewMeetingOpen] = useState(false);
-  const [newMeeting, setNewMeeting] = useState({ title: "", scheduled_at: "", meeting_type: "mentoria", meeting_url: "", location: "", duration_min: 60 });
+  const [newMeeting, setNewMeeting] = useState({ title: "", scheduled_at: "", meeting_type: "checkin_semanal", meeting_url: "", location: "", duration_min: 60 });
   const [noteOpen, setNoteOpen] = useState<{ id: string; title: string } | null>(null);
   const [noteText, setNoteText] = useState("");
   const [notePrivate, setNotePrivate] = useState(false);
@@ -117,7 +117,7 @@ export default function WarRoom() {
     if (error) { toast.error(error.message); return; }
     toast.success("Reunião agendada");
     setNewMeetingOpen(false);
-    setNewMeeting({ title: "", scheduled_at: "", meeting_type: "mentoria", meeting_url: "", location: "", duration_min: 60 });
+    setNewMeeting({ title: "", scheduled_at: "", meeting_type: "checkin_semanal", meeting_url: "", location: "", duration_min: 60 });
     loadMeetings();
   };
 
@@ -262,7 +262,7 @@ export default function WarRoom() {
           <div className="space-y-3">
             <div>
               <Label>Título *</Label>
-              <Input value={newMeeting.title} onChange={(e) => setNewMeeting({ ...newMeeting, title: e.target.value })} placeholder="Mentoria semanal" />
+              <Input value={newMeeting.title} onChange={(e) => setNewMeeting({ ...newMeeting, title: e.target.value })} placeholder="Check-in semanal" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
