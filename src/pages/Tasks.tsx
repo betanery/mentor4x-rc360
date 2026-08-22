@@ -87,7 +87,7 @@ export default function Tasks() {
     <div className="space-y-6">
       <PageHeader
         title="Plano de Ação"
-        subtitle="Tarefas operacionais da semana — o que precisa sair do papel agora."
+        subtitle="Tarefas operacionais do ciclo — o que precisa sair do papel agora."
         action={
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>

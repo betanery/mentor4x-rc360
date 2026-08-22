@@ -136,7 +136,7 @@ export default function WarRoom() {
     <div className="space-y-6">
       <PageHeader
         title="Sala de Guerra"
-        subtitle="Cadência semanal e reuniões. Tudo registrado, com ata e notas."
+        subtitle="Check-in semanal e Sala de Guerra quinzenal. Tudo registrado, com ata (rascunho até revisão) e notas."
       />
 
       <Tabs defaultValue="semanal">

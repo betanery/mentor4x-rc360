@@ -5,7 +5,7 @@ export default defineTool({
   name: "list_companies",
   title: "Listar empresas",
   description:
-    "Lista as empresas que o usuário conectado pode acessar no MENTOR 4X, com estágio da jornada, nível de caos e score geral.",
+    "Lista as empresas que o usuário conectado pode acessar no Mentor 4X, com o ciclo atual da Jornada SEE_4X, nível de Improviso e score geral.",
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_input, ctx) => {

@@ -55,7 +55,7 @@ export default function University() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Universidade 4X" subtitle="Trilhas, aulas, playbooks e materiais do método." />
+      <PageHeader title="Universidade 4X" subtitle="Recursos de apoio do SEE_4X — trilhas, aulas e materiais de implementação." />
 
       {courses.length === 0 && <Card className="p-12 text-center text-muted-foreground">Nenhum curso publicado ainda.</Card>}
 
