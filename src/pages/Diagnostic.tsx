@@ -207,7 +207,49 @@ export default function Diagnostic() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // Motor metodológico: transforma o Top 5 validado em gargalos rastreáveis (sem duplicar BlindSpot).
+  const generateTop5 = useMutation({
+    mutationFn: async () => {
+      if (!activeDiag || !result) throw new Error("Sem resultado consolidado");
+      if (activeDiag.status !== "validado") throw new Error("Valide o diagnóstico antes de gerar o Top 5");
+      const { data: existing, error: exErr } = await supabase
+        .from("bottlenecks")
+        .select("blindspot_code")
+        .eq("company_id", activeDiag.company_id)
+        .not("blindspot_code", "is", null);
+      if (exErr) throw exErr;
+      const taken = new Set((existing ?? []).map((b) => b.blindspot_code));
+      const rows = result.top5
+        .filter((code) => !taken.has(code))
+        .map((code) => {
+          const bs = blindspotByCode(code)!;
+          const score = result.blindspots.find((b) => b.code === code)?.improviso ?? 0;
+          return {
+            company_id: activeDiag.company_id,
+            diagnostic_id: activeDiag.id,
+            blindspot_code: code,
+            name: bs.title,
+            area: PILLAR_LABEL[bs.pillar].label,
+            impact: `${bs.statement} (Improviso ${score}/100)`,
+            urgency: urgencyForImproviso(score),
+            correction_plan: `Capacidades estruturantes: 1) ${bs.capacities[0]} · 2) ${bs.capacities[1]}`,
+            progress: 0,
+          };
+        });
+      if (!rows.length) throw new Error("Os cinco BlindSpots já viraram gargalos");
+      const { error } = await supabase.from("bottlenecks").insert(rows);
+      if (error) throw error;
+      return rows.length;
+    },
+    onSuccess: (n) => {
+      qc.invalidateQueries({ queryKey: ["bottlenecks"] });
+      toast.success(`${n} gargalo(s) criado(s) a partir do Top 5.`);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const openValidate = () => {
+
     if (!live) return;
     setValidation({
       maturity: live.suggestedMaturity,
