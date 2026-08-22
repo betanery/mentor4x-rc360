@@ -86,6 +86,9 @@ export default function Goals() {
         financial_impact: Number(form.financial_impact) || 0,
         due_date: form.due_date || null,
         week_start: form.week_start,
+        blindspot_code: form.blindspot_code || null,
+        capacity_code: form.capacity_code || null,
+        bottleneck_id: form.bottleneck_id || null,
         created_by: user.id,
       });
       if (error) throw error;
@@ -93,7 +96,8 @@ export default function Goals() {
     onSuccess: () => {
       toast.success("Meta criada");
       setOpen(false);
-      setForm({ title: "", description: "", pillar: "crescimento", indicator: "", financial_impact: "0", due_date: "", week_start: format(new Date(), "yyyy-MM-dd") });
+      setForm({ title: "", description: "", pillar: "crescimento", indicator: "", financial_impact: "0", due_date: "", week_start: format(new Date(), "yyyy-MM-dd"), blindspot_code: "", capacity_code: "", bottleneck_id: "" });
+
       invalidate();
     },
     onError: (e: any) => toast.error(e.message),
