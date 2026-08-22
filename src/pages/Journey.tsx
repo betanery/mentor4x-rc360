@@ -174,7 +174,9 @@ export default function Journey() {
                   <h3 className="text-2xl font-black mt-1">{meta.subtitle}</h3>
                   {isCurrent && <span className="inline-block mt-2 text-[10px] font-bold bg-gold/20 text-gold px-2 py-1 rounded">VOCÊ ESTÁ AQUI</span>}
                   {isDone && <span className="inline-block mt-2 text-[10px] font-bold bg-success/20 text-success px-2 py-1 rounded">CONCLUÍDO</span>}
+                  <p className="mt-3 text-xs text-muted-foreground"><span className="font-bold uppercase tracking-widest text-[10px] block mb-1">Saída principal</span>{meta.output}</p>
                 </div>
+
 
                 <div className="flex-1 grid md:grid-cols-2 gap-5">
                   <div>
