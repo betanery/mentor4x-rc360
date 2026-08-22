@@ -55,9 +55,11 @@ export type Database = {
       bottlenecks: {
         Row: {
           area: string | null
+          blindspot_code: string | null
           company_id: string
           correction_plan: string | null
           created_at: string
+          diagnostic_id: string | null
           estimated_value: number | null
           id: string
           impact: string | null
@@ -70,9 +72,11 @@ export type Database = {
         }
         Insert: {
           area?: string | null
+          blindspot_code?: string | null
           company_id: string
           correction_plan?: string | null
           created_at?: string
+          diagnostic_id?: string | null
           estimated_value?: number | null
           id?: string
           impact?: string | null
@@ -85,9 +89,11 @@ export type Database = {
         }
         Update: {
           area?: string | null
+          blindspot_code?: string | null
           company_id?: string
           correction_plan?: string | null
           created_at?: string
+          diagnostic_id?: string | null
           estimated_value?: number | null
           id?: string
           impact?: string | null
@@ -104,6 +110,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bottlenecks_diagnostic_id_fkey"
+            columns: ["diagnostic_id"]
+            isOneToOne: false
+            referencedRelation: "diagnostics"
             referencedColumns: ["id"]
           },
         ]
@@ -405,6 +418,9 @@ export type Database = {
       }
       goals: {
         Row: {
+          blindspot_code: string | null
+          bottleneck_id: string | null
+          capacity_code: string | null
           company_id: string
           created_at: string
           created_by: string | null
@@ -423,6 +439,9 @@ export type Database = {
           week_start: string | null
         }
         Insert: {
+          blindspot_code?: string | null
+          bottleneck_id?: string | null
+          capacity_code?: string | null
           company_id: string
           created_at?: string
           created_by?: string | null
@@ -441,6 +460,9 @@ export type Database = {
           week_start?: string | null
         }
         Update: {
+          blindspot_code?: string | null
+          bottleneck_id?: string | null
+          capacity_code?: string | null
           company_id?: string
           created_at?: string
           created_by?: string | null
@@ -459,6 +481,13 @@ export type Database = {
           week_start?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "goals_bottleneck_id_fkey"
+            columns: ["bottleneck_id"]
+            isOneToOne: false
+            referencedRelation: "bottlenecks"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "goals_company_id_fkey"
             columns: ["company_id"]
@@ -911,6 +940,7 @@ export type Database = {
           description: string | null
           done: boolean | null
           due_date: string | null
+          goal_id: string | null
           id: string
           responsible_user_id: string | null
           title: string
@@ -921,6 +951,7 @@ export type Database = {
           description?: string | null
           done?: boolean | null
           due_date?: string | null
+          goal_id?: string | null
           id?: string
           responsible_user_id?: string | null
           title: string
@@ -931,6 +962,7 @@ export type Database = {
           description?: string | null
           done?: boolean | null
           due_date?: string | null
+          goal_id?: string | null
           id?: string
           responsible_user_id?: string | null
           title?: string
@@ -941,6 +973,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
             referencedColumns: ["id"]
           },
         ]

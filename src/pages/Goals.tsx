@@ -30,7 +30,7 @@ export default function Goals() {
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
   const [mentorDraft, setMentorDraft] = useState("");
   const [updateDraft, setUpdateDraft] = useState("");
-  const [form, setForm] = useState({ title: "", description: "", pillar: "crescimento", indicator: "", financial_impact: "0", due_date: "", week_start: format(new Date(), "yyyy-MM-dd") });
+  const [form, setForm] = useState({ title: "", description: "", pillar: "crescimento", indicator: "", financial_impact: "0", due_date: "", week_start: format(new Date(), "yyyy-MM-dd"), blindspot_code: "", capacity_code: "", bottleneck_id: "" });
 
   const { data: goals = [], isLoading } = useQuery({
     queryKey: ["goals", current?.id],
@@ -74,6 +74,33 @@ export default function Goals() {
   });
 
 
+  const { data: bottlenecks = [] } = useQuery({
+    queryKey: ["bottlenecks", current?.id],
+    enabled: !!current,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("bottlenecks")
+        .select("id, name, blindspot_code, resolved")
+        .eq("company_id", current!.id)
+        .eq("resolved", false)
+        .limit(50);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Vincular a meta ao BlindSpot puxa o pilar e as capacidades correspondentes.
+  const pickBlindspot = (code: string) => {
+    const bs = blindspotByCode(code);
+    setForm((s) => ({
+      ...s,
+      blindspot_code: code,
+      capacity_code: "",
+      pillar: bs ? bs.pillar : s.pillar,
+    }));
+  };
+
+
   const createMut = useMutation({
     mutationFn: async () => {
       if (!current || !user) throw new Error("Sem empresa");
@@ -86,6 +113,9 @@ export default function Goals() {
         financial_impact: Number(form.financial_impact) || 0,
         due_date: form.due_date || null,
         week_start: form.week_start,
+        blindspot_code: form.blindspot_code || null,
+        capacity_code: form.capacity_code || null,
+        bottleneck_id: form.bottleneck_id || null,
         created_by: user.id,
       });
       if (error) throw error;
@@ -93,7 +123,8 @@ export default function Goals() {
     onSuccess: () => {
       toast.success("Meta criada");
       setOpen(false);
-      setForm({ title: "", description: "", pillar: "crescimento", indicator: "", financial_impact: "0", due_date: "", week_start: format(new Date(), "yyyy-MM-dd") });
+      setForm({ title: "", description: "", pillar: "crescimento", indicator: "", financial_impact: "0", due_date: "", week_start: format(new Date(), "yyyy-MM-dd"), blindspot_code: "", capacity_code: "", bottleneck_id: "" });
+
       invalidate();
     },
     onError: (e: any) => toast.error(e.message),
