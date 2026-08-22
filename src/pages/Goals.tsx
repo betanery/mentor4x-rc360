@@ -30,7 +30,7 @@ export default function Goals() {
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
   const [mentorDraft, setMentorDraft] = useState("");
   const [updateDraft, setUpdateDraft] = useState("");
-  const [form, setForm] = useState({ title: "", description: "", pillar: "crescimento", indicator: "", financial_impact: "0", due_date: "", week_start: format(new Date(), "yyyy-MM-dd") });
+  const [form, setForm] = useState({ title: "", description: "", pillar: "crescimento", indicator: "", financial_impact: "0", due_date: "", week_start: format(new Date(), "yyyy-MM-dd"), blindspot_code: "", capacity_code: "", bottleneck_id: "" });
 
   const { data: goals = [], isLoading } = useQuery({
     queryKey: ["goals", current?.id],
