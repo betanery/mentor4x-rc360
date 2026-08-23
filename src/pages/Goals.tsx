@@ -272,15 +272,35 @@ export default function Goals() {
     <div className="space-y-6">
       <PageHeader
         title="Sistema de Metas"
-        subtitle="2 metas críticas por semana — board de execução estilo ClickUp."
+        subtitle="Até 2 Metas Críticas ativas por empresa — a terceira exige justificativa de capacidade e aprovação do Consultor 4X."
         action={
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button className="bg-gradient-brand"><Plus className="h-4 w-4 mr-1" /> Nova meta</Button></DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>Nova meta crítica</DialogTitle></DialogHeader>
+            <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+              <DialogHeader><DialogTitle>Nova Meta Crítica</DialogTitle></DialogHeader>
               <div className="space-y-3">
+                {atCapacity && (
+                  <div className="rounded-lg border border-gold/40 bg-gold/10 p-3">
+                    <p className="flex items-center gap-2 text-xs font-bold text-gold">
+                      <AlertTriangle className="h-4 w-4" /> Alerta de capacidade
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      A empresa já tem {activeCritical.length} Metas Críticas ativas. Esta meta entra como <strong>pendente</strong> e só passa a valer após aprovação do Consultor 4X.
+                    </p>
+                    <div className="mt-2">
+                      <Label>Justificativa de capacidade</Label>
+                      <Textarea
+                        rows={3}
+                        value={form.capacity_justification}
+                        onChange={(e) => setForm({ ...form, capacity_justification: e.target.value })}
+                        placeholder="Por que a empresa consegue sustentar uma terceira meta ativa?"
+                      />
+                    </div>
+                  </div>
+                )}
                 <div><Label>Título</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex.: Fechar 5 contratos novos" /></div>
                 <div><Label>Descrição</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+
                 <div className="grid grid-cols-1 gap-3 rounded-lg border border-border p-3 bg-muted/30">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Vínculo metodológico SEE_4X</p>
                   <div>
