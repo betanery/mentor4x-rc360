@@ -9,9 +9,14 @@ import { Award, CheckCircle2, Loader2, Search, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-type Result =
-  | { valid: true; code: string; issued_at: string; company_name: string | null; journey_stage: string | null }
-  | { valid: false; reason: string };
+type Result = {
+  valid: boolean;
+  code?: string;
+  issued_at?: string;
+  company_name?: string | null;
+  journey_stage?: string | null;
+  reason?: string;
+};
 
 const REASON: Record<string, string> = {
   not_found: "Não encontramos nenhum certificado com este código.",
