@@ -471,7 +471,41 @@ export default function Goals() {
           <DialogHeader><DialogTitle>{detail?.title}</DialogTitle></DialogHeader>
           {detail && (
             <div className="space-y-4">
+              {detail.approval_status !== "aprovada" && (
+                <div className={`rounded-lg border p-3 ${detail.approval_status === "pendente" ? "border-warning/40 bg-warning/10" : "border-destructive/40 bg-destructive/10"}`}>
+                  <p className="text-xs font-bold uppercase tracking-widest">
+                    {detail.approval_status === "pendente" ? "Meta excedente aguardando aprovação" : "Meta excedente recusada"}
+                  </p>
+                  {detail.capacity_justification && (
+                    <p className="mt-1 text-xs text-muted-foreground whitespace-pre-wrap">
+                      Justificativa de capacidade: {detail.capacity_justification}
+                    </p>
+                  )}
+                  {isStaff && detail.approval_status === "pendente" && (
+                    <div className="mt-2 space-y-2">
+                      <Textarea
+                        rows={2}
+                        value={approvalDraft}
+                        onChange={(e) => setApprovalDraft(e.target.value)}
+                        placeholder="Parecer da decisão (opcional)"
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" disabled={decideMut.isPending} onClick={() => decideMut.mutate({ goal: detail, approve: true, note: approvalDraft })}>
+                          Aprovar excedente
+                        </Button>
+                        <Button size="sm" variant="outline" disabled={decideMut.isPending} onClick={() => decideMut.mutate({ goal: detail, approve: false, note: approvalDraft })}>
+                          Recusar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  {!isStaff && detail.approval_status === "pendente" && (
+                    <p className="mt-1 text-xs text-muted-foreground">Somente o Consultor 4X pode liberar esta meta.</p>
+                  )}
+                </div>
+              )}
               {detail.description && <p className="text-sm text-muted-foreground">{detail.description}</p>}
+
 
               <div>
                 <Label className="text-xs uppercase tracking-wide">Evidência</Label>
