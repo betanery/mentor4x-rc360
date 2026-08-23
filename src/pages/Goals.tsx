@@ -16,7 +16,9 @@ import { GOAL_STATUS_LABEL, formatBRL, PILLAR_LABEL } from "@/lib/labels";
 import { Plus, Calendar, DollarSign, Trash2, Paperclip, MessageSquare, Loader2, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { BLINDSPOTS, CAPACITIES, blindspotByCode, capacityByCode } from "@/lib/see4x";
 import type { Tables } from "@/integrations/supabase/types";
+
 
 type Goal = Tables<"goals">;
 const STATUSES = ["nao_iniciado", "em_andamento", "concluido", "atrasado", "bloqueado"] as const;
