@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Award, CheckCircle2, Download, Sparkles } from "lucide-react";
+import { Award, CheckCircle2, Download, Link as LinkIcon, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
