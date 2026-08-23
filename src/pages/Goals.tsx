@@ -220,7 +220,7 @@ export default function Goals() {
                     <Select value={form.bottleneck_id} onValueChange={(v) => setForm({ ...form, bottleneck_id: v })}>
                       <SelectTrigger><SelectValue placeholder="Opcional — gargalo do Top 5" /></SelectTrigger>
                       <SelectContent>
-                        {bottlenecks.length === 0 && <SelectItem value="" disabled>Nenhum gargalo ativo</SelectItem>}
+                        {bottlenecks.length === 0 && <SelectItem value="sem-gargalo" disabled>Nenhum gargalo ativo</SelectItem>}
                         {bottlenecks.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
