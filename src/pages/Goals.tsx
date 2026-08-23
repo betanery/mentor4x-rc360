@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GOAL_STATUS_LABEL, formatBRL, PILLAR_LABEL } from "@/lib/labels";
-import { Plus, Calendar, DollarSign, Trash2, Paperclip, MessageSquare, Loader2, ExternalLink } from "lucide-react";
+import { Plus, Calendar, DollarSign, Trash2, Paperclip, MessageSquare, Loader2, ExternalLink, AlertTriangle, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { BLINDSPOTS, CAPACITIES, blindspotByCode, capacityByCode } from "@/lib/see4x";
@@ -25,6 +25,12 @@ const STATUSES = ["nao_iniciado", "em_andamento", "concluido", "atrasado", "bloq
 const ACTIVE_STATUSES: Goal["status"][] = ["nao_iniciado", "em_andamento", "atrasado", "bloqueado"];
 /** Alçada SEE_4X: até 2 Metas Críticas ativas por empresa. */
 const CRITICAL_LIMIT = 2;
+const GOVERNANCE_ACTION_LABEL: Record<string, string> = {
+  meta_excedente_solicitada: "Meta excedente solicitada",
+  meta_excedente_aprovada: "Meta excedente aprovada pelo Consultor 4X",
+  meta_excedente_rejeitada: "Meta excedente recusada pelo Consultor 4X",
+};
+
 
 export default function Goals() {
   const { current } = useCompany();
@@ -272,15 +278,35 @@ export default function Goals() {
     <div className="space-y-6">
       <PageHeader
         title="Sistema de Metas"
-        subtitle="2 metas críticas por semana — board de execução estilo ClickUp."
+        subtitle="Até 2 Metas Críticas ativas por empresa — a terceira exige justificativa de capacidade e aprovação do Consultor 4X."
         action={
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button className="bg-gradient-brand"><Plus className="h-4 w-4 mr-1" /> Nova meta</Button></DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>Nova meta crítica</DialogTitle></DialogHeader>
+            <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+              <DialogHeader><DialogTitle>Nova Meta Crítica</DialogTitle></DialogHeader>
               <div className="space-y-3">
+                {atCapacity && (
+                  <div className="rounded-lg border border-gold/40 bg-gold/10 p-3">
+                    <p className="flex items-center gap-2 text-xs font-bold text-gold">
+                      <AlertTriangle className="h-4 w-4" /> Alerta de capacidade
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      A empresa já tem {activeCritical.length} Metas Críticas ativas. Esta meta entra como <strong>pendente</strong> e só passa a valer após aprovação do Consultor 4X.
+                    </p>
+                    <div className="mt-2">
+                      <Label>Justificativa de capacidade</Label>
+                      <Textarea
+                        rows={3}
+                        value={form.capacity_justification}
+                        onChange={(e) => setForm({ ...form, capacity_justification: e.target.value })}
+                        placeholder="Por que a empresa consegue sustentar uma terceira meta ativa?"
+                      />
+                    </div>
+                  </div>
+                )}
                 <div><Label>Título</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex.: Fechar 5 contratos novos" /></div>
                 <div><Label>Descrição</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+
                 <div className="grid grid-cols-1 gap-3 rounded-lg border border-border p-3 bg-muted/30">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Vínculo metodológico SEE_4X</p>
                   <div>
@@ -341,6 +367,28 @@ export default function Goals() {
 
       {isLoading && <Card className="p-12 text-center text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Carregando metas...</Card>}
 
+      <Card className="p-4 shadow-card">
+        <div className="flex flex-wrap items-center gap-4">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Alçada de capacidade</p>
+            <p className="text-sm font-semibold">
+              {activeCritical.length} de {CRITICAL_LIMIT} Metas Críticas ativas
+            </p>
+          </div>
+          {atCapacity && (
+            <Badge variant="secondary" className="bg-gold/15 text-gold font-semibold">
+              <AlertTriangle className="h-3 w-3 mr-1" /> Capacidade no limite
+            </Badge>
+          )}
+          {pendingApproval.length > 0 && (
+            <Badge variant="secondary" className="bg-warning/15 text-warning font-semibold">
+              <ShieldCheck className="h-3 w-3 mr-1" /> {pendingApproval.length} aguardando aprovação
+            </Badge>
+          )}
+        </div>
+      </Card>
+
+
       <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4">
         {STATUSES.map((status) => {
           const items = goals.filter((g) => g.status === status);
@@ -363,6 +411,13 @@ export default function Goals() {
                         </button>
                       </div>
                       {p && <span className={`inline-block mt-2 text-[10px] font-bold px-2 py-0.5 rounded bg-gradient-to-r ${p.color} text-white`}>{p.label}</span>}
+                      {g.approval_status === "pendente" && (
+                        <span className="inline-block mt-2 ml-1 text-[10px] font-bold px-2 py-0.5 rounded bg-warning/15 text-warning">Aguardando aprovação</span>
+                      )}
+                      {g.approval_status === "rejeitada" && (
+                        <span className="inline-block mt-2 ml-1 text-[10px] font-bold px-2 py-0.5 rounded bg-destructive/15 text-destructive">Excedente recusado</span>
+                      )}
+
                       {g.blindspot_code && (
                         <div className="mt-2 text-[10px] leading-tight text-muted-foreground">
                           <span className="font-bold text-gold">{g.blindspot_code}</span>{" "}
@@ -398,12 +453,65 @@ export default function Goals() {
         })}
       </div>
 
+      <Card className="p-5 shadow-card">
+        <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-muted-foreground">
+          <ShieldCheck className="h-4 w-4 text-gold" /> Registro de decisões
+        </h3>
+        <div className="mt-3 space-y-2">
+          {governance.length === 0 && <p className="text-xs text-muted-foreground">Nenhuma decisão de alçada registrada nesta empresa.</p>}
+          {governance.map((g) => (
+            <div key={g.id} className="rounded-lg border border-border bg-muted/30 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-bold">{GOVERNANCE_ACTION_LABEL[g.action] ?? g.action}</p>
+                <span className="text-[10px] text-muted-foreground">{format(new Date(g.created_at), "dd/MM/yyyy HH:mm")}</span>
+              </div>
+              {g.justification && <p className="mt-1 text-xs text-muted-foreground whitespace-pre-wrap">{g.justification}</p>}
+            </div>
+          ))}
+        </div>
+      </Card>
+
+
       <Dialog open={!!detailId} onOpenChange={(o) => !o && setDetailId(null)}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{detail?.title}</DialogTitle></DialogHeader>
           {detail && (
             <div className="space-y-4">
+              {detail.approval_status !== "aprovada" && (
+                <div className={`rounded-lg border p-3 ${detail.approval_status === "pendente" ? "border-warning/40 bg-warning/10" : "border-destructive/40 bg-destructive/10"}`}>
+                  <p className="text-xs font-bold uppercase tracking-widest">
+                    {detail.approval_status === "pendente" ? "Meta excedente aguardando aprovação" : "Meta excedente recusada"}
+                  </p>
+                  {detail.capacity_justification && (
+                    <p className="mt-1 text-xs text-muted-foreground whitespace-pre-wrap">
+                      Justificativa de capacidade: {detail.capacity_justification}
+                    </p>
+                  )}
+                  {isStaff && detail.approval_status === "pendente" && (
+                    <div className="mt-2 space-y-2">
+                      <Textarea
+                        rows={2}
+                        value={approvalDraft}
+                        onChange={(e) => setApprovalDraft(e.target.value)}
+                        placeholder="Parecer da decisão (opcional)"
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" disabled={decideMut.isPending} onClick={() => decideMut.mutate({ goal: detail, approve: true, note: approvalDraft })}>
+                          Aprovar excedente
+                        </Button>
+                        <Button size="sm" variant="outline" disabled={decideMut.isPending} onClick={() => decideMut.mutate({ goal: detail, approve: false, note: approvalDraft })}>
+                          Recusar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  {!isStaff && detail.approval_status === "pendente" && (
+                    <p className="mt-1 text-xs text-muted-foreground">Somente o Consultor 4X pode liberar esta meta.</p>
+                  )}
+                </div>
+              )}
               {detail.description && <p className="text-sm text-muted-foreground">{detail.description}</p>}
+
 
               <div>
                 <Label className="text-xs uppercase tracking-wide">Evidência</Label>
