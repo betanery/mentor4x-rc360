@@ -108,7 +108,7 @@ export default function Verify() {
                 <h2 className="text-2xl font-black mt-2 break-words">{result.company_name ?? "Empresa certificada"}</h2>
                 <p className="mt-2 text-primary-foreground/80 text-sm">
                   Certificação emitida em{" "}
-                  {format(new Date(result.issued_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })} pela metodologia
+                  {format(new Date(result.issued_at ?? Date.now()), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })} pela metodologia
                   SEE_4X — Sistema de Estruturação Empresarial 4X, assinatura RC360.
                 </p>
                 <p className="mt-4 font-mono text-xs text-primary-foreground/70">Código #{result.code}</p>
@@ -123,7 +123,7 @@ export default function Verify() {
               <XCircle className="h-10 w-10 text-destructive shrink-0" />
               <div>
                 <h2 className="text-xl font-bold">Certificado não validado</h2>
-                <p className="mt-2 text-sm text-muted-foreground">{REASON[result.reason] ?? REASON.not_found}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{REASON[result.reason ?? "not_found"] ?? REASON.not_found}</p>
               </div>
             </div>
           </Card>
