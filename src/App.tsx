@@ -30,6 +30,7 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminCompanies from "./pages/AdminCompanies";
 import AdminUniversity from "./pages/AdminUniversity";
 import OAuthConsent from "./pages/OAuthConsent";
+import Verify from "./pages/Verify";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
