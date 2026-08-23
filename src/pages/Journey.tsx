@@ -359,6 +359,8 @@ export default function Journey() {
       <div className="space-y-4">
         {STAGES.map((stage, i) => {
           const meta = CYCLE_LABEL[stage.key];
+          const record = recordFor(stage.key);
+          const prog = stageProgress(stage.key);
 
           const isCurrent = current.journey_stage === stage.key;
           const isDone = currentIdx > i;
@@ -373,8 +375,29 @@ export default function Journey() {
                   <h3 className="text-2xl font-black mt-1">{meta.subtitle}</h3>
                   {isCurrent && <span className="inline-block mt-2 text-[10px] font-bold bg-gold/20 text-gold px-2 py-1 rounded">VOCÊ ESTÁ AQUI</span>}
                   {isDone && <span className="inline-block mt-2 text-[10px] font-bold bg-success/20 text-success px-2 py-1 rounded">CONCLUÍDO</span>}
+                  <p className="mt-2 text-[11px] font-bold text-muted-foreground">{prog.done}/{prog.total} itens · {prog.pct}%</p>
                   <p className="mt-3 text-xs text-muted-foreground"><span className="font-bold uppercase tracking-widest text-[10px] block mb-1">Saída principal</span>{meta.output}</p>
+                  {record?.closed_at && (
+                    <div className="mt-3 rounded-lg border bg-muted/40 p-2.5">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+                        <Lock className="h-3 w-3" /> Ciclo encerrado
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        {new Date(record.closed_at).toLocaleDateString("pt-BR")}
+                      </p>
+                      {record.summary && <p className="text-[11px] mt-1 line-clamp-4">{record.summary}</p>}
+                      {record.gate_override_justification && (
+                        <p className="text-[11px] mt-1 text-warning">Pendências justificadas: {record.gate_override_justification}</p>
+                      )}
+                      {record.evidence_url && (
+                        <a href={record.evidence_url} target="_blank" rel="noreferrer" className="text-[11px] text-primary font-bold inline-flex items-center gap-1 mt-1">
+                          <Paperclip className="h-3 w-3" /> Evidência
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
+
 
 
                 <div className="flex-1 grid md:grid-cols-2 gap-5">
