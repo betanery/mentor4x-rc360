@@ -376,7 +376,7 @@ export default function ReportSee4X() {
               </div>
               <div className="space-y-6">
                 {MOTORES.map((motor) => {
-                  const motorGoals = goals.filter((g) => (g.motor || motorForPillar(g.pillar)) === motor.key);
+                  const motorGoals = goals.filter((g) => ((g as any).motor || motorForPillar(g.pillar)) === motor.key);
                   return (
                     <div key={motor.key}>
                       <p className="text-sm font-bold text-gold mb-2">{motor.label}</p>
