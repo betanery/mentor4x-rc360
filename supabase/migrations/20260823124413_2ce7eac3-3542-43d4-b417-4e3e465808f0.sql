@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.enforce_critical_goal_limit() FROM authenticated;
