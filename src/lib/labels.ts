@@ -38,12 +38,20 @@ export const CYCLE_LABEL: Record<string, { label: string; subtitle: string; outp
 export const CYCLE_ORDER = ["ciclo_1", "ciclo_2", "ciclo_3", "ciclo_4", "ciclo_5", "ciclo_6", "concluido"] as const;
 
 // Os cinco Motores são cumulativos: cada ciclo destaca um foco sem desligar os anteriores.
+export const MOTOR_LABEL: Record<string, string> = {
+  clareza: "Clareza",
+  prioridade: "Prioridade",
+  execucao: "Execução",
+  governanca: "Governança",
+  autonomia: "Autonomia",
+};
+
 export const MOTORES = [
-  { key: "clareza", label: "Clareza", cycles: ["ciclo_1"] },
-  { key: "prioridade", label: "Prioridade", cycles: ["ciclo_1", "ciclo_2"] },
-  { key: "execucao", label: "Execução", cycles: ["ciclo_2", "ciclo_3"] },
-  { key: "governanca", label: "Governança", cycles: ["ciclo_4", "ciclo_5"] },
-  { key: "autonomia", label: "Autonomia", cycles: ["ciclo_6", "concluido"] },
+  { key: "clareza", label: MOTOR_LABEL.clareza, cycles: ["ciclo_1"] },
+  { key: "prioridade", label: MOTOR_LABEL.prioridade, cycles: ["ciclo_1", "ciclo_2"] },
+  { key: "execucao", label: MOTOR_LABEL.execucao, cycles: ["ciclo_2", "ciclo_3"] },
+  { key: "governanca", label: MOTOR_LABEL.governanca, cycles: ["ciclo_4", "ciclo_5"] },
+  { key: "autonomia", label: MOTOR_LABEL.autonomia, cycles: ["ciclo_6", "concluido"] },
 ];
 
 export const MEETING_TYPE_LABEL: Record<string, string> = {
