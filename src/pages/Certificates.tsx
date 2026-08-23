@@ -79,17 +79,35 @@ export default function Certificates() {
         <div className="space-y-3">
           <h3 className="text-lg font-bold">Certificados emitidos</h3>
           {certs.map((c) => (
-            <Card key={c.id} className="p-5 shadow-card flex items-center gap-4">
-              <CheckCircle2 className="h-8 w-8 text-gold" />
-              <div className="flex-1">
+            <Card key={c.id} className="p-5 shadow-card flex flex-col sm:flex-row sm:items-center gap-4">
+              <CheckCircle2 className="h-8 w-8 text-gold shrink-0" />
+              <div className="flex-1 min-w-0">
                 <p className="font-bold">Certificado #{c.code}</p>
                 <p className="text-xs text-muted-foreground">Emitido em {format(new Date(c.issued_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
+                {c.code && (
+                  <a href={`/validar/${c.code}`} target="_blank" rel="noreferrer" className="text-xs font-semibold text-gold hover:underline mt-1 inline-block">
+                    Página pública de validação
+                  </a>
+                )}
               </div>
-              {c.pdf_url && (
-                <Button variant="outline" onClick={() => download(c.pdf_url, c.code)}>
-                  <Download className="h-4 w-4 mr-1" /> PDF
-                </Button>
-              )}
+              <div className="flex gap-2">
+                {c.code && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/validar/${c.code}`);
+                      toast.success("Link de validação copiado");
+                    }}
+                  >
+                    <LinkIcon className="h-4 w-4 mr-1" /> Copiar link
+                  </Button>
+                )}
+                {c.pdf_url && (
+                  <Button variant="outline" onClick={() => download(c.pdf_url, c.code)}>
+                    <Download className="h-4 w-4 mr-1" /> PDF
+                  </Button>
+                )}
+              </div>
             </Card>
           ))}
         </div>
