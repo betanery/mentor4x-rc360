@@ -447,6 +447,25 @@ export default function Goals() {
         })}
       </div>
 
+      <Card className="p-5 shadow-card">
+        <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-muted-foreground">
+          <ShieldCheck className="h-4 w-4 text-gold" /> Registro de decisões
+        </h3>
+        <div className="mt-3 space-y-2">
+          {governance.length === 0 && <p className="text-xs text-muted-foreground">Nenhuma decisão de alçada registrada nesta empresa.</p>}
+          {governance.map((g) => (
+            <div key={g.id} className="rounded-lg border border-border bg-muted/30 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-bold">{GOVERNANCE_ACTION_LABEL[g.action] ?? g.action}</p>
+                <span className="text-[10px] text-muted-foreground">{format(new Date(g.created_at), "dd/MM/yyyy HH:mm")}</span>
+              </div>
+              {g.justification && <p className="mt-1 text-xs text-muted-foreground whitespace-pre-wrap">{g.justification}</p>}
+            </div>
+          ))}
+        </div>
+      </Card>
+
+
       <Dialog open={!!detailId} onOpenChange={(o) => !o && setDetailId(null)}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{detail?.title}</DialogTitle></DialogHeader>
