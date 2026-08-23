@@ -418,9 +418,13 @@ export type Database = {
       }
       goals: {
         Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           blindspot_code: string | null
           bottleneck_id: string | null
           capacity_code: string | null
+          capacity_justification: string | null
           company_id: string
           created_at: string
           created_by: string | null
@@ -430,6 +434,7 @@ export type Database = {
           financial_impact: number | null
           id: string
           indicator: string | null
+          is_critical: boolean
           mentor_comment: string | null
           pillar: Database["public"]["Enums"]["pillar"] | null
           responsible_user_id: string | null
@@ -439,9 +444,13 @@ export type Database = {
           week_start: string | null
         }
         Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           blindspot_code?: string | null
           bottleneck_id?: string | null
           capacity_code?: string | null
+          capacity_justification?: string | null
           company_id: string
           created_at?: string
           created_by?: string | null
@@ -451,6 +460,7 @@ export type Database = {
           financial_impact?: number | null
           id?: string
           indicator?: string | null
+          is_critical?: boolean
           mentor_comment?: string | null
           pillar?: Database["public"]["Enums"]["pillar"] | null
           responsible_user_id?: string | null
@@ -460,9 +470,13 @@ export type Database = {
           week_start?: string | null
         }
         Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           blindspot_code?: string | null
           bottleneck_id?: string | null
           capacity_code?: string | null
+          capacity_justification?: string | null
           company_id?: string
           created_at?: string
           created_by?: string | null
@@ -472,6 +486,7 @@ export type Database = {
           financial_impact?: number | null
           id?: string
           indicator?: string | null
+          is_critical?: boolean
           mentor_comment?: string | null
           pillar?: Database["public"]["Enums"]["pillar"] | null
           responsible_user_id?: string | null
@@ -490,6 +505,53 @@ export type Database = {
           },
           {
             foreignKeyName: "goals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      governance_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          company_id: string
+          created_at: string
+          entity: string
+          entity_id: string | null
+          id: string
+          justification: string | null
+          new_value: string | null
+          previous_value: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          company_id: string
+          created_at?: string
+          entity: string
+          entity_id?: string | null
+          id?: string
+          justification?: string | null
+          new_value?: string | null
+          previous_value?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          company_id?: string
+          created_at?: string
+          entity?: string
+          entity_id?: string | null
+          id?: string
+          justification?: string | null
+          new_value?: string | null
+          previous_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "governance_log_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
