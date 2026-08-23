@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Trash2, Loader2, ListChecks, Calendar } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Trash2, Loader2, ListChecks, Calendar, Target } from "lucide-react";
 import { format, isBefore, startOfToday } from "date-fns";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
@@ -22,7 +23,7 @@ export default function Tasks() {
   const { current } = useCompany();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "", due_date: "" });
+  const [form, setForm] = useState({ title: "", description: "", due_date: "", goal_id: "" });
 
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["tasks", current?.id],
@@ -40,6 +41,23 @@ export default function Tasks() {
     },
   });
 
+  const { data: goals = [] } = useQuery({
+    queryKey: ["goals", current?.id],
+    enabled: !!current,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("goals")
+        .select("id, title, blindspot_code")
+        .eq("company_id", current!.id)
+        .neq("status", "concluido")
+        .limit(100);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const goalById = (id?: string | null) => goals.find((g) => g.id === id);
+
   const invalidate = () => qc.invalidateQueries({ queryKey: ["tasks", current?.id] });
 
   const createMut = useMutation({
@@ -50,13 +68,14 @@ export default function Tasks() {
         title: form.title,
         description: form.description || null,
         due_date: form.due_date || null,
+        goal_id: form.goal_id || null,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Tarefa criada");
       setOpen(false);
-      setForm({ title: "", description: "", due_date: "" });
+      setForm({ title: "", description: "", due_date: "", goal_id: "" });
       invalidate();
     },
     onError: (e: any) => toast.error(e.message),
@@ -99,6 +118,16 @@ export default function Tasks() {
                 <div><Label>Título</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex.: Montar script de vendas" /></div>
                 <div><Label>Descrição</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} /></div>
                 <div><Label>Prazo</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
+                <div>
+                  <Label>Meta vinculada</Label>
+                  <Select value={form.goal_id} onValueChange={(v) => setForm({ ...form, goal_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="Opcional — meta do ciclo" /></SelectTrigger>
+                    <SelectContent>
+                      {goals.length === 0 && <SelectItem value="sem-meta" disabled>Nenhuma meta em aberto</SelectItem>}
+                      {goals.map((g) => <SelectItem key={g.id} value={g.id}>{g.title}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <DialogFooter>
                 <Button onClick={() => createMut.mutate()} disabled={!form.title || createMut.isPending}>Criar tarefa</Button>
@@ -132,6 +161,15 @@ export default function Tasks() {
                   <div className="flex-1 min-w-0">
                     <p className={`font-semibold text-sm ${t.done ? "line-through text-muted-foreground" : ""}`}>{t.title}</p>
                     {t.description && <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{t.description}</p>}
+                    {t.goal_id && goalById(t.goal_id) && (
+                      <div className="mt-2 inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-muted/60 border border-border">
+                        <Target className="h-3 w-3 text-primary" />
+                        {goalById(t.goal_id)?.title}
+                        {goalById(t.goal_id)?.blindspot_code && (
+                          <span className="font-bold text-gold">· {goalById(t.goal_id)?.blindspot_code}</span>
+                        )}
+                      </div>
+                    )}
                     {t.due_date && (
                       <div className={`mt-2 flex items-center gap-1 text-[11px] ${late ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
                         <Calendar className="h-3 w-3" /> {format(new Date(t.due_date), "dd/MM/yyyy")}{late ? " · atrasada" : ""}
