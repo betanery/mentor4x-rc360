@@ -361,6 +361,28 @@ export default function Goals() {
 
       {isLoading && <Card className="p-12 text-center text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Carregando metas...</Card>}
 
+      <Card className="p-4 shadow-card">
+        <div className="flex flex-wrap items-center gap-4">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Alçada de capacidade</p>
+            <p className="text-sm font-semibold">
+              {activeCritical.length} de {CRITICAL_LIMIT} Metas Críticas ativas
+            </p>
+          </div>
+          {atCapacity && (
+            <Badge variant="secondary" className="bg-gold/15 text-gold font-semibold">
+              <AlertTriangle className="h-3 w-3 mr-1" /> Capacidade no limite
+            </Badge>
+          )}
+          {pendingApproval.length > 0 && (
+            <Badge variant="secondary" className="bg-warning/15 text-warning font-semibold">
+              <ShieldCheck className="h-3 w-3 mr-1" /> {pendingApproval.length} aguardando aprovação
+            </Badge>
+          )}
+        </div>
+      </Card>
+
+
       <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4">
         {STATUSES.map((status) => {
           const items = goals.filter((g) => g.status === status);
