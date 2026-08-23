@@ -439,7 +439,10 @@ export default function ReportSee4X() {
                         r.summary
                       ) : (
                         <span>
-                          Improviso: {r.summary.baseline_improviso} → {r.summary.follow_up_improviso} · IDD: {r.summary.baseline_idd}% → {r.summary.follow_up_idd}% · Código {r.summary.code}
+                          {(() => {
+                            const s = r.summary as Record<string, any>;
+                            return `Improviso: ${s.baseline_improviso} → ${s.follow_up_improviso} · IDD: ${s.baseline_idd}% → ${s.follow_up_idd}% · Código ${s.code}`;
+                          })()}
                         </span>
                       )}
                     </div>
