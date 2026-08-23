@@ -22,6 +22,9 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Goal = Tables<"goals">;
 const STATUSES = ["nao_iniciado", "em_andamento", "concluido", "atrasado", "bloqueado"] as const;
+const ACTIVE_STATUSES: Goal["status"][] = ["nao_iniciado", "em_andamento", "atrasado", "bloqueado"];
+/** Alçada SEE_4X: até 2 Metas Críticas ativas por empresa. */
+const CRITICAL_LIMIT = 2;
 
 export default function Goals() {
   const { current } = useCompany();
@@ -32,7 +35,9 @@ export default function Goals() {
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
   const [mentorDraft, setMentorDraft] = useState("");
   const [updateDraft, setUpdateDraft] = useState("");
-  const [form, setForm] = useState({ title: "", description: "", pillar: "crescimento", indicator: "", financial_impact: "0", due_date: "", week_start: format(new Date(), "yyyy-MM-dd"), blindspot_code: "", capacity_code: "", bottleneck_id: "" });
+  const [approvalDraft, setApprovalDraft] = useState("");
+  const [form, setForm] = useState({ title: "", description: "", pillar: "crescimento", indicator: "", financial_impact: "0", due_date: "", week_start: format(new Date(), "yyyy-MM-dd"), blindspot_code: "", capacity_code: "", bottleneck_id: "", capacity_justification: "" });
+
 
   const { data: goals = [], isLoading } = useQuery({
     queryKey: ["goals", current?.id],
