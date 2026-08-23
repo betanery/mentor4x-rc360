@@ -139,7 +139,22 @@ export default function Journey() {
 
   const recordFor = (cycle: string) => cycleRecords.find((r) => r.cycle === cycle);
 
+  const openCycle = useMutation({
+    mutationFn: async () => {
+      if (!current) return;
+      const { error } = await (supabase.from("cycle_records" as any) as any)
+        .insert({ company_id: current.id, cycle: current.journey_stage });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Abertura do ciclo registrada");
+      qc.invalidateQueries({ queryKey: ["cycle_records"] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const closeCycle = useMutation({
+
     mutationFn: async () => {
       if (!current || !user) return;
       const cycle = current.journey_stage;
