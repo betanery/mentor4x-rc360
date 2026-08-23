@@ -170,10 +170,11 @@ function computeDiagnosticSummary(responses: any[]) {
   const improvisoGeral = allAvg === null ? 0 : toImproviso(allAvg);
 
   const iddIds = ["IDD-decisoes", "IDD-vendas", "IDD-financeiro", "IDD-operacao", "IDD-clientes", "IDD-equipe", "IDD-problemas", "IDD-conhecimento"];
-  const iddScore = Math.round(average(iddIds.map((id) => {
+  const iddScores = iddIds.map((id) => {
     const avg = weightedAvg([id]);
     return avg === null ? 0 : toImproviso(avg);
-  }).filter((v) => v > 0)) || 0);
+  }).filter((v) => v > 0);
+  const iddScore = iddScores.length ? Math.round(iddScores.reduce((a, b) => a + b, 0) / iddScores.length) : 0;
 
   return { improvisoGeral, byPillar, blindspots, iddScore };
 }
