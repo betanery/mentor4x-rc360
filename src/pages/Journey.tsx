@@ -50,16 +50,54 @@ const STAGES = [
 const STAGE_ORDER = [...CYCLE_ORDER] as string[];
 
 
+type CycleRecord = {
+  id: string;
+  company_id: string;
+  cycle: string;
+  started_at: string;
+  closed_at: string | null;
+  closed_by: string | null;
+  summary: string | null;
+  evidence_url: string | null;
+  gate_override_justification: string | null;
+};
+
 export default function Journey() {
   const { current } = useCompany();
   const { isStaff, user } = useAuth();
   const qc = useQueryClient();
+  const [closeOpen, setCloseOpen] = useState(false);
+  const [summary, setSummary] = useState("");
+  const [justification, setJustification] = useState("");
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const { data: checklist = [] } = useQuery({
     queryKey: ["journey_checklist", current?.id],
     enabled: !!current,
     queryFn: async () => {
       const { data } = await supabase.from("journey_checklist").select("*").eq("company_id", current!.id);
+      return data || [];
+    },
+  });
+
+  const { data: cycleRecords = [] } = useQuery({
+    queryKey: ["cycle_records", current?.id],
+    enabled: !!current,
+    queryFn: async () => {
+      const { data } = await (supabase.from("cycle_records" as any) as any)
+        .select("*").eq("company_id", current!.id).order("started_at", { ascending: true });
+      return (data || []) as CycleRecord[];
+    },
+  });
+
+  const { data: meetings = [] } = useQuery({
+    queryKey: ["journey_meetings", current?.id],
+    enabled: !!current,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("meetings").select("id,title,meeting_type,scheduled_at")
+        .eq("company_id", current!.id).order("scheduled_at", { ascending: false }).limit(50);
       return data || [];
     },
   });
@@ -85,24 +123,94 @@ export default function Journey() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  const advance = useMutation({
+  const isChecked = (stage: string, type: string, key: string) =>
+    checklist.find((c: any) => c.stage === stage && c.item_type === type && c.item_key === key)?.done ?? false;
+
+  const stageProgress = (stageKey: string) => {
+    const stage = STAGES.find((s) => s.key === stageKey);
+    if (!stage) return { done: 0, total: 0, pct: 0 };
+    const items = [
+      ...stage.objectives.map((o) => ["objective", o] as const),
+      ...stage.deliverables.map((d) => ["deliverable", d] as const),
+    ];
+    const done = items.filter(([t, k]) => isChecked(stageKey, t, k)).length;
+    return { done, total: items.length, pct: items.length ? Math.round((done / items.length) * 100) : 0 };
+  };
+
+  const recordFor = (cycle: string) => cycleRecords.find((r) => r.cycle === cycle);
+
+  const closeCycle = useMutation({
     mutationFn: async () => {
-      if (!current) return;
-      const idx = STAGE_ORDER.indexOf(current.journey_stage);
+      if (!current || !user) return;
+      const cycle = current.journey_stage;
+      const prog = stageProgress(cycle);
+      const complete = prog.total > 0 && prog.done === prog.total;
+      if (!complete && justification.trim().length < 20) {
+        throw new Error("Entregáveis pendentes: descreva a justificativa de fechamento (mínimo 20 caracteres).");
+      }
+      if (summary.trim().length < 20) {
+        throw new Error("Registre um resumo do ciclo com pelo menos 20 caracteres.");
+      }
+
+      let evidenceUrl: string | null = null;
+      if (evidenceFile) {
+        if (evidenceFile.size > 10 * 1024 * 1024) throw new Error("Arquivo de evidência acima de 10MB.");
+        const ext = evidenceFile.name.split(".").pop() || "bin";
+        const path = `${current.id}/ciclos/${cycle}-${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("evidences").upload(path, evidenceFile, { contentType: evidenceFile.type });
+        if (upErr) throw upErr;
+        const { data: signed } = await supabase.storage.from("evidences").createSignedUrl(path, 60 * 60 * 24 * 365);
+        evidenceUrl = signed?.signedUrl || path;
+      }
+
+      const payload = {
+        company_id: current.id,
+        cycle,
+        closed_at: new Date().toISOString(),
+        closed_by: user.id,
+        summary: summary.trim(),
+        evidence_url: evidenceUrl,
+        gate_override_justification: complete ? null : justification.trim(),
+      };
+      const existing = recordFor(cycle);
+      if (existing) {
+        const { error } = await (supabase.from("cycle_records" as any) as any).update(payload).eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase.from("cycle_records" as any) as any).insert(payload);
+        if (error) throw error;
+      }
+
+      const idx = STAGE_ORDER.indexOf(cycle);
       const next = STAGE_ORDER[Math.min(idx + 1, STAGE_ORDER.length - 1)];
-      const { error } = await supabase.from("companies").update({ journey_stage: next as any }).eq("id", current.id);
-      if (error) throw error;
+      const { error: compErr } = await supabase.from("companies").update({ journey_stage: next as any }).eq("id", current.id);
+      if (compErr) throw compErr;
+
+      if (next !== cycle && !recordFor(next)) {
+        await (supabase.from("cycle_records" as any) as any).insert({ company_id: current.id, cycle: next });
+      }
+
+      await supabase.from("governance_log").insert({
+        company_id: current.id,
+        actor_id: user.id,
+        action: complete ? "ciclo_fechado" : "ciclo_fechado_com_pendencia",
+        entity: "cycle_records",
+        justification: complete ? summary.trim() : justification.trim(),
+        previous_value: CYCLE_LABEL[cycle]?.label ?? cycle,
+        new_value: CYCLE_LABEL[next]?.label ?? next,
+      });
     },
     onSuccess: () => {
-      toast.success("Empresa avançada para próxima fase");
+      toast.success("Ciclo encerrado e empresa avançada");
+      setCloseOpen(false);
+      setSummary(""); setJustification(""); setEvidenceFile(null);
+      qc.invalidateQueries({ queryKey: ["cycle_records"] });
       qc.invalidateQueries({ queryKey: ["companies"] });
+      qc.invalidateQueries({ queryKey: ["governance_log"] });
       window.location.reload();
     },
     onError: (e: any) => toast.error(e.message),
   });
-
-  const isChecked = (stage: string, type: string, key: string) =>
-    checklist.find((c: any) => c.stage === stage && c.item_type === type && c.item_key === key)?.done ?? false;
 
   const overallProgress = useMemo(() => {
     if (!current) return 0;
@@ -112,6 +220,11 @@ export default function Journey() {
 
   if (!current) return null;
   const currentIdx = STAGE_ORDER.indexOf(current.journey_stage);
+  const currentProgress = stageProgress(current.journey_stage);
+  const currentRecord = recordFor(current.journey_stage);
+  const cycleStart = currentRecord?.started_at;
+  const cycleMeetings = meetings.filter((m: any) => !cycleStart || new Date(m.scheduled_at) >= new Date(cycleStart));
+
 
   return (
     <div className="space-y-6">
