@@ -107,35 +107,122 @@ export default function Goals() {
     }));
   };
 
+  // Alçada de capacidade: contam apenas Metas Críticas ativas já aprovadas.
+  const activeCritical = goals.filter(
+    (g) => g.is_critical && g.approval_status === "aprovada" && ACTIVE_STATUSES.includes(g.status),
+  );
+  const atCapacity = activeCritical.length >= CRITICAL_LIMIT;
+  const pendingApproval = goals.filter((g) => g.approval_status === "pendente");
+
+  const { data: governance = [] } = useQuery({
+    queryKey: ["governance_log", current?.id],
+    enabled: !!current,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("governance_log")
+        .select("*")
+        .eq("company_id", current!.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data as Tables<"governance_log">[];
+    },
+  });
+
+  const logDecision = async (entry: {
+    action: string;
+    entity: string;
+    entity_id?: string | null;
+    justification?: string | null;
+    previous_value?: string | null;
+    new_value?: string | null;
+  }) => {
+    if (!current || !user) return;
+    await supabase.from("governance_log").insert({ company_id: current.id, actor_id: user.id, ...entry });
+    qc.invalidateQueries({ queryKey: ["governance_log", current.id] });
+  };
 
   const createMut = useMutation({
     mutationFn: async () => {
       if (!current || !user) throw new Error("Sem empresa");
-      const { error } = await supabase.from("goals").insert({
-        company_id: current.id,
-        title: form.title,
-        description: form.description,
-        pillar: form.pillar as Goal["pillar"],
-        indicator: form.indicator,
-        financial_impact: Number(form.financial_impact) || 0,
-        due_date: form.due_date || null,
-        week_start: form.week_start,
-        blindspot_code: form.blindspot_code || null,
-        capacity_code: form.capacity_code || null,
-        bottleneck_id: form.bottleneck_id || null,
-        created_by: user.id,
-      });
+      // Excedente de capacidade entra como pendente e só vale após aprovação do Consultor 4X.
+      const needsApproval = atCapacity;
+      if (needsApproval && !form.capacity_justification.trim()) {
+        throw new Error("Limite de 2 Metas Críticas ativas: escreva a justificativa de capacidade.");
+      }
+      const { data, error } = await supabase
+        .from("goals")
+        .insert({
+          company_id: current.id,
+          title: form.title,
+          description: form.description,
+          pillar: form.pillar as Goal["pillar"],
+          indicator: form.indicator,
+          financial_impact: Number(form.financial_impact) || 0,
+          due_date: form.due_date || null,
+          week_start: form.week_start,
+          blindspot_code: form.blindspot_code || null,
+          capacity_code: form.capacity_code || null,
+          bottleneck_id: form.bottleneck_id || null,
+          is_critical: true,
+          approval_status: needsApproval ? "pendente" : "aprovada",
+          capacity_justification: needsApproval ? form.capacity_justification.trim() : null,
+          created_by: user.id,
+        })
+        .select("id")
+        .single();
       if (error) throw error;
+      if (needsApproval) {
+        await logDecision({
+          action: "meta_excedente_solicitada",
+          entity: "goal",
+          entity_id: data.id,
+          justification: form.capacity_justification.trim(),
+          new_value: "pendente",
+        });
+      }
+      return needsApproval;
     },
-    onSuccess: () => {
-      toast.success("Meta criada");
+    onSuccess: (needsApproval) => {
+      toast.success(needsApproval ? "Meta registrada como pendente de aprovação do Consultor 4X." : "Meta criada");
       setOpen(false);
-      setForm({ title: "", description: "", pillar: "crescimento", indicator: "", financial_impact: "0", due_date: "", week_start: format(new Date(), "yyyy-MM-dd"), blindspot_code: "", capacity_code: "", bottleneck_id: "" });
+      setForm({ title: "", description: "", pillar: "crescimento", indicator: "", financial_impact: "0", due_date: "", week_start: format(new Date(), "yyyy-MM-dd"), blindspot_code: "", capacity_code: "", bottleneck_id: "", capacity_justification: "" });
 
       invalidate();
     },
     onError: (e: any) => toast.error(e.message),
   });
+
+  // Aprovação/recusa da meta excedente — decisão humana, sempre registrada.
+  const decideMut = useMutation({
+    mutationFn: async ({ goal, approve, note }: { goal: Goal; approve: boolean; note: string }) => {
+      if (!user) throw new Error("Sem usuário");
+      const { error } = await supabase
+        .from("goals")
+        .update(
+          approve
+            ? { approval_status: "aprovada", approved_by: user.id, approved_at: new Date().toISOString(), capacity_justification: note || goal.capacity_justification }
+            : { approval_status: "rejeitada", approved_by: user.id, approved_at: new Date().toISOString() },
+        )
+        .eq("id", goal.id);
+      if (error) throw error;
+      await logDecision({
+        action: approve ? "meta_excedente_aprovada" : "meta_excedente_rejeitada",
+        entity: "goal",
+        entity_id: goal.id,
+        justification: note || goal.capacity_justification,
+        previous_value: "pendente",
+        new_value: approve ? "aprovada" : "rejeitada",
+      });
+    },
+    onSuccess: () => {
+      setApprovalDraft("");
+      toast.success("Decisão registrada");
+      invalidate();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
 
   const updateStatusMut = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
