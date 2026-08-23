@@ -25,6 +25,12 @@ const STATUSES = ["nao_iniciado", "em_andamento", "concluido", "atrasado", "bloq
 const ACTIVE_STATUSES: Goal["status"][] = ["nao_iniciado", "em_andamento", "atrasado", "bloqueado"];
 /** Alçada SEE_4X: até 2 Metas Críticas ativas por empresa. */
 const CRITICAL_LIMIT = 2;
+const GOVERNANCE_ACTION_LABEL: Record<string, string> = {
+  meta_excedente_solicitada: "Meta excedente solicitada",
+  meta_excedente_aprovada: "Meta excedente aprovada pelo Consultor 4X",
+  meta_excedente_rejeitada: "Meta excedente recusada pelo Consultor 4X",
+};
+
 
 export default function Goals() {
   const { current } = useCompany();
