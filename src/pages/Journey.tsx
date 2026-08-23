@@ -308,7 +308,14 @@ export default function Journey() {
             <div className="mt-3 h-2 w-64 bg-muted rounded-full overflow-hidden">
               <div className="h-full bg-gradient-brand" style={{ width: `${currentProgress.pct}%` }} />
             </div>
+            {isStaff && !currentRecord && (
+              <Button variant="outline" size="sm" className="mt-3" disabled={openCycle.isPending}
+                onClick={() => openCycle.mutate()}>
+                Registrar abertura do ciclo
+              </Button>
+            )}
           </div>
+
           <div className="min-w-[220px]">
             <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase flex items-center gap-1">
               <CalendarDays className="h-3.5 w-3.5" /> Sessões do ciclo
