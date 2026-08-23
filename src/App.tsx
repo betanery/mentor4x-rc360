@@ -23,6 +23,7 @@ import StrategistArea from "./pages/StrategistArea";
 import University from "./pages/University";
 import SocioIA from "./pages/SocioIA";
 import Reports from "./pages/Reports";
+import ReportSee4X from "./pages/ReportSee4X";
 import Certificates from "./pages/Certificates";
 import Notifications from "./pages/Notifications";
 import AdminUsers from "./pages/AdminUsers";
@@ -57,6 +58,7 @@ const App = () => (
                 <Route path="/universidade" element={<University />} />
                 <Route path="/socio-ia" element={<SocioIA />} />
                 <Route path="/relatorios" element={<Reports />} />
+                <Route path="/relatorio-see4x" element={<ReportSee4X />} />
                 <Route path="/certificados" element={<Certificates />} />
                 <Route path="/notificacoes" element={<Notifications />} />
                 <Route path="/mentor" element={<ProtectedRoute allow={["super_admin","mentor"]}><MentorArea /></ProtectedRoute>} />
