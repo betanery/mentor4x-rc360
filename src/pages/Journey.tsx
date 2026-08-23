@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
 import { useAuth } from "@/hooks/useAuth";
@@ -6,10 +6,14 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CYCLE_LABEL, CYCLE_ORDER, MOTORES } from "@/lib/labels";
-import { CheckCircle2, Target, FileCheck, ArrowRight } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { CYCLE_LABEL, CYCLE_ORDER, MOTORES, MEETING_TYPE_LABEL } from "@/lib/labels";
+import { CheckCircle2, Target, FileCheck, ArrowRight, Lock, Paperclip, CalendarDays, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+
 
 const STAGES = [
   {
