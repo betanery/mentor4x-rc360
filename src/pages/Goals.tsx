@@ -405,6 +405,13 @@ export default function Goals() {
                         </button>
                       </div>
                       {p && <span className={`inline-block mt-2 text-[10px] font-bold px-2 py-0.5 rounded bg-gradient-to-r ${p.color} text-white`}>{p.label}</span>}
+                      {g.approval_status === "pendente" && (
+                        <span className="inline-block mt-2 ml-1 text-[10px] font-bold px-2 py-0.5 rounded bg-warning/15 text-warning">Aguardando aprovação</span>
+                      )}
+                      {g.approval_status === "rejeitada" && (
+                        <span className="inline-block mt-2 ml-1 text-[10px] font-bold px-2 py-0.5 rounded bg-destructive/15 text-destructive">Excedente recusado</span>
+                      )}
+
                       {g.blindspot_code && (
                         <div className="mt-2 text-[10px] leading-tight text-muted-foreground">
                           <span className="font-bold text-gold">{g.blindspot_code}</span>{" "}
