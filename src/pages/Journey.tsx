@@ -241,12 +241,94 @@ export default function Journey() {
             </div>
           </div>
           {isStaff && current.journey_stage !== "concluido" && (
-            <Button onClick={() => advance.mutate()} disabled={advance.isPending} className="bg-gold text-primary hover:bg-gold/90">
-              Avançar ciclo <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
+            <Dialog open={closeOpen} onOpenChange={setCloseOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-gold text-primary hover:bg-gold/90">
+                  Encerrar ciclo <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Encerrar {CYCLE_LABEL[current.journey_stage]?.label}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="rounded-lg border p-3 text-sm">
+                    <p className="font-bold">Entregáveis e objetivos: {currentProgress.done}/{currentProgress.total}</p>
+                    <p className="text-muted-foreground text-xs mt-1">
+                      {currentProgress.done === currentProgress.total && currentProgress.total > 0
+                        ? "Ciclo completo — pode ser encerrado com o resumo do período."
+                        : "Existem itens pendentes. O encerramento exige justificativa registrada no histórico de decisões."}
+                    </p>
+                  </div>
+                  <div>
+                    <Label>Resumo do ciclo</Label>
+                    <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={4}
+                      placeholder="Resultados alcançados, decisões tomadas e próximos focos." />
+                  </div>
+                  {!(currentProgress.done === currentProgress.total && currentProgress.total > 0) && (
+                    <div>
+                      <Label>Justificativa de encerramento com pendências</Label>
+                      <Textarea value={justification} onChange={(e) => setJustification(e.target.value)} rows={3}
+                        placeholder="Por que o ciclo avança mesmo com entregáveis abertos e como serão retomados." />
+                    </div>
+                  )}
+                  <div>
+                    <Label>Evidência do ciclo (opcional, até 10MB)</Label>
+                    <input ref={fileRef} type="file" className="hidden"
+                      onChange={(e) => setEvidenceFile(e.target.files?.[0] || null)} />
+                    <div className="flex items-center gap-2 mt-1">
+                      <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
+                        <Paperclip className="h-4 w-4 mr-1" /> Selecionar arquivo
+                      </Button>
+                      <span className="text-xs text-muted-foreground truncate">{evidenceFile?.name || "Nenhum arquivo"}</span>
+                    </div>
+                  </div>
+                  <Button className="w-full bg-gradient-brand" disabled={closeCycle.isPending} onClick={() => closeCycle.mutate()}>
+                    {closeCycle.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Encerrar ciclo e avançar
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           )}
         </div>
       </Card>
+
+      <Card className="p-5 shadow-card">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Ciclo em andamento</p>
+            <h3 className="text-xl font-black mt-1">
+              {CYCLE_LABEL[current.journey_stage]?.label} · {CYCLE_LABEL[current.journey_stage]?.subtitle}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              {cycleStart ? `Aberto em ${new Date(cycleStart).toLocaleDateString("pt-BR")}` : "Abertura ainda não registrada"}
+              {" · "}{currentProgress.done}/{currentProgress.total} itens concluídos ({currentProgress.pct}%)
+            </p>
+            <div className="mt-3 h-2 w-64 bg-muted rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-brand" style={{ width: `${currentProgress.pct}%` }} />
+            </div>
+          </div>
+          <div className="min-w-[220px]">
+            <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase flex items-center gap-1">
+              <CalendarDays className="h-3.5 w-3.5" /> Sessões do ciclo
+            </p>
+            {cycleMeetings.length === 0 ? (
+              <p className="text-xs text-muted-foreground mt-2">Nenhuma sessão registrada neste ciclo.</p>
+            ) : (
+              <ul className="mt-2 space-y-1.5">
+                {cycleMeetings.slice(0, 4).map((m: any) => (
+                  <li key={m.id} className="text-xs flex items-center justify-between gap-3">
+                    <span className="truncate">{MEETING_TYPE_LABEL[m.meeting_type] || m.title}</span>
+                    <span className="text-muted-foreground shrink-0">{new Date(m.scheduled_at).toLocaleDateString("pt-BR")}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </Card>
+
 
       <Card className="p-5 shadow-card">
         <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Cinco Motores · cumulativos</p>
