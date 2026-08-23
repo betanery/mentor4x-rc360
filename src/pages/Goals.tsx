@@ -16,7 +16,9 @@ import { GOAL_STATUS_LABEL, formatBRL, PILLAR_LABEL } from "@/lib/labels";
 import { Plus, Calendar, DollarSign, Trash2, Paperclip, MessageSquare, Loader2, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { BLINDSPOTS, CAPACITIES, blindspotByCode, capacityByCode } from "@/lib/see4x";
 import type { Tables } from "@/integrations/supabase/types";
+
 
 type Goal = Tables<"goals">;
 const STATUSES = ["nao_iniciado", "em_andamento", "concluido", "atrasado", "bloqueado"] as const;
@@ -187,6 +189,44 @@ export default function Goals() {
               <div className="space-y-3">
                 <div><Label>Título</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex.: Fechar 5 contratos novos" /></div>
                 <div><Label>Descrição</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+                <div className="grid grid-cols-1 gap-3 rounded-lg border border-border p-3 bg-muted/30">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Vínculo metodológico SEE_4X</p>
+                  <div>
+                    <Label>BlindSpot</Label>
+                    <Select value={form.blindspot_code} onValueChange={pickBlindspot}>
+                      <SelectTrigger><SelectValue placeholder="Selecione o BlindSpot" /></SelectTrigger>
+                      <SelectContent>
+                        {BLINDSPOTS.map((bs) => <SelectItem key={bs.code} value={bs.code}>{bs.code} · {bs.title}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Capacidade estruturante</Label>
+                    <Select
+                      value={form.capacity_code}
+                      onValueChange={(v) => setForm({ ...form, capacity_code: v })}
+                      disabled={!form.blindspot_code}
+                    >
+                      <SelectTrigger><SelectValue placeholder={form.blindspot_code ? "Selecione a capacidade" : "Escolha o BlindSpot primeiro"} /></SelectTrigger>
+                      <SelectContent>
+                        {CAPACITIES.filter((c) => c.blindspot === form.blindspot_code).map((c) => (
+                          <SelectItem key={c.code} value={c.code}>{c.title}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Gargalo atacado</Label>
+                    <Select value={form.bottleneck_id} onValueChange={(v) => setForm({ ...form, bottleneck_id: v })}>
+                      <SelectTrigger><SelectValue placeholder="Opcional — gargalo do Top 5" /></SelectTrigger>
+                      <SelectContent>
+                        {bottlenecks.length === 0 && <SelectItem value="sem-gargalo" disabled>Nenhum gargalo ativo</SelectItem>}
+                        {bottlenecks.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label>Pilar</Label>
@@ -231,6 +271,14 @@ export default function Goals() {
                         </button>
                       </div>
                       {p && <span className={`inline-block mt-2 text-[10px] font-bold px-2 py-0.5 rounded bg-gradient-to-r ${p.color} text-white`}>{p.label}</span>}
+                      {g.blindspot_code && (
+                        <div className="mt-2 text-[10px] leading-tight text-muted-foreground">
+                          <span className="font-bold text-gold">{g.blindspot_code}</span>{" "}
+                          {blindspotByCode(g.blindspot_code)?.title}
+                          {g.capacity_code && <div>Capacidade: {capacityByCode(g.capacity_code)?.title}</div>}
+                        </div>
+                      )}
+
                       {g.financial_impact && g.financial_impact > 0 && (
                         <div className="mt-2 flex items-center gap-1 text-xs text-success font-semibold">
                           <DollarSign className="h-3 w-3" />{formatBRL(g.financial_impact)}
