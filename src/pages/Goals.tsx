@@ -271,6 +271,14 @@ export default function Goals() {
                         </button>
                       </div>
                       {p && <span className={`inline-block mt-2 text-[10px] font-bold px-2 py-0.5 rounded bg-gradient-to-r ${p.color} text-white`}>{p.label}</span>}
+                      {g.blindspot_code && (
+                        <div className="mt-2 text-[10px] leading-tight text-muted-foreground">
+                          <span className="font-bold text-gold">{g.blindspot_code}</span>{" "}
+                          {blindspotByCode(g.blindspot_code)?.title}
+                          {g.capacity_code && <div>Capacidade: {capacityByCode(g.capacity_code)?.title}</div>}
+                        </div>
+                      )}
+
                       {g.financial_impact && g.financial_impact > 0 && (
                         <div className="mt-2 flex items-center gap-1 text-xs text-success font-semibold">
                           <DollarSign className="h-3 w-3" />{formatBRL(g.financial_impact)}
