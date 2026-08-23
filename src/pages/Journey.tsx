@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
 import { useAuth } from "@/hooks/useAuth";
@@ -6,10 +6,14 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CYCLE_LABEL, CYCLE_ORDER, MOTORES } from "@/lib/labels";
-import { CheckCircle2, Target, FileCheck, ArrowRight } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { CYCLE_LABEL, CYCLE_ORDER, MOTORES, MEETING_TYPE_LABEL } from "@/lib/labels";
+import { CheckCircle2, Target, FileCheck, ArrowRight, Lock, Paperclip, CalendarDays, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+
 
 const STAGES = [
   {
@@ -46,16 +50,54 @@ const STAGES = [
 const STAGE_ORDER = [...CYCLE_ORDER] as string[];
 
 
+type CycleRecord = {
+  id: string;
+  company_id: string;
+  cycle: string;
+  started_at: string;
+  closed_at: string | null;
+  closed_by: string | null;
+  summary: string | null;
+  evidence_url: string | null;
+  gate_override_justification: string | null;
+};
+
 export default function Journey() {
   const { current } = useCompany();
   const { isStaff, user } = useAuth();
   const qc = useQueryClient();
+  const [closeOpen, setCloseOpen] = useState(false);
+  const [summary, setSummary] = useState("");
+  const [justification, setJustification] = useState("");
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const { data: checklist = [] } = useQuery({
     queryKey: ["journey_checklist", current?.id],
     enabled: !!current,
     queryFn: async () => {
       const { data } = await supabase.from("journey_checklist").select("*").eq("company_id", current!.id);
+      return data || [];
+    },
+  });
+
+  const { data: cycleRecords = [] } = useQuery({
+    queryKey: ["cycle_records", current?.id],
+    enabled: !!current,
+    queryFn: async () => {
+      const { data } = await (supabase.from("cycle_records" as any) as any)
+        .select("*").eq("company_id", current!.id).order("started_at", { ascending: true });
+      return (data || []) as CycleRecord[];
+    },
+  });
+
+  const { data: meetings = [] } = useQuery({
+    queryKey: ["journey_meetings", current?.id],
+    enabled: !!current,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("meetings").select("id,title,meeting_type,scheduled_at")
+        .eq("company_id", current!.id).order("scheduled_at", { ascending: false }).limit(50);
       return data || [];
     },
   });
@@ -81,24 +123,109 @@ export default function Journey() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  const advance = useMutation({
+  const isChecked = (stage: string, type: string, key: string) =>
+    checklist.find((c: any) => c.stage === stage && c.item_type === type && c.item_key === key)?.done ?? false;
+
+  const stageProgress = (stageKey: string) => {
+    const stage = STAGES.find((s) => s.key === stageKey);
+    if (!stage) return { done: 0, total: 0, pct: 0 };
+    const items = [
+      ...stage.objectives.map((o) => ["objective", o] as const),
+      ...stage.deliverables.map((d) => ["deliverable", d] as const),
+    ];
+    const done = items.filter(([t, k]) => isChecked(stageKey, t, k)).length;
+    return { done, total: items.length, pct: items.length ? Math.round((done / items.length) * 100) : 0 };
+  };
+
+  const recordFor = (cycle: string) => cycleRecords.find((r) => r.cycle === cycle);
+
+  const openCycle = useMutation({
     mutationFn: async () => {
       if (!current) return;
-      const idx = STAGE_ORDER.indexOf(current.journey_stage);
-      const next = STAGE_ORDER[Math.min(idx + 1, STAGE_ORDER.length - 1)];
-      const { error } = await supabase.from("companies").update({ journey_stage: next as any }).eq("id", current.id);
+      const { error } = await (supabase.from("cycle_records" as any) as any)
+        .insert({ company_id: current.id, cycle: current.journey_stage });
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Empresa avançada para próxima fase");
-      qc.invalidateQueries({ queryKey: ["companies"] });
-      window.location.reload();
+      toast.success("Abertura do ciclo registrada");
+      qc.invalidateQueries({ queryKey: ["cycle_records"] });
     },
     onError: (e: any) => toast.error(e.message),
   });
 
-  const isChecked = (stage: string, type: string, key: string) =>
-    checklist.find((c: any) => c.stage === stage && c.item_type === type && c.item_key === key)?.done ?? false;
+  const closeCycle = useMutation({
+
+    mutationFn: async () => {
+      if (!current || !user) return;
+      const cycle = current.journey_stage;
+      const prog = stageProgress(cycle);
+      const complete = prog.total > 0 && prog.done === prog.total;
+      if (!complete && justification.trim().length < 20) {
+        throw new Error("Entregáveis pendentes: descreva a justificativa de fechamento (mínimo 20 caracteres).");
+      }
+      if (summary.trim().length < 20) {
+        throw new Error("Registre um resumo do ciclo com pelo menos 20 caracteres.");
+      }
+
+      let evidenceUrl: string | null = null;
+      if (evidenceFile) {
+        if (evidenceFile.size > 10 * 1024 * 1024) throw new Error("Arquivo de evidência acima de 10MB.");
+        const ext = evidenceFile.name.split(".").pop() || "bin";
+        const path = `${current.id}/ciclos/${cycle}-${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("evidences").upload(path, evidenceFile, { contentType: evidenceFile.type });
+        if (upErr) throw upErr;
+        const { data: signed } = await supabase.storage.from("evidences").createSignedUrl(path, 60 * 60 * 24 * 365);
+        evidenceUrl = signed?.signedUrl || path;
+      }
+
+      const payload = {
+        company_id: current.id,
+        cycle,
+        closed_at: new Date().toISOString(),
+        closed_by: user.id,
+        summary: summary.trim(),
+        evidence_url: evidenceUrl,
+        gate_override_justification: complete ? null : justification.trim(),
+      };
+      const existing = recordFor(cycle);
+      if (existing) {
+        const { error } = await (supabase.from("cycle_records" as any) as any).update(payload).eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase.from("cycle_records" as any) as any).insert(payload);
+        if (error) throw error;
+      }
+
+      const idx = STAGE_ORDER.indexOf(cycle);
+      const next = STAGE_ORDER[Math.min(idx + 1, STAGE_ORDER.length - 1)];
+      const { error: compErr } = await supabase.from("companies").update({ journey_stage: next as any }).eq("id", current.id);
+      if (compErr) throw compErr;
+
+      if (next !== cycle && !recordFor(next)) {
+        await (supabase.from("cycle_records" as any) as any).insert({ company_id: current.id, cycle: next });
+      }
+
+      await supabase.from("governance_log").insert({
+        company_id: current.id,
+        actor_id: user.id,
+        action: complete ? "ciclo_fechado" : "ciclo_fechado_com_pendencia",
+        entity: "cycle_records",
+        justification: complete ? summary.trim() : justification.trim(),
+        previous_value: CYCLE_LABEL[cycle]?.label ?? cycle,
+        new_value: CYCLE_LABEL[next]?.label ?? next,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Ciclo encerrado e empresa avançada");
+      setCloseOpen(false);
+      setSummary(""); setJustification(""); setEvidenceFile(null);
+      qc.invalidateQueries({ queryKey: ["cycle_records"] });
+      qc.invalidateQueries({ queryKey: ["companies"] });
+      qc.invalidateQueries({ queryKey: ["governance_log"] });
+      window.location.reload();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   const overallProgress = useMemo(() => {
     if (!current) return 0;
@@ -108,6 +235,11 @@ export default function Journey() {
 
   if (!current) return null;
   const currentIdx = STAGE_ORDER.indexOf(current.journey_stage);
+  const currentProgress = stageProgress(current.journey_stage);
+  const currentRecord = recordFor(current.journey_stage);
+  const cycleStart = currentRecord?.started_at;
+  const cycleMeetings = meetings.filter((m: any) => !cycleStart || new Date(m.scheduled_at) >= new Date(cycleStart));
+
 
   return (
     <div className="space-y-6">
@@ -124,12 +256,101 @@ export default function Journey() {
             </div>
           </div>
           {isStaff && current.journey_stage !== "concluido" && (
-            <Button onClick={() => advance.mutate()} disabled={advance.isPending} className="bg-gold text-primary hover:bg-gold/90">
-              Avançar ciclo <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
+            <Dialog open={closeOpen} onOpenChange={setCloseOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-gold text-primary hover:bg-gold/90">
+                  Encerrar ciclo <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Encerrar {CYCLE_LABEL[current.journey_stage]?.label}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="rounded-lg border p-3 text-sm">
+                    <p className="font-bold">Entregáveis e objetivos: {currentProgress.done}/{currentProgress.total}</p>
+                    <p className="text-muted-foreground text-xs mt-1">
+                      {currentProgress.done === currentProgress.total && currentProgress.total > 0
+                        ? "Ciclo completo — pode ser encerrado com o resumo do período."
+                        : "Existem itens pendentes. O encerramento exige justificativa registrada no histórico de decisões."}
+                    </p>
+                  </div>
+                  <div>
+                    <Label>Resumo do ciclo</Label>
+                    <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={4}
+                      placeholder="Resultados alcançados, decisões tomadas e próximos focos." />
+                  </div>
+                  {!(currentProgress.done === currentProgress.total && currentProgress.total > 0) && (
+                    <div>
+                      <Label>Justificativa de encerramento com pendências</Label>
+                      <Textarea value={justification} onChange={(e) => setJustification(e.target.value)} rows={3}
+                        placeholder="Por que o ciclo avança mesmo com entregáveis abertos e como serão retomados." />
+                    </div>
+                  )}
+                  <div>
+                    <Label>Evidência do ciclo (opcional, até 10MB)</Label>
+                    <input ref={fileRef} type="file" className="hidden"
+                      onChange={(e) => setEvidenceFile(e.target.files?.[0] || null)} />
+                    <div className="flex items-center gap-2 mt-1">
+                      <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
+                        <Paperclip className="h-4 w-4 mr-1" /> Selecionar arquivo
+                      </Button>
+                      <span className="text-xs text-muted-foreground truncate">{evidenceFile?.name || "Nenhum arquivo"}</span>
+                    </div>
+                  </div>
+                  <Button className="w-full bg-gradient-brand" disabled={closeCycle.isPending} onClick={() => closeCycle.mutate()}>
+                    {closeCycle.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Encerrar ciclo e avançar
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           )}
         </div>
       </Card>
+
+      <Card className="p-5 shadow-card">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Ciclo em andamento</p>
+            <h3 className="text-xl font-black mt-1">
+              {CYCLE_LABEL[current.journey_stage]?.label} · {CYCLE_LABEL[current.journey_stage]?.subtitle}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              {cycleStart ? `Aberto em ${new Date(cycleStart).toLocaleDateString("pt-BR")}` : "Abertura ainda não registrada"}
+              {" · "}{currentProgress.done}/{currentProgress.total} itens concluídos ({currentProgress.pct}%)
+            </p>
+            <div className="mt-3 h-2 w-64 bg-muted rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-brand" style={{ width: `${currentProgress.pct}%` }} />
+            </div>
+            {isStaff && !currentRecord && (
+              <Button variant="outline" size="sm" className="mt-3" disabled={openCycle.isPending}
+                onClick={() => openCycle.mutate()}>
+                Registrar abertura do ciclo
+              </Button>
+            )}
+          </div>
+
+          <div className="min-w-[220px]">
+            <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase flex items-center gap-1">
+              <CalendarDays className="h-3.5 w-3.5" /> Sessões do ciclo
+            </p>
+            {cycleMeetings.length === 0 ? (
+              <p className="text-xs text-muted-foreground mt-2">Nenhuma sessão registrada neste ciclo.</p>
+            ) : (
+              <ul className="mt-2 space-y-1.5">
+                {cycleMeetings.slice(0, 4).map((m: any) => (
+                  <li key={m.id} className="text-xs flex items-center justify-between gap-3">
+                    <span className="truncate">{MEETING_TYPE_LABEL[m.meeting_type] || m.title}</span>
+                    <span className="text-muted-foreground shrink-0">{new Date(m.scheduled_at).toLocaleDateString("pt-BR")}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </Card>
+
 
       <Card className="p-5 shadow-card">
         <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Cinco Motores · cumulativos</p>
@@ -160,6 +381,8 @@ export default function Journey() {
       <div className="space-y-4">
         {STAGES.map((stage, i) => {
           const meta = CYCLE_LABEL[stage.key];
+          const record = recordFor(stage.key);
+          const prog = stageProgress(stage.key);
 
           const isCurrent = current.journey_stage === stage.key;
           const isDone = currentIdx > i;
@@ -174,8 +397,29 @@ export default function Journey() {
                   <h3 className="text-2xl font-black mt-1">{meta.subtitle}</h3>
                   {isCurrent && <span className="inline-block mt-2 text-[10px] font-bold bg-gold/20 text-gold px-2 py-1 rounded">VOCÊ ESTÁ AQUI</span>}
                   {isDone && <span className="inline-block mt-2 text-[10px] font-bold bg-success/20 text-success px-2 py-1 rounded">CONCLUÍDO</span>}
+                  <p className="mt-2 text-[11px] font-bold text-muted-foreground">{prog.done}/{prog.total} itens · {prog.pct}%</p>
                   <p className="mt-3 text-xs text-muted-foreground"><span className="font-bold uppercase tracking-widest text-[10px] block mb-1">Saída principal</span>{meta.output}</p>
+                  {record?.closed_at && (
+                    <div className="mt-3 rounded-lg border bg-muted/40 p-2.5">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+                        <Lock className="h-3 w-3" /> Ciclo encerrado
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        {new Date(record.closed_at).toLocaleDateString("pt-BR")}
+                      </p>
+                      {record.summary && <p className="text-[11px] mt-1 line-clamp-4">{record.summary}</p>}
+                      {record.gate_override_justification && (
+                        <p className="text-[11px] mt-1 text-warning">Pendências justificadas: {record.gate_override_justification}</p>
+                      )}
+                      {record.evidence_url && (
+                        <a href={record.evidence_url} target="_blank" rel="noreferrer" className="text-[11px] text-primary font-bold inline-flex items-center gap-1 mt-1">
+                          <Paperclip className="h-3 w-3" /> Evidência
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
+
 
 
                 <div className="flex-1 grid md:grid-cols-2 gap-5">

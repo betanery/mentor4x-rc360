@@ -275,6 +275,56 @@ export type Database = {
         }
         Relationships: []
       }
+      cycle_records: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          company_id: string
+          created_at: string
+          cycle: string
+          evidence_url: string | null
+          gate_override_justification: string | null
+          id: string
+          started_at: string
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          company_id: string
+          created_at?: string
+          cycle: string
+          evidence_url?: string | null
+          gate_override_justification?: string | null
+          id?: string
+          started_at?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          company_id?: string
+          created_at?: string
+          cycle?: string
+          evidence_url?: string | null
+          gate_override_justification?: string | null
+          id?: string
+          started_at?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cycle_records_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       diagnostic_responses: {
         Row: {
           answers: Json
