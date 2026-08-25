@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
+import { useContract } from "@/hooks/useContract";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,18 +26,20 @@ const EMPTY = { name: "", area: "", impact: "", urgency: "media", estimated_valu
 
 export default function Bottlenecks() {
   const { current } = useCompany();
+  const { currentContract } = useContract();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
 
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ["bottlenecks", current?.id],
+    queryKey: ["bottlenecks", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("bottlenecks")
         .select("*")
         .eq("company_id", current!.id)
+        .eq("contract_id", currentContract?.id ?? null)
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
@@ -44,13 +47,14 @@ export default function Bottlenecks() {
     },
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["bottlenecks", current?.id] });
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["bottlenecks", current?.id, currentContract?.id] });
 
   const createMut = useMutation({
     mutationFn: async () => {
       if (!current) throw new Error("Selecione uma empresa");
       const { error } = await supabase.from("bottlenecks").insert({
         company_id: current.id,
+        contract_id: currentContract?.id ?? null,
         name: form.name,
         area: form.area || null,
         impact: form.impact || null,
