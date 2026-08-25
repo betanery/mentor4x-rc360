@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
+import { useContract } from "@/hooks/useContract";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -12,24 +13,28 @@ import { toast } from "sonner";
 
 export default function Certificates() {
   const { current } = useCompany();
+  const { currentContract } = useContract();
   const { isStaff } = useAuth();
   const [certs, setCerts] = useState<any[]>([]);
   const [issuing, setIssuing] = useState(false);
 
   const load = async () => {
     if (!current) return;
-    const { data } = await supabase.from("certificates").select("*").eq("company_id", current.id).order("issued_at", { ascending: false });
+    let query = supabase.from("certificates").select("*").eq("company_id", current.id).order("issued_at", { ascending: false });
+    if (currentContract) query = query.eq("contract_id", currentContract.id);
+    const { data } = await query;
     setCerts(data || []);
   };
-  useEffect(() => { load(); }, [current]);
+  useEffect(() => { load(); }, [current, currentContract]);
 
   if (!current) return null;
-  const completed = current.journey_stage === "concluido";
+  const activeStage = currentContract?.journey_stage ?? current.journey_stage;
+  const completed = activeStage === "concluido";
 
   const issue = async () => {
     setIssuing(true);
     const { error } = await supabase.functions.invoke("ai-action", {
-      body: { action: "issue_certificate", company_id: current.id },
+      body: { action: "issue_certificate", company_id: current.id, contract_id: currentContract?.id },
     });
     setIssuing(false);
     if (error) { toast.error("Erro ao emitir certificado"); return; }
@@ -57,7 +62,7 @@ export default function Certificates() {
           <p className="mt-3 text-primary-foreground/80">
             {completed
               ? `${current.name} concluiu a Jornada SEE_4X de 6 ciclos — do improviso à autonomia.`
-              : `${current.name} está atualmente em ${current.journey_stage.replace("_", " ")}. Conclua os 6 ciclos para receber o certificado oficial.`}
+              : `${current.name} está atualmente em ${activeStage.replace("_", " ")}. Conclua os 6 ciclos para receber o certificado oficial.`}
           </p>
           {isStaff && completed && (
             <Button onClick={issue} disabled={issuing} className="mt-6 bg-gold text-gold-foreground hover:bg-gold/90">

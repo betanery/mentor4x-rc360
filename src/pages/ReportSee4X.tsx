@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
+import { useContract } from "@/hooks/useContract";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -63,18 +64,20 @@ function motorForPillar(pillar: string): string {
 
 export default function ReportSee4X() {
   const { current } = useCompany();
+  const { currentContract } = useContract();
   const qc = useQueryClient();
   const [baselineId, setBaselineId] = useState<string>("");
   const [followUpId, setFollowUpId] = useState<string>("");
 
   const { data: diagnostics = [], isLoading: loadingDiags } = useQuery({
-    queryKey: ["diagnostics", current?.id],
+    queryKey: ["diagnostics", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("diagnostics")
         .select("*")
         .eq("company_id", current!.id)
+        .eq("contract_id", currentContract?.id ?? null)
         .order("version", { ascending: false });
       if (error) throw error;
       return data;
@@ -82,13 +85,14 @@ export default function ReportSee4X() {
   });
 
   const { data: reports = [], isLoading: loadingReports } = useQuery({
-    queryKey: ["reports", current?.id],
+    queryKey: ["reports", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reports")
         .select("*")
         .eq("company_id", current!.id)
+        .eq("contract_id", currentContract?.id ?? null)
         .ilike("title", "Relatório SEE_4X%")
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -97,13 +101,14 @@ export default function ReportSee4X() {
   });
 
   const { data: goals = [] } = useQuery({
-    queryKey: ["report_goals", current?.id],
+    queryKey: ["report_goals", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goals")
         .select("*")
         .eq("company_id", current!.id)
+        .eq("contract_id", currentContract?.id ?? null)
         .in("status", ["nao_iniciado", "em_andamento", "atrasado", "bloqueado"])
         .eq("approval_status", "aprovada");
       if (error) throw error;
@@ -147,13 +152,14 @@ export default function ReportSee4X() {
           action: "generate-report",
           company_id: current.id,
           payload: { baseline_diagnostic_id: baselineId, follow_up_diagnostic_id: followUpId },
+          contract_id: currentContract?.id,
         },
       });
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Relatório SEE_4X gerado em PDF");
-      qc.invalidateQueries({ queryKey: ["reports", current?.id] });
+      qc.invalidateQueries({ queryKey: ["reports", current?.id, currentContract?.id] });
     },
     onError: (e: any) => toast.error(e.message),
   });

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useContract } from "@/hooks/useContract";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,7 @@ const emptyForm = {
 
 export default function Playbooks() {
   const { isStaff } = useAuth();
+  const { currentContract } = useContract();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Playbook | null>(null);
@@ -47,20 +49,22 @@ export default function Playbooks() {
   const [motorFilter, setMotorFilter] = useState("all");
 
   const { data: playbooks = [], isLoading } = useQuery({
-    queryKey: ["playbooks"],
+    queryKey: ["playbooks", currentContract?.product_version_id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("playbooks")
         .select("*")
         .order("order_index", { ascending: true })
         .order("created_at", { ascending: false })
         .limit(300);
+      if (currentContract) query = query.eq("product_version_id", currentContract.product_version_id);
+      const { data, error } = await query;
       if (error) throw error;
       return data as Playbook[];
     },
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["playbooks"] });
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["playbooks", currentContract?.product_version_id] });
 
   const payload = () => ({
     title: form.title,
@@ -72,6 +76,8 @@ export default function Playbooks() {
     motor: form.motor === "none" ? null : form.motor,
     tags: form.tags ? form.tags.split(",").map((t) => t.trim()).filter(Boolean) : null,
     order_index: Number(form.order_index) || 0,
+    product_id: currentContract?.product_id ?? null,
+    product_version_id: currentContract?.product_version_id ?? null,
   });
 
   const saveMut = useMutation({
