@@ -214,7 +214,14 @@ export default function AdminProducts() {
   const saveProduct = async () => {
     const parsed = productSchema.safeParse(productForm);
     if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
-    const payload = { ...parsed.data, description: parsed.data.description || null };
+    const payload: TablesInsert<"products"> = {
+      name: parsed.data.name,
+      slug: parsed.data.slug,
+      category: parsed.data.category,
+      sort_order: parsed.data.sort_order,
+      is_active: parsed.data.is_active,
+      description: parsed.data.description || null,
+    };
     const { error } = editingProduct
       ? await supabase.from("products").update(payload).eq("id", editingProduct.id)
       : await supabase.from("products").insert(payload);

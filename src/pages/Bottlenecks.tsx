@@ -35,13 +35,14 @@ export default function Bottlenecks() {
     queryKey: ["bottlenecks", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("bottlenecks")
         .select("*")
         .eq("company_id", current!.id)
-        [currentContract ? "eq" : "is"]("contract_id", currentContract?.id ?? null)
         .order("created_at", { ascending: false })
         .limit(200);
+      query = currentContract ? query.eq("contract_id", currentContract.id) : query.is("contract_id", null);
+      const { data, error } = await query;
       if (error) throw error;
       return data as Bottleneck[];
     },

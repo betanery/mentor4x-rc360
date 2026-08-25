@@ -73,12 +73,13 @@ export default function ReportSee4X() {
     queryKey: ["diagnostics", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("diagnostics")
         .select("*")
         .eq("company_id", current!.id)
-        [currentContract ? "eq" : "is"]("contract_id", currentContract?.id ?? null)
         .order("version", { ascending: false });
+      query = currentContract ? query.eq("contract_id", currentContract.id) : query.is("contract_id", null);
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -88,13 +89,14 @@ export default function ReportSee4X() {
     queryKey: ["reports", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("reports")
         .select("*")
         .eq("company_id", current!.id)
-        [currentContract ? "eq" : "is"]("contract_id", currentContract?.id ?? null)
         .ilike("title", "Relatório SEE_4X%")
         .order("created_at", { ascending: false });
+      query = currentContract ? query.eq("contract_id", currentContract.id) : query.is("contract_id", null);
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -104,13 +106,14 @@ export default function ReportSee4X() {
     queryKey: ["report_goals", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("goals")
         .select("*")
         .eq("company_id", current!.id)
-        [currentContract ? "eq" : "is"]("contract_id", currentContract?.id ?? null)
         .in("status", ["nao_iniciado", "em_andamento", "atrasado", "bloqueado"])
         .eq("approval_status", "aprovada");
+      query = currentContract ? query.eq("contract_id", currentContract.id) : query.is("contract_id", null);
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
