@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
+import { useContract } from "@/hooks/useContract";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -34,6 +35,7 @@ const MEETING_TYPES = [
 
 export default function WarRoom() {
   const { current } = useCompany();
+  const { currentContract } = useContract();
   const { user, isStaff } = useAuth();
   const [weekStart, setWeekStart] = useState(format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd"));
   const [review, setReview] = useState<any>({ done: "", blocked: "", indicators: "", next_steps: "", decisions: "", ai_summary: "" });
@@ -51,7 +53,9 @@ export default function WarRoom() {
 
   const loadReviews = async () => {
     if (!current) return;
-    const { data: h } = await supabase.from("weekly_reviews").select("*").eq("company_id", current.id).order("week_start", { ascending: false });
+    let query = supabase.from("weekly_reviews").select("*").eq("company_id", current.id).order("week_start", { ascending: false });
+    if (currentContract) query = query.eq("contract_id", currentContract.id);
+    const { data: h } = await query;
     setHistory(h || []);
     const found = (h || []).find((w) => w.week_start === weekStart);
     if (found) setReview(found);
@@ -60,7 +64,9 @@ export default function WarRoom() {
 
   const loadMeetings = async () => {
     if (!current) return;
-    const { data: m } = await supabase.from("meetings").select("*").eq("company_id", current.id).order("scheduled_at", { ascending: false });
+    let query = supabase.from("meetings").select("*").eq("company_id", current.id).order("scheduled_at", { ascending: false });
+    if (currentContract) query = query.eq("contract_id", currentContract.id);
+    const { data: m } = await query;
     setMeetings(m || []);
     if (m?.length) {
       const { data: notes } = await supabase.from("meeting_notes").select("*").in("meeting_id", m.map((x) => x.id)).order("created_at", { ascending: false });
@@ -75,14 +81,14 @@ export default function WarRoom() {
     }
   };
 
-  useEffect(() => { loadReviews(); }, [current, weekStart]);
-  useEffect(() => { loadMeetings(); }, [current]);
+  useEffect(() => { loadReviews(); }, [current, currentContract, weekStart]);
+  useEffect(() => { loadMeetings(); }, [current, currentContract]);
 
   const save = async () => {
     if (!current || !user) return;
     setSaving(true);
-    const payload = { company_id: current.id, week_start: weekStart, ...review, created_by: user.id };
-    const { error } = await supabase.from("weekly_reviews").upsert(payload, { onConflict: "company_id,week_start" });
+    const payload = { company_id: current.id, contract_id: currentContract?.id ?? null, week_start: weekStart, ...review, created_by: user.id };
+    const { error } = await supabase.from("weekly_reviews").upsert(payload, { onConflict: currentContract ? "company_id,contract_id,week_start" : "company_id,week_start" });
     setSaving(false);
     if (error) toast.error(error.message);
     else { toast.success("Sala de Guerra salva"); loadReviews(); }
@@ -92,7 +98,7 @@ export default function WarRoom() {
     if (!current) return;
     setAiLoading(true);
     const { data, error } = await supabase.functions.invoke("ai-action", {
-      body: { action: "weekly_summary", company_id: current.id, payload: review },
+      body: { action: "weekly_summary", company_id: current.id, contract_id: currentContract?.id, payload: review },
     });
     setAiLoading(false);
     if (error) { toast.error("Erro ao gerar ata"); return; }
@@ -106,6 +112,7 @@ export default function WarRoom() {
     }
     const { error } = await supabase.from("meetings").insert({
       company_id: current.id,
+      contract_id: currentContract?.id ?? null,
       title: newMeeting.title,
       scheduled_at: new Date(newMeeting.scheduled_at).toISOString(),
       meeting_type: newMeeting.meeting_type as any,

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
+import { useContract } from "@/hooks/useContract";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ const TOOL_LABEL: Record<string, string> = {
 
 export default function SocioIA() {
   const { current } = useCompany();
+  const { currentContract } = useContract();
   const [messages, setMessages] = useState<Msg[]>([
     { role: "assistant", content: "Olá! Sou o **Meu Sócio IA** — seu conselheiro estratégico do método 4X. Posso analisar a empresa, sugerir metas, gerar planos, resumir reuniões e alertar riscos. Por onde quer começar?" }
   ]);
@@ -60,7 +62,7 @@ export default function SocioIA() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: [...messages, userMsg], company_id: current.id }),
+        body: JSON.stringify({ messages: [...messages, userMsg], company_id: current.id, contract_id: currentContract?.id }),
       });
       if (!resp.ok || !resp.body) {
         if (resp.status === 429) throw new Error("Muitas requisições. Aguarde um instante.");
@@ -110,7 +112,7 @@ export default function SocioIA() {
     setProposing(true); setProposals([]); setResults([]); setProposalMsg("");
     try {
       const { data, error } = await supabase.functions.invoke("socio-tools", {
-        body: { instruction, company_id: current.id, confirm: false },
+        body: { instruction, company_id: current.id, contract_id: currentContract?.id, confirm: false },
       });
       if (error) throw error;
       setProposalMsg(data.message || "");
@@ -128,7 +130,7 @@ export default function SocioIA() {
     setExecuting(true);
     try {
       const { data, error } = await supabase.functions.invoke("socio-tools", {
-        body: { instruction, company_id: current.id, confirm: true },
+        body: { instruction, company_id: current.id, contract_id: currentContract?.id, confirm: true },
       });
       if (error) throw error;
       setResults(data.results || []);

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
+import { useContract } from "@/hooks/useContract";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -34,6 +35,7 @@ const GOVERNANCE_ACTION_LABEL: Record<string, string> = {
 
 export default function Goals() {
   const { current } = useCompany();
+  const { currentContract } = useContract();
   const { user, isStaff } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -46,16 +48,18 @@ export default function Goals() {
 
 
   const { data: goals = [], isLoading } = useQuery({
-    queryKey: ["goals", current?.id],
+    queryKey: ["goals", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
-      const { data, error } = await supabase.from("goals").select("*").eq("company_id", current!.id).order("created_at", { ascending: false });
+      let query = supabase.from("goals").select("*").eq("company_id", current!.id).order("created_at", { ascending: false });
+      if (currentContract) query = query.eq("contract_id", currentContract.id);
+      const { data, error } = await query;
       if (error) throw error;
       return data as Goal[];
     },
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["goals", current?.id] });
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["goals", current?.id, currentContract?.id] });
 
   const { data: updates = [] } = useQuery({
     queryKey: ["goal_updates", detailId],
@@ -88,15 +92,17 @@ export default function Goals() {
 
 
   const { data: bottlenecks = [] } = useQuery({
-    queryKey: ["bottlenecks", current?.id],
+    queryKey: ["bottlenecks", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("bottlenecks")
         .select("id, name, blindspot_code, resolved")
         .eq("company_id", current!.id)
         .eq("resolved", false)
         .limit(50);
+      if (currentContract) query = query.eq("contract_id", currentContract.id);
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -160,6 +166,7 @@ export default function Goals() {
         .from("goals")
         .insert({
           company_id: current.id,
+          contract_id: currentContract?.id ?? null,
           title: form.title,
           description: form.description,
           pillar: form.pillar as Goal["pillar"],

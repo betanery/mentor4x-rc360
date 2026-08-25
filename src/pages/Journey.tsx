@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
+import { useContract } from "@/hooks/useContract";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -64,6 +65,7 @@ type CycleRecord = {
 
 export default function Journey() {
   const { current } = useCompany();
+  const { currentContract, refreshContracts } = useContract();
   const { isStaff, user } = useAuth();
   const qc = useQueryClient();
   const [closeOpen, setCloseOpen] = useState(false);
@@ -73,31 +75,37 @@ export default function Journey() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const { data: checklist = [] } = useQuery({
-    queryKey: ["journey_checklist", current?.id],
+    queryKey: ["journey_checklist", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
-      const { data } = await supabase.from("journey_checklist").select("*").eq("company_id", current!.id);
+      let query = supabase.from("journey_checklist").select("*").eq("company_id", current!.id);
+      if (currentContract) query = query.eq("contract_id", currentContract.id);
+      const { data } = await query;
       return data || [];
     },
   });
 
   const { data: cycleRecords = [] } = useQuery({
-    queryKey: ["cycle_records", current?.id],
+    queryKey: ["cycle_records", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
-      const { data } = await (supabase.from("cycle_records" as any) as any)
+      let query = (supabase.from("cycle_records" as any) as any)
         .select("*").eq("company_id", current!.id).order("started_at", { ascending: true });
+      if (currentContract) query = query.eq("contract_id", currentContract.id);
+      const { data } = await query;
       return (data || []) as CycleRecord[];
     },
   });
 
   const { data: meetings = [] } = useQuery({
-    queryKey: ["journey_meetings", current?.id],
+    queryKey: ["journey_meetings", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
-      const { data } = await supabase
+      let query = supabase
         .from("meetings").select("id,title,meeting_type,scheduled_at")
         .eq("company_id", current!.id).order("scheduled_at", { ascending: false }).limit(50);
+      if (currentContract) query = query.eq("contract_id", currentContract.id);
+      const { data } = await query;
       return data || [];
     },
   });
@@ -113,7 +121,7 @@ export default function Journey() {
         if (error) throw error;
       } else {
         const { error } = await supabase.from("journey_checklist").insert({
-          company_id: current.id, stage: v.stage, item_key: v.item_key, item_type: v.item_type,
+          company_id: current.id, contract_id: currentContract?.id ?? null, stage: v.stage, item_key: v.item_key, item_type: v.item_type,
           done: v.done, completed_at: v.done ? new Date().toISOString() : null, completed_by: v.done ? user?.id : null,
         });
         if (error) throw error;
@@ -142,8 +150,9 @@ export default function Journey() {
   const openCycle = useMutation({
     mutationFn: async () => {
       if (!current) return;
+      const cycle = currentContract?.journey_stage ?? current.journey_stage;
       const { error } = await (supabase.from("cycle_records" as any) as any)
-        .insert({ company_id: current.id, cycle: current.journey_stage });
+        .insert({ company_id: current.id, contract_id: currentContract?.id ?? null, cycle });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -157,7 +166,7 @@ export default function Journey() {
 
     mutationFn: async () => {
       if (!current || !user) return;
-      const cycle = current.journey_stage;
+      const cycle = currentContract?.journey_stage ?? current.journey_stage;
       const prog = stageProgress(cycle);
       const complete = prog.total > 0 && prog.done === prog.total;
       if (!complete && justification.trim().length < 20) {
@@ -180,6 +189,7 @@ export default function Journey() {
 
       const payload = {
         company_id: current.id,
+        contract_id: currentContract?.id ?? null,
         cycle,
         closed_at: new Date().toISOString(),
         closed_by: user.id,
@@ -198,11 +208,13 @@ export default function Journey() {
 
       const idx = STAGE_ORDER.indexOf(cycle);
       const next = STAGE_ORDER[Math.min(idx + 1, STAGE_ORDER.length - 1)];
-      const { error: compErr } = await supabase.from("companies").update({ journey_stage: next as any }).eq("id", current.id);
-      if (compErr) throw compErr;
+      const { error: stageErr } = currentContract
+        ? await supabase.from("contracts").update({ journey_stage: next as any, current_cycle: Math.min((currentContract.current_cycle || 1) + 1, 6) }).eq("id", currentContract.id)
+        : await supabase.from("companies").update({ journey_stage: next as any }).eq("id", current.id);
+      if (stageErr) throw stageErr;
 
       if (next !== cycle && !recordFor(next)) {
-        await (supabase.from("cycle_records" as any) as any).insert({ company_id: current.id, cycle: next });
+        await (supabase.from("cycle_records" as any) as any).insert({ company_id: current.id, contract_id: currentContract?.id ?? null, cycle: next });
       }
 
       await supabase.from("governance_log").insert({
@@ -222,21 +234,22 @@ export default function Journey() {
       qc.invalidateQueries({ queryKey: ["cycle_records"] });
       qc.invalidateQueries({ queryKey: ["companies"] });
       qc.invalidateQueries({ queryKey: ["governance_log"] });
-      window.location.reload();
+      await refreshContracts();
     },
     onError: (e: any) => toast.error(e.message),
   });
 
   const overallProgress = useMemo(() => {
     if (!current) return 0;
-    const idx = STAGE_ORDER.indexOf(current.journey_stage);
+    const idx = STAGE_ORDER.indexOf(currentContract?.journey_stage ?? current.journey_stage);
     return Math.round((Math.max(idx, 0) / 6) * 100);
-  }, [current]);
+  }, [current, currentContract]);
 
   if (!current) return null;
-  const currentIdx = STAGE_ORDER.indexOf(current.journey_stage);
-  const currentProgress = stageProgress(current.journey_stage);
-  const currentRecord = recordFor(current.journey_stage);
+  const activeStage = currentContract?.journey_stage ?? current.journey_stage;
+  const currentIdx = STAGE_ORDER.indexOf(activeStage);
+  const currentProgress = stageProgress(activeStage);
+  const currentRecord = recordFor(activeStage);
   const cycleStart = currentRecord?.started_at;
   const cycleMeetings = meetings.filter((m: any) => !cycleStart || new Date(m.scheduled_at) >= new Date(cycleStart));
 
@@ -255,7 +268,7 @@ export default function Journey() {
               <div className="h-full bg-gradient-gold" style={{ width: `${overallProgress}%` }} />
             </div>
           </div>
-          {isStaff && current.journey_stage !== "concluido" && (
+          {isStaff && activeStage !== "concluido" && (
             <Dialog open={closeOpen} onOpenChange={setCloseOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-gold text-primary hover:bg-gold/90">
@@ -264,7 +277,7 @@ export default function Journey() {
               </DialogTrigger>
               <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Encerrar {CYCLE_LABEL[current.journey_stage]?.label}</DialogTitle>
+                  <DialogTitle>Encerrar {CYCLE_LABEL[activeStage]?.label}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div className="rounded-lg border p-3 text-sm">
@@ -314,7 +327,7 @@ export default function Journey() {
           <div>
             <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Ciclo em andamento</p>
             <h3 className="text-xl font-black mt-1">
-              {CYCLE_LABEL[current.journey_stage]?.label} · {CYCLE_LABEL[current.journey_stage]?.subtitle}
+              {CYCLE_LABEL[activeStage]?.label} · {CYCLE_LABEL[activeStage]?.subtitle}
             </h3>
             <p className="text-xs text-muted-foreground mt-1">
               {cycleStart ? `Aberto em ${new Date(cycleStart).toLocaleDateString("pt-BR")}` : "Abertura ainda não registrada"}
@@ -356,7 +369,7 @@ export default function Journey() {
         <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Cinco Motores · cumulativos</p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {MOTORES.map((m, i) => {
-            const active = m.cycles.includes(current.journey_stage);
+            const active = m.cycles.includes(activeStage);
             const reached = m.cycles.some((c) => STAGE_ORDER.indexOf(c) <= currentIdx);
             return (
               <div key={m.key} className="flex items-center gap-2">
@@ -384,7 +397,7 @@ export default function Journey() {
           const record = recordFor(stage.key);
           const prog = stageProgress(stage.key);
 
-          const isCurrent = current.journey_stage === stage.key;
+          const isCurrent = activeStage === stage.key;
           const isDone = currentIdx > i;
           return (
             <Card key={stage.key} className={`p-6 shadow-card transition-all ${isCurrent ? "ring-2 ring-gold shadow-gold" : ""}`}>
