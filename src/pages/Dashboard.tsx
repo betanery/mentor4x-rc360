@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
 import { PageHeader } from "@/components/PageHeader";
+import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { StatCard } from "@/components/StatCard";
 import { IMPROVISO_LABEL, CYCLE_LABEL, CYCLE_ORDER, GOAL_STATUS_LABEL, PILLAR_LABEL, formatBRL } from "@/lib/labels";
 import { Badge } from "@/components/ui/badge";
@@ -116,6 +117,8 @@ export default function Dashboard() {
         subtitle="Visão completa da execução, score e próximos passos da empresa."
         action={<Badge className={`${improviso.color} text-xs px-3 py-1.5 font-bold`}>{improviso.label}</Badge>}
       />
+
+      <OnboardingChecklist companyId={current.id} />
 
 
       {/* Bloco Classificação — baseline oficial do Diagnóstico SEE_4X */}
