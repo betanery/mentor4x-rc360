@@ -7,11 +7,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LayoutDashboard, Target, AlertTriangle, Compass, Map, Swords, Users, Briefcase, GraduationCap, Sparkles, FileText, Award, LogOut, Bell, Menu, X, Building2, ListChecks, BookOpen, Stethoscope, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Target, AlertTriangle, Compass, Map, Swords, Users, Briefcase, GraduationCap, Sparkles, FileText, Award, LogOut, Bell, Menu, X, Building2, ListChecks, BookOpen, Stethoscope, BarChart3, Boxes } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { ROLE_LABEL } from "@/lib/labels";
+import { useContract } from "@/hooks/useContract";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -33,6 +34,7 @@ const NAV = [
 const STAFF_NAV = [
   { to: "/mentor", label: "Área do Consultor 4X", icon: Users, role: ["super_admin","mentor"] as const },
   { to: "/estrategista", label: "Área do Estrategista 4X", icon: Briefcase, role: ["super_admin","mentor","estrategista"] as const },
+  { to: "/admin/produtos", label: "Produtos", icon: Boxes, role: ["super_admin","mentor","estrategista"] as const },
   { to: "/empresas", label: "Empresas", icon: Building2, role: ["super_admin","mentor","estrategista"] as const },
   { to: "/admin/universidade", label: "Admin Universidade", icon: GraduationCap, role: ["super_admin","mentor","estrategista"] as const },
 ];
@@ -40,6 +42,7 @@ const STAFF_NAV = [
 export function AppLayout() {
   const { user, signOut, roles, isStaff } = useAuth();
   const { companies, current, setCurrentId } = useCompany();
+  const { contracts, currentContract, setCurrentContractId } = useContract();
   const nav = useNavigate();
   const [open, setOpen] = useState(false);
   const [unread, setUnread] = useState(0);
@@ -92,6 +95,15 @@ export function AppLayout() {
               <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent" onClick={() => { setOpen(false); nav("/empresas"); }}>
                 <Building2 className="h-4 w-4 mr-2" /> Nova empresa
               </Button>
+            )}
+            {contracts.length > 0 && (
+              <div className="pt-2 space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/60 block">Produto contratado</label>
+                <Select value={currentContract?.id} onValueChange={setCurrentContractId}>
+                  <SelectTrigger className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground"><SelectValue /></SelectTrigger>
+                  <SelectContent>{contracts.map((contract) => <SelectItem key={contract.id} value={contract.id}>{contract.product_name} · {contract.version_label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
             )}
           </div>
         )}

@@ -29,9 +29,11 @@ import Notifications from "./pages/Notifications";
 import AdminUsers from "./pages/AdminUsers";
 import AdminCompanies from "./pages/AdminCompanies";
 import AdminUniversity from "./pages/AdminUniversity";
+import AdminProducts from "./pages/AdminProducts";
 import OAuthConsent from "./pages/OAuthConsent";
 import Verify from "./pages/Verify";
 import NotFound from "./pages/NotFound";
+import { ContractProvider } from "./hooks/useContract";
 
 const queryClient = new QueryClient();
 
@@ -43,35 +45,38 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <CompanyProvider>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
-              <Route path="/validar" element={<Verify />} />
-              <Route path="/validar/:code" element={<Verify />} />
-              <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/diagnostico" element={<Diagnostic />} />
-                <Route path="/jornada" element={<Journey />} />
-                <Route path="/metas" element={<Goals />} />
-                <Route path="/gargalos" element={<Bottlenecks />} />
-                <Route path="/plano-acao" element={<Tasks />} />
-                <Route path="/playbooks" element={<Playbooks />} />
-                <Route path="/pilares" element={<Pillars />} />
-                <Route path="/sala-guerra" element={<WarRoom />} />
-                <Route path="/universidade" element={<University />} />
-                <Route path="/socio-ia" element={<SocioIA />} />
-                <Route path="/relatorios" element={<Reports />} />
-                <Route path="/relatorio-see4x" element={<ReportSee4X />} />
-                <Route path="/certificados" element={<Certificates />} />
-                <Route path="/notificacoes" element={<Notifications />} />
-                <Route path="/mentor" element={<ProtectedRoute allow={["super_admin","mentor"]}><MentorArea /></ProtectedRoute>} />
-                <Route path="/estrategista" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><StrategistArea /></ProtectedRoute>} />
-                <Route path="/admin/usuarios" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><AdminUsers /></ProtectedRoute>} />
-                <Route path="/empresas" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><AdminCompanies /></ProtectedRoute>} />
-                <Route path="/admin/universidade" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><AdminUniversity /></ProtectedRoute>} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <ContractProvider>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
+                <Route path="/validar" element={<Verify />} />
+                <Route path="/validar/:code" element={<Verify />} />
+                <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/diagnostico" element={<Diagnostic />} />
+                  <Route path="/jornada" element={<Journey />} />
+                  <Route path="/metas" element={<Goals />} />
+                  <Route path="/gargalos" element={<Bottlenecks />} />
+                  <Route path="/plano-acao" element={<Tasks />} />
+                  <Route path="/playbooks" element={<Playbooks />} />
+                  <Route path="/pilares" element={<Pillars />} />
+                  <Route path="/sala-guerra" element={<WarRoom />} />
+                  <Route path="/universidade" element={<University />} />
+                  <Route path="/socio-ia" element={<SocioIA />} />
+                  <Route path="/relatorios" element={<Reports />} />
+                  <Route path="/relatorio-see4x" element={<ReportSee4X />} />
+                  <Route path="/certificados" element={<Certificates />} />
+                  <Route path="/notificacoes" element={<Notifications />} />
+                  <Route path="/mentor" element={<ProtectedRoute allow={["super_admin","mentor"]}><MentorArea /></ProtectedRoute>} />
+                  <Route path="/estrategista" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><StrategistArea /></ProtectedRoute>} />
+                  <Route path="/admin/usuarios" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><AdminUsers /></ProtectedRoute>} />
+                  <Route path="/admin/produtos" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><AdminProducts /></ProtectedRoute>} />
+                  <Route path="/empresas" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><AdminCompanies /></ProtectedRoute>} />
+                  <Route path="/admin/universidade" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><AdminUniversity /></ProtectedRoute>} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </ContractProvider>
           </CompanyProvider>
         </AuthProvider>
       </BrowserRouter>

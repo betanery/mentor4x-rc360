@@ -57,6 +57,7 @@ export type Database = {
           area: string | null
           blindspot_code: string | null
           company_id: string
+          contract_id: string | null
           correction_plan: string | null
           created_at: string
           diagnostic_id: string | null
@@ -74,6 +75,7 @@ export type Database = {
           area?: string | null
           blindspot_code?: string | null
           company_id: string
+          contract_id?: string | null
           correction_plan?: string | null
           created_at?: string
           diagnostic_id?: string | null
@@ -91,6 +93,7 @@ export type Database = {
           area?: string | null
           blindspot_code?: string | null
           company_id?: string
+          contract_id?: string | null
           correction_plan?: string | null
           created_at?: string
           diagnostic_id?: string | null
@@ -113,6 +116,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bottlenecks_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bottlenecks_diagnostic_id_fkey"
             columns: ["diagnostic_id"]
             isOneToOne: false
@@ -125,6 +135,7 @@ export type Database = {
         Row: {
           code: string | null
           company_id: string
+          contract_id: string | null
           id: string
           issued_at: string
           pdf_url: string | null
@@ -133,6 +144,7 @@ export type Database = {
         Insert: {
           code?: string | null
           company_id: string
+          contract_id?: string | null
           id?: string
           issued_at?: string
           pdf_url?: string | null
@@ -141,6 +153,7 @@ export type Database = {
         Update: {
           code?: string | null
           company_id?: string
+          contract_id?: string | null
           id?: string
           issued_at?: string
           pdf_url?: string | null
@@ -152,6 +165,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
             referencedColumns: ["id"]
           },
         ]
@@ -242,6 +262,79 @@ export type Database = {
           },
         ]
       }
+      contracts: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          contracted_scope: Json
+          created_at: string
+          current_cycle: number
+          expected_completion: string | null
+          id: string
+          journey_stage: Database["public"]["Enums"]["journey_stage"]
+          notes: string | null
+          product_id: string
+          product_version_id: string
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          contracted_scope?: Json
+          created_at?: string
+          current_cycle?: number
+          expected_completion?: string | null
+          id?: string
+          journey_stage?: Database["public"]["Enums"]["journey_stage"]
+          notes?: string | null
+          product_id: string
+          product_version_id: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          contracted_scope?: Json
+          created_at?: string
+          current_cycle?: number
+          expected_completion?: string | null
+          id?: string
+          journey_stage?: Database["public"]["Enums"]["journey_stage"]
+          notes?: string | null
+          product_id?: string
+          product_version_id?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "product_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courses: {
         Row: {
           category: string
@@ -250,6 +343,8 @@ export type Database = {
           description: string | null
           id: string
           order_index: number | null
+          product_id: string | null
+          product_version_id: string | null
           published: boolean | null
           title: string
         }
@@ -260,6 +355,8 @@ export type Database = {
           description?: string | null
           id?: string
           order_index?: number | null
+          product_id?: string | null
+          product_version_id?: string | null
           published?: boolean | null
           title: string
         }
@@ -270,16 +367,34 @@ export type Database = {
           description?: string | null
           id?: string
           order_index?: number | null
+          product_id?: string | null
+          product_version_id?: string | null
           published?: boolean | null
           title?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "courses_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courses_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "product_versions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cycle_records: {
         Row: {
           closed_at: string | null
           closed_by: string | null
           company_id: string
+          contract_id: string | null
           created_at: string
           cycle: string
           evidence_url: string | null
@@ -293,6 +408,7 @@ export type Database = {
           closed_at?: string | null
           closed_by?: string | null
           company_id: string
+          contract_id?: string | null
           created_at?: string
           cycle: string
           evidence_url?: string | null
@@ -306,6 +422,7 @@ export type Database = {
           closed_at?: string | null
           closed_by?: string | null
           company_id?: string
+          contract_id?: string | null
           created_at?: string
           cycle?: string
           evidence_url?: string | null
@@ -321,6 +438,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cycle_records_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
             referencedColumns: ["id"]
           },
         ]
@@ -366,6 +490,7 @@ export type Database = {
       diagnostics: {
         Row: {
           company_id: string
+          contract_id: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -386,6 +511,7 @@ export type Database = {
         }
         Insert: {
           company_id: string
+          contract_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -406,6 +532,7 @@ export type Database = {
         }
         Update: {
           company_id?: string
+          contract_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -430,6 +557,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diagnostics_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
             referencedColumns: ["id"]
           },
         ]
@@ -476,6 +610,7 @@ export type Database = {
           capacity_code: string | null
           capacity_justification: string | null
           company_id: string
+          contract_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -502,6 +637,7 @@ export type Database = {
           capacity_code?: string | null
           capacity_justification?: string | null
           company_id: string
+          contract_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -528,6 +664,7 @@ export type Database = {
           capacity_code?: string | null
           capacity_justification?: string | null
           company_id?: string
+          contract_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -558,6 +695,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goals_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
             referencedColumns: ["id"]
           },
         ]
@@ -667,6 +811,7 @@ export type Database = {
           company_id: string
           completed_at: string | null
           completed_by: string | null
+          contract_id: string | null
           created_at: string
           done: boolean
           id: string
@@ -678,6 +823,7 @@ export type Database = {
           company_id: string
           completed_at?: string | null
           completed_by?: string | null
+          contract_id?: string | null
           created_at?: string
           done?: boolean
           id?: string
@@ -689,6 +835,7 @@ export type Database = {
           company_id?: string
           completed_at?: string | null
           completed_by?: string | null
+          contract_id?: string | null
           created_at?: string
           done?: boolean
           id?: string
@@ -696,7 +843,15 @@ export type Database = {
           item_type?: string
           stage?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "journey_checklist_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lesson_progress: {
         Row: {
@@ -815,6 +970,7 @@ export type Database = {
       meetings: {
         Row: {
           company_id: string
+          contract_id: string | null
           created_at: string
           created_by: string | null
           duration_min: number | null
@@ -827,6 +983,7 @@ export type Database = {
         }
         Insert: {
           company_id: string
+          contract_id?: string | null
           created_at?: string
           created_by?: string | null
           duration_min?: number | null
@@ -839,6 +996,7 @@ export type Database = {
         }
         Update: {
           company_id?: string
+          contract_id?: string | null
           created_at?: string
           created_by?: string | null
           duration_min?: number | null
@@ -855,6 +1013,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
             referencedColumns: ["id"]
           },
         ]
@@ -952,6 +1117,8 @@ export type Database = {
           motor: string | null
           order_index: number
           pillar: Database["public"]["Enums"]["pillar"] | null
+          product_id: string | null
+          product_version_id: string | null
           tags: string[] | null
           title: string
           updated_at: string
@@ -966,6 +1133,8 @@ export type Database = {
           motor?: string | null
           order_index?: number
           pillar?: Database["public"]["Enums"]["pillar"] | null
+          product_id?: string | null
+          product_version_id?: string | null
           tags?: string[] | null
           title: string
           updated_at?: string
@@ -980,8 +1149,111 @@ export type Database = {
           motor?: string | null
           order_index?: number
           pillar?: Database["public"]["Enums"]["pillar"] | null
+          product_id?: string | null
+          product_version_id?: string | null
           tags?: string[] | null
           title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playbooks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playbooks_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "product_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_versions: {
+        Row: {
+          created_at: string
+          cycle_count: number
+          description: string | null
+          duration_days: number | null
+          id: string
+          is_active: boolean
+          methodology_code: string
+          product_id: string
+          published_at: string | null
+          updated_at: string
+          version_label: string
+        }
+        Insert: {
+          created_at?: string
+          cycle_count?: number
+          description?: string | null
+          duration_days?: number | null
+          id?: string
+          is_active?: boolean
+          methodology_code?: string
+          product_id: string
+          published_at?: string | null
+          updated_at?: string
+          version_label: string
+        }
+        Update: {
+          created_at?: string
+          cycle_count?: number
+          description?: string | null
+          duration_days?: number | null
+          id?: string
+          is_active?: boolean
+          methodology_code?: string
+          product_id?: string
+          published_at?: string | null
+          updated_at?: string
+          version_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_versions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
@@ -1022,6 +1294,7 @@ export type Database = {
       reports: {
         Row: {
           company_id: string
+          contract_id: string | null
           created_at: string
           generated_by: string | null
           id: string
@@ -1033,6 +1306,7 @@ export type Database = {
         }
         Insert: {
           company_id: string
+          contract_id?: string | null
           created_at?: string
           generated_by?: string | null
           id?: string
@@ -1044,6 +1318,7 @@ export type Database = {
         }
         Update: {
           company_id?: string
+          contract_id?: string | null
           created_at?: string
           generated_by?: string | null
           id?: string
@@ -1061,11 +1336,19 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "reports_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
         ]
       }
       tasks: {
         Row: {
           company_id: string
+          contract_id: string | null
           created_at: string
           description: string | null
           done: boolean | null
@@ -1077,6 +1360,7 @@ export type Database = {
         }
         Insert: {
           company_id: string
+          contract_id?: string | null
           created_at?: string
           description?: string | null
           done?: boolean | null
@@ -1088,6 +1372,7 @@ export type Database = {
         }
         Update: {
           company_id?: string
+          contract_id?: string | null
           created_at?: string
           description?: string | null
           done?: boolean | null
@@ -1103,6 +1388,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
             referencedColumns: ["id"]
           },
           {
@@ -1140,6 +1432,7 @@ export type Database = {
           ai_summary: string | null
           blocked: string | null
           company_id: string
+          contract_id: string | null
           created_at: string
           created_by: string | null
           decisions: string | null
@@ -1154,6 +1447,7 @@ export type Database = {
           ai_summary?: string | null
           blocked?: string | null
           company_id: string
+          contract_id?: string | null
           created_at?: string
           created_by?: string | null
           decisions?: string | null
@@ -1168,6 +1462,7 @@ export type Database = {
           ai_summary?: string | null
           blocked?: string | null
           company_id?: string
+          contract_id?: string | null
           created_at?: string
           created_by?: string | null
           decisions?: string | null
@@ -1184,6 +1479,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weekly_reviews_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
             referencedColumns: ["id"]
           },
         ]
