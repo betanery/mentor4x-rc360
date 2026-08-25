@@ -811,6 +811,7 @@ export type Database = {
           company_id: string
           completed_at: string | null
           completed_by: string | null
+          contract_id: string | null
           created_at: string
           done: boolean
           id: string
@@ -822,6 +823,7 @@ export type Database = {
           company_id: string
           completed_at?: string | null
           completed_by?: string | null
+          contract_id?: string | null
           created_at?: string
           done?: boolean
           id?: string
@@ -833,6 +835,7 @@ export type Database = {
           company_id?: string
           completed_at?: string | null
           completed_by?: string | null
+          contract_id?: string | null
           created_at?: string
           done?: boolean
           id?: string
@@ -840,7 +843,15 @@ export type Database = {
           item_type?: string
           stage?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "journey_checklist_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lesson_progress: {
         Row: {
@@ -1421,6 +1432,7 @@ export type Database = {
           ai_summary: string | null
           blocked: string | null
           company_id: string
+          contract_id: string | null
           created_at: string
           created_by: string | null
           decisions: string | null
@@ -1435,6 +1447,7 @@ export type Database = {
           ai_summary?: string | null
           blocked?: string | null
           company_id: string
+          contract_id?: string | null
           created_at?: string
           created_by?: string | null
           decisions?: string | null
@@ -1449,6 +1462,7 @@ export type Database = {
           ai_summary?: string | null
           blocked?: string | null
           company_id?: string
+          contract_id?: string | null
           created_at?: string
           created_by?: string | null
           decisions?: string | null
@@ -1465,6 +1479,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weekly_reviews_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
             referencedColumns: ["id"]
           },
         ]
