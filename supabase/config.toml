@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.verify-certificate]
 verify_jwt = false
+
+[functions.daily-alerts]
+verify_jwt = false
