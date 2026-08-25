@@ -5,6 +5,23 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function scopedQuery(query: any, contractId: string | null) {
+  return contractId ? query.eq("contract_id", contractId) : query.is("contract_id", null);
+}
+
+async function resolveContract(admin: any, companyId: string, contractId?: string | null) {
+  if (!contractId) return { contractId: null, contract: null };
+  const { data, error } = await admin
+    .from("contracts")
+    .select("id, company_id, status, journey_stage, current_cycle, product_id, product_version_id")
+    .eq("id", contractId)
+    .eq("company_id", companyId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return { forbidden: true };
+  return { contractId: data.id, contract: data };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
@@ -25,7 +42,7 @@ Deno.serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
-    const { messages, company_id } = await req.json();
+    const { messages, company_id, contract_id } = await req.json();
     if (!Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "messages required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -44,13 +61,18 @@ Deno.serve(async (req) => {
       if (!isStaff && !isMember) {
         return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
+      const scope = await resolveContract(admin, company_id, contract_id);
+      if (scope.forbidden) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
       const [{ data: c }, { data: g }, { data: b }, { data: p }] = await Promise.all([
         admin.from("companies").select("*").eq("id", company_id).single(),
-        admin.from("goals").select("title,status,financial_impact,pillar").eq("company_id", company_id).limit(20),
-        admin.from("bottlenecks").select("name,urgency,estimated_value,resolved").eq("company_id", company_id).limit(10),
-        admin.from("pillar_scores").select("pillar,score").eq("company_id", company_id).order("measured_at", { ascending: false }).limit(8),
+        scopedQuery(admin.from("goals").select("title,status,financial_impact,pillar").eq("company_id", company_id), scope.contractId).limit(20),
+        scopedQuery(admin.from("bottlenecks").select("name,urgency,estimated_value,resolved").eq("company_id", company_id), scope.contractId).limit(10),
+        scopedQuery(admin.from("pillar_scores").select("pillar,score").eq("company_id", company_id).order("measured_at", { ascending: false }), scope.contractId).limit(8),
       ]);
-      context = `\n\nCONTEXTO DA EMPRESA:\nNome: ${c?.name}\nCiclo atual: ${c?.journey_stage}\nImproviso: ${c?.chaos_level}\nScore geral: ${c?.overall_score}\nDependência do dono: ${c?.owner_dependency}%\nReceita projetada: R$ ${c?.projected_revenue}\n\nMETAS (${g?.length || 0}): ${JSON.stringify(g)}\nGARGALOS: ${JSON.stringify(b)}\nSCORES PILARES: ${JSON.stringify(p)}`;
+      const activeStage = scope.contract?.journey_stage ?? c?.journey_stage;
+      context = `\n\nCONTEXTO DA EMPRESA:\nNome: ${c?.name}\nContratação: ${scope.contract?.id ?? "legado/sem contratação"}\nCiclo atual: ${activeStage}\nImproviso: ${c?.chaos_level}\nScore geral: ${c?.overall_score}\nDependência do dono: ${c?.owner_dependency}%\nReceita projetada: R$ ${c?.projected_revenue}\n\nMETAS (${g?.length || 0}): ${JSON.stringify(g)}\nGARGALOS: ${JSON.stringify(b)}\nSCORES PILARES: ${JSON.stringify(p)}`;
     }
 
     const systemPrompt = `Você é "Meu Sócio IA", o conselheiro estratégico do método SEE_4X (Sistema de Estruturação Empresarial 4X, RC360).

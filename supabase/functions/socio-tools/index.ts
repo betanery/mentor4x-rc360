@@ -5,6 +5,19 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+async function resolveContract(admin: any, companyId: string, contractId?: string | null) {
+  if (!contractId) return { contractId: null, contract: null };
+  const { data, error } = await admin
+    .from("contracts")
+    .select("id, company_id, status, journey_stage, current_cycle, product_id, product_version_id")
+    .eq("id", contractId)
+    .eq("company_id", companyId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return { forbidden: true };
+  return { contractId: data.id, contract: data };
+}
+
 const tools = [
   {
     type: "function",
@@ -55,7 +68,7 @@ const tools = [
           title: { type: "string" },
           scheduled_at: { type: "string", description: "ISO datetime" },
           duration_min: { type: "number" },
-          meeting_type: { type: "string", enum: ["mentoria", "estrategia", "tatica", "revisao"] },
+          meeting_type: { type: "string", enum: ["sala_guerra", "mentoria", "estrategia", "kickoff", "review", "checkin_semanal"] },
           meeting_url: { type: "string" },
         },
         required: ["title", "scheduled_at"],
@@ -83,7 +96,7 @@ Deno.serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
-    const { instruction, company_id, confirm } = await req.json();
+    const { instruction, company_id, contract_id, confirm } = await req.json();
     if (!instruction || !company_id) {
       return new Response(JSON.stringify({ error: "instruction and company_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -93,6 +106,10 @@ Deno.serve(async (req) => {
       admin.rpc("is_company_member", { _user_id: userId, _company_id: company_id }),
     ]);
     if (!isStaff && !isMember) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const contractScope = await resolveContract(admin, company_id, contract_id);
+    if (contractScope.forbidden) {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -142,7 +159,7 @@ Deno.serve(async (req) => {
       try {
         if (p.name === "create_goal") {
           const { data: row, error } = await admin.from("goals").insert({
-            company_id, title: p.args.title, description: p.args.description ?? null,
+            company_id, contract_id: contractScope.contractId, title: p.args.title, description: p.args.description ?? null,
             pillar: p.args.pillar ?? null, indicator: p.args.indicator ?? null,
             financial_impact: p.args.financial_impact ?? 0, due_date: p.args.due_date ?? null,
             week_start: new Date().toISOString().slice(0, 10),
@@ -152,7 +169,7 @@ Deno.serve(async (req) => {
           results.push({ name: p.name, ok: true, row });
         } else if (p.name === "create_bottleneck") {
           const { data: row, error } = await admin.from("bottlenecks").insert({
-            company_id, name: p.args.name, area: p.args.area ?? null,
+            company_id, contract_id: contractScope.contractId, name: p.args.name, area: p.args.area ?? null,
             impact: p.args.impact ?? null, urgency: p.args.urgency ?? "media",
             estimated_value: p.args.estimated_value ?? 0, correction_plan: p.args.correction_plan ?? null,
             responsible_user_id: userId,
@@ -162,7 +179,7 @@ Deno.serve(async (req) => {
         } else if (p.name === "schedule_meeting") {
           if (!isStaff) { results.push({ name: p.name, ok: false, error: "Apenas staff pode agendar reuniões." }); continue; }
           const { data: row, error } = await admin.from("meetings").insert({
-            company_id, title: p.args.title, scheduled_at: p.args.scheduled_at,
+            company_id, contract_id: contractScope.contractId, title: p.args.title, scheduled_at: p.args.scheduled_at,
             duration_min: p.args.duration_min ?? 60, meeting_type: p.args.meeting_type ?? "mentoria",
             meeting_url: p.args.meeting_url ?? null, created_by: userId,
           }).select().single();

@@ -227,14 +227,14 @@ export default function Journey() {
         new_value: CYCLE_LABEL[next]?.label ?? next,
       });
     },
-    onSuccess: async () => {
+    onSuccess: () => {
       toast.success("Ciclo encerrado e empresa avançada");
       setCloseOpen(false);
       setSummary(""); setJustification(""); setEvidenceFile(null);
       qc.invalidateQueries({ queryKey: ["cycle_records"] });
       qc.invalidateQueries({ queryKey: ["companies"] });
       qc.invalidateQueries({ queryKey: ["governance_log"] });
-      await refreshContracts();
+      void refreshContracts();
     },
     onError: (e: any) => toast.error(e.message),
   });

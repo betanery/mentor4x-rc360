@@ -6,6 +6,23 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function scopedQuery(query: any, contractId: string | null) {
+  return contractId ? query.eq("contract_id", contractId) : query.is("contract_id", null);
+}
+
+async function resolveContract(admin: any, companyId: string, contractId?: string | null) {
+  if (!contractId) return { contractId: null, contract: null };
+  const { data, error } = await admin
+    .from("contracts")
+    .select("id, company_id, status, journey_stage, current_cycle, product_id, product_version_id")
+    .eq("id", contractId)
+    .eq("company_id", companyId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return { forbidden: true };
+  return { contractId: data.id, contract: data };
+}
+
 async function callAI(prompt: string, system: string) {
   const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -479,13 +496,14 @@ Deno.serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
-    const { action, company_id, payload } = await req.json();
+    const { action, company_id, contract_id, payload } = await req.json();
     if (!action) {
       return new Response(JSON.stringify({ error: "action required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     let isStaff = false;
+    let contractScope: { contractId: string | null; contract: any; forbidden?: boolean } = { contractId: null, contract: null };
     if (company_id) {
       const [{ data: s }, { data: m }] = await Promise.all([
         admin.rpc("is_staff", { _user_id: userId }),
@@ -493,6 +511,10 @@ Deno.serve(async (req) => {
       ]);
       isStaff = !!s;
       if (!s && !m) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      contractScope = await resolveContract(admin, company_id, contract_id);
+      if (contractScope.forbidden) {
         return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
     }
@@ -509,8 +531,8 @@ Deno.serve(async (req) => {
     if (action === "monthly_report") {
       if (!company_id) return new Response(JSON.stringify({ error: "company_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const { data: c } = await admin.from("companies").select("*").eq("id", company_id).single();
-      const { data: g } = await admin.from("goals").select("*").eq("company_id", company_id);
-      const { data: b } = await admin.from("bottlenecks").select("*").eq("company_id", company_id);
+      const { data: g } = await scopedQuery(admin.from("goals").select("*").eq("company_id", company_id), contractScope.contractId);
+      const { data: b } = await scopedQuery(admin.from("bottlenecks").select("*").eq("company_id", company_id), contractScope.contractId);
       const text = await callAI(
         `Gere o relatório do ciclo SEE_4X em texto corrido (sem markdown) para ${c?.name}. Inclua seções: 1) Evolução do score (${c?.overall_score}/100), 2) Metas (${g?.filter((x:any)=>x.status==='concluido').length}/${g?.length} concluídas), 3) Gargalos (${b?.filter((x:any)=>x.resolved).length}/${b?.length} resolvidos), 4) Próximos focos, 5) ROI percebido. Use parágrafos curtos.`,
         "Você gera relatórios executivos premium do método SEE_4X (RC360) em português."
@@ -521,7 +543,7 @@ Deno.serve(async (req) => {
       const up = await admin.storage.from("reports").upload(path, pdf, { contentType: "application/pdf", upsert: false });
       if (up.error) throw up.error;
       await admin.from("reports").insert({
-        company_id, generated_by: userId, title,
+        company_id, contract_id: contractScope.contractId, generated_by: userId, title,
         period_start: new Date(Date.now() - 30*86400000).toISOString().slice(0,10),
         period_end: new Date().toISOString().slice(0,10),
         summary: { text }, pdf_url: path,
@@ -535,12 +557,16 @@ Deno.serve(async (req) => {
       if (!isStaff) return new Response(JSON.stringify({ error: "Apenas staff pode emitir certificado" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const { data: c } = await admin.from("companies").select("*").eq("id", company_id).single();
       if (!c) return new Response(JSON.stringify({ error: "Empresa não encontrada" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const stage = contractScope.contract?.journey_stage ?? c.journey_stage;
+      if (stage !== "concluido") {
+        return new Response(JSON.stringify({ error: "A certificação exige conclusão dos 6 ciclos" }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
       const code = `M4X-${new Date().getFullYear()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
       const pdf = buildCertificatePdf(c.name, code);
       const path = `${company_id}/cert-${code}.pdf`;
       const up = await admin.storage.from("reports").upload(path, pdf, { contentType: "application/pdf", upsert: false });
       if (up.error) throw up.error;
-      const ins = await admin.from("certificates").insert({ company_id, user_id: userId, code, pdf_url: path }).select().single();
+      const ins = await admin.from("certificates").insert({ company_id, contract_id: contractScope.contractId, user_id: userId, code, pdf_url: path }).select().single();
       if (ins.error) throw ins.error;
       return new Response(JSON.stringify({ code, pdf_path: path, certificate: ins.data }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -552,10 +578,12 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: "baseline_diagnostic_id and follow_up_diagnostic_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
+      const baselineQuery = scopedQuery(admin.from("diagnostics").select("*").eq("id", baseline_diagnostic_id).eq("company_id", company_id), contractScope.contractId);
+      const followUpQuery = scopedQuery(admin.from("diagnostics").select("*").eq("id", follow_up_diagnostic_id).eq("company_id", company_id), contractScope.contractId);
       const [{ data: company }, { data: baselineDiag }, { data: followUpDiag }] = await Promise.all([
         admin.from("companies").select("*").eq("id", company_id).single(),
-        admin.from("diagnostics").select("*").eq("id", baseline_diagnostic_id).eq("company_id", company_id).single(),
-        admin.from("diagnostics").select("*").eq("id", follow_up_diagnostic_id).eq("company_id", company_id).single(),
+        baselineQuery.single(),
+        followUpQuery.single(),
       ]);
       if (!company || !baselineDiag || !followUpDiag) {
         return new Response(JSON.stringify({ error: "Empresa ou diagnósticos não encontrados" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -564,7 +592,7 @@ Deno.serve(async (req) => {
       const [{ data: baseResponses }, { data: followResponses }, { data: goals }] = await Promise.all([
         admin.from("diagnostic_responses").select("*").eq("diagnostic_id", baseline_diagnostic_id),
         admin.from("diagnostic_responses").select("*").eq("diagnostic_id", follow_up_diagnostic_id),
-        admin.from("goals").select("*").eq("company_id", company_id).in("status", ["nao_iniciado", "em_andamento", "atrasado", "bloqueado"]).eq("approval_status", "aprovada"),
+        scopedQuery(admin.from("goals").select("*").eq("company_id", company_id).in("status", ["nao_iniciado", "em_andamento", "atrasado", "bloqueado"]).eq("approval_status", "aprovada"), contractScope.contractId),
       ]);
 
       const baseline = getDiagnosticResult(baselineDiag, baseResponses || []);
@@ -591,6 +619,7 @@ Deno.serve(async (req) => {
       const title = `Relatório SEE_4X — ${baselineDiag.title || "Baseline"} vs ${followUpDiag.title || "Follow-up"}`;
       const ins = await admin.from("reports").insert({
         company_id,
+        contract_id: contractScope.contractId,
         generated_by: userId,
         title,
         period_start: baselineDiag.created_at?.slice(0, 10),
