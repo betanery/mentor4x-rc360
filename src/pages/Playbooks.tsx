@@ -20,9 +20,7 @@ import { MOTORES, PILLAR_LABEL } from "@/lib/labels";
 
 type Playbook = Tables<"playbooks">;
 
-const CATEGORIES = ["Processos", "Pessoas", "Финanças", "Comercial", "Governança", "Ferramentas"].map((c) =>
-  c === "Финanças" ? "Finanças" : c
-);
+const CATEGORIES = ["Processos", "Pessoas", "Finanças", "Comercial", "Governança", "Ferramentas"];
 
 const emptyForm = {
   title: "",
