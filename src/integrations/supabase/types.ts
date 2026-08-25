@@ -943,28 +943,46 @@ export type Database = {
       }
       playbooks: {
         Row: {
+          blindspot_code: string | null
           category: string | null
           created_at: string
           description: string | null
           file_url: string | null
           id: string
+          motor: string | null
+          order_index: number
+          pillar: Database["public"]["Enums"]["pillar"] | null
+          tags: string[] | null
           title: string
+          updated_at: string
         }
         Insert: {
+          blindspot_code?: string | null
           category?: string | null
           created_at?: string
           description?: string | null
           file_url?: string | null
           id?: string
+          motor?: string | null
+          order_index?: number
+          pillar?: Database["public"]["Enums"]["pillar"] | null
+          tags?: string[] | null
           title: string
+          updated_at?: string
         }
         Update: {
+          blindspot_code?: string | null
           category?: string | null
           created_at?: string
           description?: string | null
           file_url?: string | null
           id?: string
+          motor?: string | null
+          order_index?: number
+          pillar?: Database["public"]["Enums"]["pillar"] | null
+          tags?: string[] | null
           title?: string
+          updated_at?: string
         }
         Relationships: []
       }
