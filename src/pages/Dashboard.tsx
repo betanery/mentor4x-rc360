@@ -117,6 +117,8 @@ export default function Dashboard() {
         action={<Badge className={`${improviso.color} text-xs px-3 py-1.5 font-bold`}>{improviso.label}</Badge>}
       />
 
+      <OnboardingChecklist companyId={current.id} />
+
 
       {/* Bloco Classificação — baseline oficial do Diagnóstico SEE_4X */}
       <Card className="p-5">
