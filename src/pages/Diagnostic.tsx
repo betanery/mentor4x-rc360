@@ -218,12 +218,13 @@ export default function Diagnostic() {
     mutationFn: async () => {
       if (!activeDiag || !result) throw new Error("Sem resultado consolidado");
       if (activeDiag.status !== "validado") throw new Error("Valide o diagnóstico antes de gerar o Top 5");
-      const { data: existing, error: exErr } = await supabase
+      let existingQuery = supabase
         .from("bottlenecks")
         .select("blindspot_code")
         .eq("company_id", activeDiag.company_id)
-        .eq("contract_id", currentContract?.id ?? null)
         .not("blindspot_code", "is", null);
+      existingQuery = currentContract ? existingQuery.eq("contract_id", currentContract.id) : existingQuery.is("contract_id", null);
+      const { data: existing, error: exErr } = await existingQuery;
       if (exErr) throw exErr;
       const taken = new Set((existing ?? []).map((b) => b.blindspot_code));
       const rows = result.top5

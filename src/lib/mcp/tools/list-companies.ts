@@ -13,7 +13,7 @@ export default defineTool({
     const supabase = supabaseForUser(ctx);
     const { data, error } = await supabase
       .from("companies")
-      .select("id, name, segment, journey_stage, chaos_level, overall_score, owner_dependency, projected_revenue, started_at")
+      .select("id, name, segment, journey_stage, chaos_level, overall_score, owner_dependency, projected_revenue, started_at, contracts(id, status, journey_stage, current_cycle, product_id, product_version_id)")
       .order("name");
     if (error) return errorResult(error.message);
     return jsonResult({ companies: data ?? [] });

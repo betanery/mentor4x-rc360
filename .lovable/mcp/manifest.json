@@ -47,6 +47,10 @@
             "company_id": {
               "type": "string",
               "description": "UUID da empresa (use list_companies para descobrir)."
+            },
+            "contract_id": {
+              "type": "string",
+              "description": "UUID da contratação/ciclo ativo, quando a empresa tiver mais de uma contratação."
             }
           },
           "required": [
@@ -72,6 +76,10 @@
             "company_id": {
               "type": "string",
               "description": "UUID da empresa."
+            },
+            "contract_id": {
+              "type": "string",
+              "description": "UUID da contratação/ciclo ativo. Se omitido, lista apenas registros legados sem contratação."
             },
             "status": {
               "type": "string",
@@ -108,6 +116,10 @@
             "company_id": {
               "type": "string",
               "description": "UUID da empresa."
+            },
+            "contract_id": {
+              "type": "string",
+              "description": "UUID da contratação/ciclo ativo. Se omitido, cria registro legado sem contratação."
             },
             "title": {
               "type": "string",
@@ -165,6 +177,10 @@
               "type": "string",
               "description": "UUID da empresa."
             },
+            "contract_id": {
+              "type": "string",
+              "description": "UUID da contratação/ciclo ativo. Se omitido, lista apenas registros legados sem contratação."
+            },
             "include_done": {
               "type": "boolean",
               "description": "Se true, inclui também tarefas concluídas."
@@ -193,6 +209,10 @@
             "company_id": {
               "type": "string",
               "description": "UUID da empresa."
+            },
+            "contract_id": {
+              "type": "string",
+              "description": "UUID da contratação/ciclo ativo. Se omitido, cria registro legado sem contratação."
             },
             "title": {
               "type": "string",
@@ -232,6 +252,10 @@
               "type": "string",
               "description": "UUID da empresa."
             },
+            "contract_id": {
+              "type": "string",
+              "description": "UUID da contratação/ciclo ativo. Se omitido, lista apenas registros legados sem contratação."
+            },
             "include_resolved": {
               "type": "boolean",
               "description": "Se true, inclui gargalos já resolvidos."
@@ -260,6 +284,10 @@
             "company_id": {
               "type": "string",
               "description": "UUID da empresa."
+            },
+            "contract_id": {
+              "type": "string",
+              "description": "UUID da contratação/ciclo ativo. Se omitido, cria registro legado sem contratação."
             },
             "name": {
               "type": "string",
@@ -316,6 +344,10 @@
             "company_id": {
               "type": "string",
               "description": "UUID da empresa."
+            },
+            "contract_id": {
+              "type": "string",
+              "description": "UUID da contratação/ciclo ativo. Se omitido, cria registro legado sem contratação."
             },
             "pillar": {
               "type": "string",

@@ -56,6 +56,16 @@ function supabaseForUser(ctx) {
     auth: { persistSession: false, autoRefreshToken: false }
   });
 }
+async function resolveContractScope(supabase, companyId, contractId) {
+  if (!contractId) return { contractId: null, contract: null };
+  const { data, error } = await supabase.from("contracts").select("id, company_id, status, journey_stage, current_cycle, product_id, product_version_id").eq("id", contractId).eq("company_id", companyId).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Contrata\xE7\xE3o n\xE3o encontrada ou sem acesso para esta empresa.");
+  return { contractId: data.id, contract: data };
+}
+function applyContractScope(query, contractId) {
+  return contractId ? query.eq("contract_id", contractId) : query.is("contract_id", null);
+}
 function notAuthenticated() {
   return {
     content: [{ type: "text", text: "N\xE3o autenticado. Conecte-se ao MENTOR 4X novamente." }],
@@ -82,7 +92,7 @@ var list_companies_default = defineTool({
   handler: async (_input, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated();
     const supabase = supabaseForUser(ctx);
-    const { data, error } = await supabase.from("companies").select("id, name, segment, journey_stage, chaos_level, overall_score, owner_dependency, projected_revenue, started_at").order("name");
+    const { data, error } = await supabase.from("companies").select("id, name, segment, journey_stage, chaos_level, overall_score, owner_dependency, projected_revenue, started_at, contracts(id, status, journey_stage, current_cycle, product_id, product_version_id)").order("name");
     if (error) return errorResult(error.message);
     return jsonResult({ companies: data ?? [] });
   }
@@ -96,24 +106,32 @@ var get_company_overview_default = defineTool2({
   title: "Diagn\xF3stico da empresa",
   description: "Retorna o panorama de uma empresa: dados gerais, \xFAltimos scores por pilar, metas em aberto, gargalos n\xE3o resolvidos e tarefas pendentes.",
   inputSchema: {
-    company_id: z.string().describe("UUID da empresa (use list_companies para descobrir).")
+    company_id: z.string().describe("UUID da empresa (use list_companies para descobrir)."),
+    contract_id: z.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo, quando a empresa tiver mais de uma contrata\xE7\xE3o.")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async ({ company_id }, ctx) => {
+  handler: async ({ company_id, contract_id }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated();
     const supabase = supabaseForUser(ctx);
+    let scope;
+    try {
+      scope = await resolveContractScope(supabase, company_id, contract_id);
+    } catch (e) {
+      return errorResult(e instanceof Error ? e.message : String(e));
+    }
     const [company, scores, goals, bottlenecks, tasks] = await Promise.all([
       supabase.from("companies").select("*").eq("id", company_id).maybeSingle(),
-      supabase.from("pillar_scores").select("pillar, score, measured_at, blind_spots, recommendations").eq("company_id", company_id).order("measured_at", { ascending: false }).limit(30),
-      supabase.from("goals").select("id, title, status, pillar, due_date, financial_impact").eq("company_id", company_id).neq("status", "concluido").order("due_date", { ascending: true }).limit(50),
-      supabase.from("bottlenecks").select("id, name, area, urgency, progress, estimated_value").eq("company_id", company_id).eq("resolved", false).limit(50),
-      supabase.from("tasks").select("id, title, due_date, done").eq("company_id", company_id).eq("done", false).limit(50)
+      applyContractScope(supabase.from("pillar_scores").select("pillar, score, measured_at, blind_spots, recommendations").eq("company_id", company_id).order("measured_at", { ascending: false }), scope.contractId).limit(30),
+      applyContractScope(supabase.from("goals").select("id, title, status, pillar, due_date, financial_impact").eq("company_id", company_id).neq("status", "concluido").order("due_date", { ascending: true }), scope.contractId).limit(50),
+      applyContractScope(supabase.from("bottlenecks").select("id, name, area, urgency, progress, estimated_value").eq("company_id", company_id).eq("resolved", false), scope.contractId).limit(50),
+      applyContractScope(supabase.from("tasks").select("id, title, due_date, done").eq("company_id", company_id).eq("done", false), scope.contractId).limit(50)
     ]);
     const failure = [company, scores, goals, bottlenecks, tasks].find((r) => r.error);
     if (failure?.error) return errorResult(failure.error.message);
     if (!company.data) return errorResult("Empresa n\xE3o encontrada ou sem acesso.");
     return jsonResult({
       company: company.data,
+      contract: scope.contract,
       pillar_scores: scores.data ?? [],
       open_goals: goals.data ?? [],
       open_bottlenecks: bottlenecks.data ?? [],
@@ -131,13 +149,21 @@ var list_goals_default = defineTool3({
   description: "Lista as metas (semanais/mensais) de uma empresa no MENTOR 4X. Opcionalmente filtra por status.",
   inputSchema: {
     company_id: z2.string().describe("UUID da empresa."),
+    contract_id: z2.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, lista apenas registros legados sem contrata\xE7\xE3o."),
     status: z2.enum(["nao_iniciado", "em_andamento", "concluido", "atrasado", "bloqueado"]).optional().describe("Filtro opcional por status da meta.")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async ({ company_id, status }, ctx) => {
+  handler: async ({ company_id, contract_id, status }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated();
     const supabase = supabaseForUser(ctx);
+    let scope;
+    try {
+      scope = await resolveContractScope(supabase, company_id, contract_id);
+    } catch (e) {
+      return errorResult(e instanceof Error ? e.message : String(e));
+    }
     let query = supabase.from("goals").select("id, title, description, status, pillar, indicator, due_date, week_start, financial_impact, mentor_comment, evidence_url").eq("company_id", company_id).order("due_date", { ascending: true }).limit(200);
+    query = applyContractScope(query, scope.contractId);
     if (status) query = query.eq("status", status);
     const { data, error } = await query;
     if (error) return errorResult(error.message);
@@ -154,6 +180,7 @@ var create_goal_default = defineTool4({
   description: "Cria uma nova meta de execu\xE7\xE3o para uma empresa do MENTOR 4X. Use ap\xF3s confirmar a empresa correta com list_companies.",
   inputSchema: {
     company_id: z3.string().describe("UUID da empresa."),
+    contract_id: z3.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, cria registro legado sem contrata\xE7\xE3o."),
     title: z3.string().describe("T\xEDtulo da meta, objetivo e mensur\xE1vel."),
     description: z3.string().optional().describe("Detalhes do plano de execu\xE7\xE3o."),
     pillar: z3.enum(["crescimento", "eficiencia", "encantamento", "lideranca"]).optional().describe("Pilar 4X relacionado, se aplic\xE1vel."),
@@ -165,8 +192,15 @@ var create_goal_default = defineTool4({
   handler: async (input, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated();
     const supabase = supabaseForUser(ctx);
+    let scope;
+    try {
+      scope = await resolveContractScope(supabase, input.company_id, input.contract_id);
+    } catch (e) {
+      return errorResult(e instanceof Error ? e.message : String(e));
+    }
     const { data, error } = await supabase.from("goals").insert({
       company_id: input.company_id,
+      contract_id: scope.contractId,
       title: input.title.trim(),
       description: input.description ?? null,
       pillar: input.pillar ?? null,
@@ -190,13 +224,21 @@ var list_tasks_default = defineTool5({
   description: "Lista as tarefas do plano de a\xE7\xE3o de uma empresa. Por padr\xE3o s\xF3 as pendentes.",
   inputSchema: {
     company_id: z4.string().describe("UUID da empresa."),
+    contract_id: z4.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, lista apenas registros legados sem contrata\xE7\xE3o."),
     include_done: z4.boolean().optional().describe("Se true, inclui tamb\xE9m tarefas conclu\xEDdas.")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async ({ company_id, include_done }, ctx) => {
+  handler: async ({ company_id, contract_id, include_done }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated();
     const supabase = supabaseForUser(ctx);
+    let scope;
+    try {
+      scope = await resolveContractScope(supabase, company_id, contract_id);
+    } catch (e) {
+      return errorResult(e instanceof Error ? e.message : String(e));
+    }
     let query = supabase.from("tasks").select("id, title, description, due_date, done, created_at").eq("company_id", company_id).order("due_date", { ascending: true }).limit(200);
+    query = applyContractScope(query, scope.contractId);
     if (!include_done) query = query.eq("done", false);
     const { data, error } = await query;
     if (error) return errorResult(error.message);
@@ -213,16 +255,24 @@ var create_task_default = defineTool6({
   description: "Adiciona uma tarefa ao plano de a\xE7\xE3o de uma empresa do MENTOR 4X.",
   inputSchema: {
     company_id: z5.string().describe("UUID da empresa."),
+    contract_id: z5.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, cria registro legado sem contrata\xE7\xE3o."),
     title: z5.string().describe("T\xEDtulo curto e acion\xE1vel da tarefa."),
     description: z5.string().optional().describe("Detalhes da execu\xE7\xE3o."),
     due_date: z5.string().optional().describe("Prazo no formato YYYY-MM-DD.")
   },
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
-  handler: async ({ company_id, title, description, due_date }, ctx) => {
+  handler: async ({ company_id, contract_id, title, description, due_date }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated();
     const supabase = supabaseForUser(ctx);
+    let scope;
+    try {
+      scope = await resolveContractScope(supabase, company_id, contract_id);
+    } catch (e) {
+      return errorResult(e instanceof Error ? e.message : String(e));
+    }
     const { data, error } = await supabase.from("tasks").insert({
       company_id,
+      contract_id: scope.contractId,
       title: title.trim(),
       description: description ?? null,
       due_date: due_date ?? null,
@@ -242,13 +292,21 @@ var list_bottlenecks_default = defineTool7({
   description: "Lista os gargalos (bottlenecks) mapeados de uma empresa, com urg\xEAncia, progresso da corre\xE7\xE3o e valor estimado.",
   inputSchema: {
     company_id: z6.string().describe("UUID da empresa."),
+    contract_id: z6.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, lista apenas registros legados sem contrata\xE7\xE3o."),
     include_resolved: z6.boolean().optional().describe("Se true, inclui gargalos j\xE1 resolvidos.")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async ({ company_id, include_resolved }, ctx) => {
+  handler: async ({ company_id, contract_id, include_resolved }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated();
     const supabase = supabaseForUser(ctx);
+    let scope;
+    try {
+      scope = await resolveContractScope(supabase, company_id, contract_id);
+    } catch (e) {
+      return errorResult(e instanceof Error ? e.message : String(e));
+    }
     let query = supabase.from("bottlenecks").select("id, name, area, impact, urgency, progress, estimated_value, correction_plan, resolved").eq("company_id", company_id).order("urgency", { ascending: false }).limit(200);
+    query = applyContractScope(query, scope.contractId);
     if (!include_resolved) query = query.eq("resolved", false);
     const { data, error } = await query;
     if (error) return errorResult(error.message);
@@ -265,6 +323,7 @@ var create_bottleneck_default = defineTool8({
   description: "Registra um novo gargalo operacional de uma empresa do MENTOR 4X, com urg\xEAncia e plano de corre\xE7\xE3o.",
   inputSchema: {
     company_id: z7.string().describe("UUID da empresa."),
+    contract_id: z7.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, cria registro legado sem contrata\xE7\xE3o."),
     name: z7.string().describe("Nome do gargalo."),
     area: z7.string().optional().describe("\xC1rea da empresa afetada (ex.: comercial, financeiro)."),
     impact: z7.string().optional().describe("Descri\xE7\xE3o do impacto no neg\xF3cio."),
@@ -276,8 +335,15 @@ var create_bottleneck_default = defineTool8({
   handler: async (input, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated();
     const supabase = supabaseForUser(ctx);
+    let scope;
+    try {
+      scope = await resolveContractScope(supabase, input.company_id, input.contract_id);
+    } catch (e) {
+      return errorResult(e instanceof Error ? e.message : String(e));
+    }
     const { data, error } = await supabase.from("bottlenecks").insert({
       company_id: input.company_id,
+      contract_id: scope.contractId,
       name: input.name.trim(),
       area: input.area ?? null,
       impact: input.impact ?? null,
@@ -301,6 +367,7 @@ var record_pillar_score_default = defineTool9({
   description: "Registra uma nova nota (0 a 100) para um pilar do m\xE9todo 4X de uma empresa, com pontos cegos e recomenda\xE7\xF5es. Requer permiss\xE3o de mentor/estrategista.",
   inputSchema: {
     company_id: z8.string().describe("UUID da empresa."),
+    contract_id: z8.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, cria registro legado sem contrata\xE7\xE3o."),
     pillar: z8.enum(["crescimento", "eficiencia", "encantamento", "lideranca"]).describe("Pilar do m\xE9todo 4X."),
     score: z8.number().describe("Nota de 0 a 100."),
     blind_spots: z8.string().optional().describe("Pontos cegos identificados."),
@@ -311,8 +378,15 @@ var record_pillar_score_default = defineTool9({
     if (!ctx.isAuthenticated()) return notAuthenticated();
     const score = Math.max(0, Math.min(100, Math.round(input.score)));
     const supabase = supabaseForUser(ctx);
+    let scope;
+    try {
+      scope = await resolveContractScope(supabase, input.company_id, input.contract_id);
+    } catch (e) {
+      return errorResult(e instanceof Error ? e.message : String(e));
+    }
     const { data, error } = await supabase.from("pillar_scores").insert({
       company_id: input.company_id,
+      contract_id: scope.contractId,
       pillar: input.pillar,
       score,
       blind_spots: input.blind_spots ?? null,
