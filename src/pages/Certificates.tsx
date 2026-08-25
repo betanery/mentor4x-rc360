@@ -21,7 +21,7 @@ export default function Certificates() {
   const load = async () => {
     if (!current) return;
     let query = supabase.from("certificates").select("*").eq("company_id", current.id).order("issued_at", { ascending: false });
-    if (currentContract) query = query.eq("contract_id", currentContract.id);
+    query = currentContract ? query.eq("contract_id", currentContract.id) : query.is("contract_id", null);
     const { data } = await query;
     setCerts(data || []);
   };

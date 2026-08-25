@@ -28,6 +28,12 @@ export function OnboardingChecklist({ companyId, contractId }: { companyId: stri
         goalsQuery.eq("contract_id", contractId);
         cyclesQuery.eq("contract_id", contractId);
         meetingsQuery.eq("contract_id", contractId);
+      } else {
+        diagnosticsQuery.is("contract_id", null);
+        bottlenecksQuery.is("contract_id", null);
+        goalsQuery.is("contract_id", null);
+        cyclesQuery.is("contract_id", null);
+        meetingsQuery.is("contract_id", null);
       }
       const [diagnostics, bottlenecks, goals, cycles, meetings] = await Promise.all([diagnosticsQuery, bottlenecksQuery, goalsQuery, cyclesQuery, meetingsQuery]);
       return {

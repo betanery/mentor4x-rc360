@@ -29,7 +29,7 @@ export default function Pillars() {
     queryKey: ["pillar_scores", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
-      const { data } = await supabase.from("pillar_scores").select("*").eq("company_id", current!.id).eq("contract_id", currentContract?.id ?? null).order("measured_at", { ascending: false });
+      const { data } = await supabase.from("pillar_scores").select("*").eq("company_id", current!.id)[currentContract ? "eq" : "is"]("contract_id", currentContract?.id ?? null).order("measured_at", { ascending: false });
       return data || [];
     },
   });
@@ -37,7 +37,7 @@ export default function Pillars() {
     queryKey: ["goals_for_pillars", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
-      const { data } = await supabase.from("goals").select("pillar,status").eq("company_id", current!.id).eq("contract_id", currentContract?.id ?? null);
+      const { data } = await supabase.from("goals").select("pillar,status").eq("company_id", current!.id)[currentContract ? "eq" : "is"]("contract_id", currentContract?.id ?? null);
       return data || [];
     },
   });

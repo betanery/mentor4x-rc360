@@ -54,7 +54,7 @@ export default function WarRoom() {
   const loadReviews = async () => {
     if (!current) return;
     let query = supabase.from("weekly_reviews").select("*").eq("company_id", current.id).order("week_start", { ascending: false });
-    if (currentContract) query = query.eq("contract_id", currentContract.id);
+    query = currentContract ? query.eq("contract_id", currentContract.id) : query.is("contract_id", null);
     const { data: h } = await query;
     setHistory(h || []);
     const found = (h || []).find((w) => w.week_start === weekStart);
@@ -65,7 +65,7 @@ export default function WarRoom() {
   const loadMeetings = async () => {
     if (!current) return;
     let query = supabase.from("meetings").select("*").eq("company_id", current.id).order("scheduled_at", { ascending: false });
-    if (currentContract) query = query.eq("contract_id", currentContract.id);
+    query = currentContract ? query.eq("contract_id", currentContract.id) : query.is("contract_id", null);
     const { data: m } = await query;
     setMeetings(m || []);
     if (m?.length) {

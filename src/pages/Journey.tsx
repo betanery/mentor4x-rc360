@@ -79,7 +79,7 @@ export default function Journey() {
     enabled: !!current,
     queryFn: async () => {
       let query = supabase.from("journey_checklist").select("*").eq("company_id", current!.id);
-      if (currentContract) query = query.eq("contract_id", currentContract.id);
+      query = currentContract ? query.eq("contract_id", currentContract.id) : query.is("contract_id", null);
       const { data } = await query;
       return data || [];
     },
@@ -91,7 +91,7 @@ export default function Journey() {
     queryFn: async () => {
       let query = (supabase.from("cycle_records" as any) as any)
         .select("*").eq("company_id", current!.id).order("started_at", { ascending: true });
-      if (currentContract) query = query.eq("contract_id", currentContract.id);
+      query = currentContract ? query.eq("contract_id", currentContract.id) : query.is("contract_id", null);
       const { data } = await query;
       return (data || []) as CycleRecord[];
     },
@@ -104,7 +104,7 @@ export default function Journey() {
       let query = supabase
         .from("meetings").select("id,title,meeting_type,scheduled_at")
         .eq("company_id", current!.id).order("scheduled_at", { ascending: false }).limit(50);
-      if (currentContract) query = query.eq("contract_id", currentContract.id);
+      query = currentContract ? query.eq("contract_id", currentContract.id) : query.is("contract_id", null);
       const { data } = await query;
       return data || [];
     },
@@ -227,7 +227,7 @@ export default function Journey() {
         new_value: CYCLE_LABEL[next]?.label ?? next,
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Ciclo encerrado e empresa avançada");
       setCloseOpen(false);
       setSummary(""); setJustification(""); setEvidenceFile(null);

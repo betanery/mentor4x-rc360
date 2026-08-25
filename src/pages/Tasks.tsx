@@ -35,7 +35,7 @@ export default function Tasks() {
         .from("tasks")
         .select("*")
         .eq("company_id", current!.id)
-        .eq("contract_id", currentContract?.id ?? null)
+        [currentContract ? "eq" : "is"]("contract_id", currentContract?.id ?? null)
         .order("done")
         .order("due_date", { nullsFirst: false })
         .limit(300);
@@ -52,7 +52,7 @@ export default function Tasks() {
         .from("goals")
         .select("id, title, blindspot_code")
         .eq("company_id", current!.id)
-        .eq("contract_id", currentContract?.id ?? null)
+        [currentContract ? "eq" : "is"]("contract_id", currentContract?.id ?? null)
         .neq("status", "concluido")
         .limit(100);
       if (error) throw error;

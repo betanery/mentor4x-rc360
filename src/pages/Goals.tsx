@@ -52,7 +52,7 @@ export default function Goals() {
     enabled: !!current,
     queryFn: async () => {
       let query = supabase.from("goals").select("*").eq("company_id", current!.id).order("created_at", { ascending: false });
-      if (currentContract) query = query.eq("contract_id", currentContract.id);
+      query = currentContract ? query.eq("contract_id", currentContract.id) : query.is("contract_id", null);
       const { data, error } = await query;
       if (error) throw error;
       return data as Goal[];
@@ -101,7 +101,7 @@ export default function Goals() {
         .eq("company_id", current!.id)
         .eq("resolved", false)
         .limit(50);
-      if (currentContract) query = query.eq("contract_id", currentContract.id);
+      query = currentContract ? query.eq("contract_id", currentContract.id) : query.is("contract_id", null);
       const { data, error } = await query;
       if (error) throw error;
       return data;

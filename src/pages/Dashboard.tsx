@@ -40,6 +40,12 @@ export default function Dashboard() {
         pillarsQuery.eq("contract_id", currentContract.id);
         meetingsQuery.eq("contract_id", currentContract.id);
         diagnosticQuery.eq("contract_id", currentContract.id);
+      } else {
+        goalsQuery.is("contract_id", null);
+        bottlenecksQuery.is("contract_id", null);
+        pillarsQuery.is("contract_id", null);
+        meetingsQuery.is("contract_id", null);
+        diagnosticQuery.is("contract_id", null);
       }
       const [g, b, p, m, d] = await Promise.all([goalsQuery, bottlenecksQuery, pillarsQuery, meetingsQuery, diagnosticQuery]);
       setGoals(g.data || []);

@@ -77,7 +77,7 @@ export default function ReportSee4X() {
         .from("diagnostics")
         .select("*")
         .eq("company_id", current!.id)
-        .eq("contract_id", currentContract?.id ?? null)
+        [currentContract ? "eq" : "is"]("contract_id", currentContract?.id ?? null)
         .order("version", { ascending: false });
       if (error) throw error;
       return data;
@@ -92,7 +92,7 @@ export default function ReportSee4X() {
         .from("reports")
         .select("*")
         .eq("company_id", current!.id)
-        .eq("contract_id", currentContract?.id ?? null)
+        [currentContract ? "eq" : "is"]("contract_id", currentContract?.id ?? null)
         .ilike("title", "Relatório SEE_4X%")
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -108,7 +108,7 @@ export default function ReportSee4X() {
         .from("goals")
         .select("*")
         .eq("company_id", current!.id)
-        .eq("contract_id", currentContract?.id ?? null)
+        [currentContract ? "eq" : "is"]("contract_id", currentContract?.id ?? null)
         .in("status", ["nao_iniciado", "em_andamento", "atrasado", "bloqueado"])
         .eq("approval_status", "aprovada");
       if (error) throw error;

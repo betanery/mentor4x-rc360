@@ -18,7 +18,7 @@ export default function Reports() {
   const load = async () => {
     if (!current) return;
     let query = supabase.from("reports").select("*").eq("company_id", current.id).order("created_at", { ascending: false });
-    if (currentContract) query = query.eq("contract_id", currentContract.id);
+    query = currentContract ? query.eq("contract_id", currentContract.id) : query.is("contract_id", null);
     const { data } = await query;
     setReports(data || []);
   };

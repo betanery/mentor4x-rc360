@@ -73,7 +73,7 @@ export default function Diagnostic() {
         .from("diagnostics")
         .select("*")
         .eq("company_id", current!.id)
-        .eq("contract_id", currentContract?.id ?? null)
+        [currentContract ? "eq" : "is"]("contract_id", currentContract?.id ?? null)
         .order("version", { ascending: false });
       if (error) throw error;
       return data;

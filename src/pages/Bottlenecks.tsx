@@ -39,7 +39,7 @@ export default function Bottlenecks() {
         .from("bottlenecks")
         .select("*")
         .eq("company_id", current!.id)
-        .eq("contract_id", currentContract?.id ?? null)
+        [currentContract ? "eq" : "is"]("contract_id", currentContract?.id ?? null)
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
