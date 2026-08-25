@@ -69,12 +69,13 @@ export default function Diagnostic() {
     queryKey: ["diagnostics", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("diagnostics")
         .select("*")
         .eq("company_id", current!.id)
-        [currentContract ? "eq" : "is"]("contract_id", currentContract?.id ?? null)
         .order("version", { ascending: false });
+      query = currentContract ? query.eq("contract_id", currentContract.id) : query.is("contract_id", null);
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },

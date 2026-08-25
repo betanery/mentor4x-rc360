@@ -31,14 +31,15 @@ export default function Tasks() {
     queryKey: ["tasks", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("tasks")
         .select("*")
         .eq("company_id", current!.id)
-        [currentContract ? "eq" : "is"]("contract_id", currentContract?.id ?? null)
         .order("done")
         .order("due_date", { nullsFirst: false })
         .limit(300);
+      query = currentContract ? query.eq("contract_id", currentContract.id) : query.is("contract_id", null);
+      const { data, error } = await query;
       if (error) throw error;
       return data as Task[];
     },
@@ -48,13 +49,14 @@ export default function Tasks() {
     queryKey: ["goals", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("goals")
         .select("id, title, blindspot_code")
         .eq("company_id", current!.id)
-        [currentContract ? "eq" : "is"]("contract_id", currentContract?.id ?? null)
         .neq("status", "concluido")
         .limit(100);
+      query = currentContract ? query.eq("contract_id", currentContract.id) : query.is("contract_id", null);
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },

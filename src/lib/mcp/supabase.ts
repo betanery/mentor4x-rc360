@@ -81,10 +81,10 @@ export async function resolveContractScope(
   return { contractId: data.id, contract: data };
 }
 
-export function applyContractScope<Query extends { eq: (column: string, value: string) => Query; is: (column: string, value: null) => Query }>(
-  query: Query,
+export function applyContractScope(
+  query: any,
   contractId: string | null,
-): Query {
+): any {
   return contractId ? query.eq("contract_id", contractId) : query.is("contract_id", null);
 }
 

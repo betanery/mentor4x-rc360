@@ -68,7 +68,7 @@ const tools = [
           title: { type: "string" },
           scheduled_at: { type: "string", description: "ISO datetime" },
           duration_min: { type: "number" },
-          meeting_type: { type: "string", enum: ["sala_guerra", "mentoria", "estrategia", "kickoff", "review", "checkin_semanal"] },
+          meeting_type: { type: "string", enum: ["sala_guerra", "estrategia", "kickoff", "review", "checkin_semanal"] },
           meeting_url: { type: "string" },
         },
         required: ["title", "scheduled_at"],
@@ -168,6 +168,7 @@ Deno.serve(async (req) => {
           if (error) throw error;
           results.push({ name: p.name, ok: true, row });
         } else if (p.name === "create_bottleneck") {
+          if (!isStaff) { results.push({ name: p.name, ok: false, error: "Apenas staff pode registrar gargalos oficiais." }); continue; }
           const { data: row, error } = await admin.from("bottlenecks").insert({
             company_id, contract_id: contractScope.contractId, name: p.args.name, area: p.args.area ?? null,
             impact: p.args.impact ?? null, urgency: p.args.urgency ?? "media",
@@ -180,7 +181,7 @@ Deno.serve(async (req) => {
           if (!isStaff) { results.push({ name: p.name, ok: false, error: "Apenas staff pode agendar reuniões." }); continue; }
           const { data: row, error } = await admin.from("meetings").insert({
             company_id, contract_id: contractScope.contractId, title: p.args.title, scheduled_at: p.args.scheduled_at,
-            duration_min: p.args.duration_min ?? 60, meeting_type: p.args.meeting_type ?? "mentoria",
+            duration_min: p.args.duration_min ?? 60, meeting_type: p.args.meeting_type ?? "checkin_semanal",
             meeting_url: p.args.meeting_url ?? null, created_by: userId,
           }).select().single();
           if (error) throw error;
