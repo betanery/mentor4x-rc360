@@ -1069,6 +1069,7 @@ export type Database = {
         Row: {
           blind_spots: string | null
           company_id: string
+          contract_id: string | null
           created_at: string
           id: string
           measured_at: string
@@ -1079,6 +1080,7 @@ export type Database = {
         Insert: {
           blind_spots?: string | null
           company_id: string
+          contract_id?: string | null
           created_at?: string
           id?: string
           measured_at?: string
@@ -1089,6 +1091,7 @@ export type Database = {
         Update: {
           blind_spots?: string | null
           company_id?: string
+          contract_id?: string | null
           created_at?: string
           id?: string
           measured_at?: string
@@ -1102,6 +1105,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pillar_scores_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
             referencedColumns: ["id"]
           },
         ]
