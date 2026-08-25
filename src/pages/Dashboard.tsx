@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
 import { PageHeader } from "@/components/PageHeader";
+import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { StatCard } from "@/components/StatCard";
 import { IMPROVISO_LABEL, CYCLE_LABEL, CYCLE_ORDER, GOAL_STATUS_LABEL, PILLAR_LABEL, formatBRL } from "@/lib/labels";
 import { Badge } from "@/components/ui/badge";
