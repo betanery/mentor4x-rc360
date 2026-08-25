@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useContract } from "@/hooks/useContract";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,7 @@ import { toEmbedUrl, isDirectVideo } from "@/lib/video";
 
 export default function University() {
   const { user } = useAuth();
+  const { currentContract } = useContract();
   const [courses, setCourses] = useState<any[]>([]);
   const [lessons, setLessons] = useState<any[]>([]);
   const [progress, setProgress] = useState<Record<string, { completed: boolean; progress_pct: number }>>({});
@@ -27,12 +29,17 @@ export default function University() {
   };
 
   useEffect(() => {
-    Promise.all([
-      supabase.from("courses").select("*").eq("published", true).order("order_index"),
-      supabase.from("lessons").select("*").order("order_index"),
-    ]).then(([c, l]) => { setCourses(c.data || []); setLessons(l.data || []); });
+    const coursesQuery = supabase.from("courses").select("*").eq("published", true).order("order_index");
+    if (currentContract) coursesQuery.eq("product_version_id", currentContract.product_version_id);
+    Promise.all([coursesQuery, supabase.from("lessons").select("*").order("order_index")])
+      .then(([c, l]) => {
+        const courseRows = c.data || [];
+        const allowed = new Set(courseRows.map((course: any) => course.id));
+        setCourses(courseRows);
+        setLessons((l.data || []).filter((lesson: any) => allowed.has(lesson.course_id)));
+      });
     loadProgress();
-  }, [user]);
+  }, [user, currentContract]);
 
   const lessonsOf = (id: string) => lessons.filter((l) => l.course_id === id);
   const courseProgress = (id: string) => {

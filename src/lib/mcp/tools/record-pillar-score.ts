@@ -1,6 +1,6 @@
 import { defineTool } from "@lovable.dev/mcp-js";
 import { z } from "zod";
-import { errorResult, jsonResult, notAuthenticated, supabaseForUser } from "../supabase";
+import { errorResult, jsonResult, notAuthenticated, resolveContractScope, supabaseForUser } from "../supabase";
 
 export default defineTool({
   name: "record_pillar_score",
@@ -9,6 +9,7 @@ export default defineTool({
     "Registra uma nova nota (0 a 100) para um pilar do método 4X de uma empresa, com pontos cegos e recomendações. Requer permissão de mentor/estrategista.",
   inputSchema: {
     company_id: z.string().describe("UUID da empresa."),
+    contract_id: z.string().optional().describe("UUID da contratação/ciclo ativo. Se omitido, cria registro legado sem contratação."),
     pillar: z
       .enum(["crescimento", "eficiencia", "encantamento", "lideranca"])
       .describe("Pilar do método 4X."),
@@ -21,10 +22,17 @@ export default defineTool({
     if (!ctx.isAuthenticated()) return notAuthenticated();
     const score = Math.max(0, Math.min(100, Math.round(input.score)));
     const supabase = supabaseForUser(ctx);
+    let scope;
+    try {
+      scope = await resolveContractScope(supabase, input.company_id, input.contract_id);
+    } catch (e) {
+      return errorResult(e instanceof Error ? e.message : String(e));
+    }
     const { data, error } = await supabase
       .from("pillar_scores")
       .insert({
         company_id: input.company_id,
+        contract_id: scope.contractId,
         pillar: input.pillar,
         score,
         blind_spots: input.blind_spots ?? null,

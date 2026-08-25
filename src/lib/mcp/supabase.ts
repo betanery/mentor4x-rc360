@@ -61,6 +61,33 @@ export function supabaseForUser(ctx: ToolContext) {
   });
 }
 
+export async function resolveContractScope(
+  supabase: ReturnType<typeof supabaseForUser>,
+  companyId: string,
+  contractId?: string | null,
+) {
+  if (!contractId) return { contractId: null, contract: null };
+
+  const { data, error } = await supabase
+    .from("contracts")
+    .select("id, company_id, status, journey_stage, current_cycle, product_id, product_version_id")
+    .eq("id", contractId)
+    .eq("company_id", companyId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Contratação não encontrada ou sem acesso para esta empresa.");
+
+  return { contractId: data.id, contract: data };
+}
+
+export function applyContractScope<Query extends { eq: (column: string, value: string) => Query; is: (column: string, value: null) => Query }>(
+  query: Query,
+  contractId: string | null,
+): Query {
+  return contractId ? query.eq("contract_id", contractId) : query.is("contract_id", null);
+}
+
 export function notAuthenticated() {
   return {
     content: [{ type: "text" as const, text: "Não autenticado. Conecte-se ao MENTOR 4X novamente." }],

@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
+import { useContract } from "@/hooks/useContract";
 import { PageHeader } from "@/components/PageHeader";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { StatCard } from "@/components/StatCard";
@@ -17,6 +18,7 @@ import { MATURITY_LABEL, blindspotByCode, improvisoBand, type MaturityLevel } fr
 
 export default function Dashboard() {
   const { current } = useCompany();
+  const { currentContract } = useContract();
   const [goals, setGoals] = useState<any[]>([]);
   const [bottlenecks, setBottlenecks] = useState<any[]>([]);
   const [pillars, setPillars] = useState<any[]>([]);
@@ -27,13 +29,25 @@ export default function Dashboard() {
   useEffect(() => {
     if (!current) return;
     (async () => {
-      const [g, b, p, m, d] = await Promise.all([
-        supabase.from("goals").select("*").eq("company_id", current.id).order("due_date", { ascending: true }),
-        supabase.from("bottlenecks").select("*").eq("company_id", current.id).eq("resolved", false).order("urgency", { ascending: false }).limit(5),
-        supabase.from("pillar_scores").select("*").eq("company_id", current.id).order("measured_at", { ascending: false }),
-        supabase.from("meetings").select("*").eq("company_id", current.id).gte("scheduled_at", new Date().toISOString()).order("scheduled_at").limit(1),
-        supabase.from("diagnostics").select("*").eq("company_id", current.id).eq("status", "validado").order("version", { ascending: false }).limit(1),
-      ]);
+      const goalsQuery = supabase.from("goals").select("*").eq("company_id", current.id).order("due_date", { ascending: true });
+      const bottlenecksQuery = supabase.from("bottlenecks").select("*").eq("company_id", current.id).eq("resolved", false).order("urgency", { ascending: false }).limit(5);
+      const pillarsQuery = supabase.from("pillar_scores").select("*").eq("company_id", current.id).order("measured_at", { ascending: false });
+      const meetingsQuery = supabase.from("meetings").select("*").eq("company_id", current.id).gte("scheduled_at", new Date().toISOString()).order("scheduled_at").limit(1);
+      const diagnosticQuery = supabase.from("diagnostics").select("*").eq("company_id", current.id).eq("status", "validado").order("version", { ascending: false }).limit(1);
+      if (currentContract) {
+        goalsQuery.eq("contract_id", currentContract.id);
+        bottlenecksQuery.eq("contract_id", currentContract.id);
+        pillarsQuery.eq("contract_id", currentContract.id);
+        meetingsQuery.eq("contract_id", currentContract.id);
+        diagnosticQuery.eq("contract_id", currentContract.id);
+      } else {
+        goalsQuery.is("contract_id", null);
+        bottlenecksQuery.is("contract_id", null);
+        pillarsQuery.is("contract_id", null);
+        meetingsQuery.is("contract_id", null);
+        diagnosticQuery.is("contract_id", null);
+      }
+      const [g, b, p, m, d] = await Promise.all([goalsQuery, bottlenecksQuery, pillarsQuery, meetingsQuery, diagnosticQuery]);
       setGoals(g.data || []);
       setBottlenecks(b.data || []);
       setPillars(p.data || []);
@@ -72,7 +86,7 @@ export default function Dashboard() {
       });
       setScoreHistory(filled);
     })();
-  }, [current]);
+  }, [current, currentContract]);
 
   if (!current) {
     return (
@@ -92,7 +106,8 @@ export default function Dashboard() {
   }
 
   const improviso = IMPROVISO_LABEL[current.chaos_level];
-  const stage = CYCLE_LABEL[current.journey_stage];
+  const stageKey = currentContract?.journey_stage ?? current.journey_stage;
+  const stage = CYCLE_LABEL[stageKey];
 
   const weeklyGoals = goals.filter((g) => {
     if (!g.week_start) return false;
@@ -118,7 +133,7 @@ export default function Dashboard() {
         action={<Badge className={`${improviso.color} text-xs px-3 py-1.5 font-bold`}>{improviso.label}</Badge>}
       />
 
-      <OnboardingChecklist companyId={current.id} />
+      <OnboardingChecklist companyId={current.id} contractId={currentContract?.id} />
 
 
       {/* Bloco Classificação — baseline oficial do Diagnóstico SEE_4X */}
@@ -197,7 +212,7 @@ export default function Dashboard() {
             </div>
             <div className="mt-6 flex items-center gap-2">
               {CYCLE_ORDER.slice(0, 6).map((s, i) => {
-                const active = CYCLE_ORDER.indexOf(current.journey_stage as typeof CYCLE_ORDER[number]) >= i;
+                const active = CYCLE_ORDER.indexOf(stageKey as typeof CYCLE_ORDER[number]) >= i;
                 return <div key={s} className={`h-2 flex-1 rounded-full ${active ? "bg-gold" : "bg-primary-foreground/20"}`} />;
               })}
             </div>

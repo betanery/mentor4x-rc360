@@ -1,6 +1,6 @@
 import { defineTool } from "@lovable.dev/mcp-js";
 import { z } from "zod";
-import { errorResult, jsonResult, notAuthenticated, supabaseForUser } from "../supabase";
+import { errorResult, jsonResult, notAuthenticated, resolveContractScope, supabaseForUser } from "../supabase";
 
 export default defineTool({
   name: "create_bottleneck",
@@ -8,6 +8,7 @@ export default defineTool({
   description: "Registra um novo gargalo operacional de uma empresa do MENTOR 4X, com urgência e plano de correção.",
   inputSchema: {
     company_id: z.string().describe("UUID da empresa."),
+    contract_id: z.string().optional().describe("UUID da contratação/ciclo ativo. Se omitido, cria registro legado sem contratação."),
     name: z.string().describe("Nome do gargalo."),
     area: z.string().optional().describe("Área da empresa afetada (ex.: comercial, financeiro)."),
     impact: z.string().optional().describe("Descrição do impacto no negócio."),
@@ -22,10 +23,17 @@ export default defineTool({
   handler: async (input, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated();
     const supabase = supabaseForUser(ctx);
+    let scope;
+    try {
+      scope = await resolveContractScope(supabase, input.company_id, input.contract_id);
+    } catch (e) {
+      return errorResult(e instanceof Error ? e.message : String(e));
+    }
     const { data, error } = await supabase
       .from("bottlenecks")
       .insert({
         company_id: input.company_id,
+        contract_id: scope.contractId,
         name: input.name.trim(),
         area: input.area ?? null,
         impact: input.impact ?? null,

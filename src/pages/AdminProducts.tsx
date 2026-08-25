@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { CYCLE_LABEL } from "@/lib/labels";
 import { Boxes, Calendar, Layers3, Loader2, Package, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
-import type { Json, Tables } from "@/integrations/supabase/types";
+import type { Json, Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
 type Product = Tables<"products">;
 type ProductVersion = Tables<"product_versions">;
@@ -32,6 +32,21 @@ type Contract = Tables<"contracts"> & {
 
 const CONTRACT_STATUS = ["rascunho", "ativo", "pausado", "concluido", "cancelado"] as const;
 const STAGES = ["ciclo_1", "ciclo_2", "ciclo_3", "ciclo_4", "ciclo_5", "ciclo_6", "concluido"] as const;
+type ContractStatus = typeof CONTRACT_STATUS[number];
+type ContractStage = typeof STAGES[number];
+type ContractForm = {
+  company_id: string;
+  product_id: string;
+  product_version_id: string;
+  status: ContractStatus;
+  journey_stage: ContractStage;
+  current_cycle: number;
+  started_at: string;
+  expected_completion: string;
+  completed_at: string;
+  contracted_scope: string;
+  notes: string;
+};
 
 const statusLabel: Record<string, string> = {
   rascunho: "Rascunho",
@@ -75,7 +90,7 @@ const contractSchema = z.object({
 
 const emptyProduct = { name: "", slug: "", category: "SEE_4X", description: "", sort_order: 0, is_active: true };
 const emptyVersion = { product_id: "", version_label: "", methodology_code: "SEE_4X", description: "", cycle_count: 6, duration_days: 180, is_active: true };
-const emptyContract = {
+const emptyContract: ContractForm = {
   company_id: "",
   product_id: "",
   product_version_id: "",
@@ -184,8 +199,8 @@ export default function AdminProducts() {
       company_id: contract.company_id,
       product_id: contract.product_id,
       product_version_id: contract.product_version_id,
-      status: contract.status as typeof CONTRACT_STATUS[number],
-      journey_stage: contract.journey_stage as typeof STAGES[number],
+      status: CONTRACT_STATUS.includes(contract.status as ContractStatus) ? contract.status as ContractStatus : "ativo",
+      journey_stage: STAGES.includes(contract.journey_stage as ContractStage) ? contract.journey_stage as ContractStage : "ciclo_1",
       current_cycle: contract.current_cycle,
       started_at: contract.started_at || "",
       expected_completion: contract.expected_completion || "",
@@ -212,14 +227,14 @@ export default function AdminProducts() {
   const saveVersion = async () => {
     const parsed = versionSchema.safeParse(versionForm);
     if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
-    const payload = {
+    const payload: TablesInsert<"product_versions"> | TablesUpdate<"product_versions"> = {
       ...parsed.data,
       description: parsed.data.description || null,
       published_at: parsed.data.is_active ? new Date().toISOString() : null,
     };
     const { error } = editingVersion
       ? await supabase.from("product_versions").update(payload).eq("id", editingVersion.id)
-      : await supabase.from("product_versions").insert(payload);
+      : await supabase.from("product_versions").insert(payload as TablesInsert<"product_versions">);
     if (error) { toast.error(error.message); return; }
     toast.success(editingVersion ? "Versão atualizada" : "Versão criada");
     setVersionDialog(false);
@@ -236,7 +251,7 @@ export default function AdminProducts() {
       toast.error("Escopo contratado precisa ser um JSON válido");
       return;
     }
-    const payload = {
+    const payload: TablesInsert<"contracts"> | TablesUpdate<"contracts"> = {
       ...parsed.data,
       started_at: parsed.data.started_at || null,
       expected_completion: parsed.data.expected_completion || null,
@@ -246,7 +261,7 @@ export default function AdminProducts() {
     };
     const { error } = editingContract
       ? await supabase.from("contracts").update(payload).eq("id", editingContract.id)
-      : await supabase.from("contracts").insert(payload);
+      : await supabase.from("contracts").insert(payload as TablesInsert<"contracts">);
     if (error) { toast.error(error.message); return; }
     toast.success(editingContract ? "Contratação atualizada" : "Contratação criada");
     setContractDialog(false);

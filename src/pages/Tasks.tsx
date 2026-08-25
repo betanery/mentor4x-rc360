@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
+import { useContract } from "@/hooks/useContract";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,18 +22,20 @@ type Task = Tables<"tasks">;
 
 export default function Tasks() {
   const { current } = useCompany();
+  const { currentContract } = useContract();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", due_date: "", goal_id: "" });
 
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ["tasks", current?.id],
+    queryKey: ["tasks", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tasks")
         .select("*")
         .eq("company_id", current!.id)
+        [currentContract ? "eq" : "is"]("contract_id", currentContract?.id ?? null)
         .order("done")
         .order("due_date", { nullsFirst: false })
         .limit(300);
@@ -42,13 +45,14 @@ export default function Tasks() {
   });
 
   const { data: goals = [] } = useQuery({
-    queryKey: ["goals", current?.id],
+    queryKey: ["goals", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goals")
         .select("id, title, blindspot_code")
         .eq("company_id", current!.id)
+        [currentContract ? "eq" : "is"]("contract_id", currentContract?.id ?? null)
         .neq("status", "concluido")
         .limit(100);
       if (error) throw error;
@@ -58,13 +62,14 @@ export default function Tasks() {
 
   const goalById = (id?: string | null) => goals.find((g) => g.id === id);
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["tasks", current?.id] });
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["tasks", current?.id, currentContract?.id] });
 
   const createMut = useMutation({
     mutationFn: async () => {
       if (!current) throw new Error("Selecione uma empresa");
       const { error } = await supabase.from("tasks").insert({
         company_id: current.id,
+        contract_id: currentContract?.id ?? null,
         title: form.title,
         description: form.description || null,
         due_date: form.due_date || null,

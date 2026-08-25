@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
+import { useContract } from "@/hooks/useContract";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -18,24 +19,25 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 
 export default function Pillars() {
   const { current } = useCompany();
+  const { currentContract } = useContract();
   const { isStaff } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ pillar: "crescimento", score: 70, blind_spots: "", recommendations: "" });
 
   const { data: scores = [] } = useQuery({
-    queryKey: ["pillar_scores", current?.id],
+    queryKey: ["pillar_scores", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
-      const { data } = await supabase.from("pillar_scores").select("*").eq("company_id", current!.id).order("measured_at", { ascending: false });
+      const { data } = await supabase.from("pillar_scores").select("*").eq("company_id", current!.id)[currentContract ? "eq" : "is"]("contract_id", currentContract?.id ?? null).order("measured_at", { ascending: false });
       return data || [];
     },
   });
   const { data: goals = [] } = useQuery({
-    queryKey: ["goals_for_pillars", current?.id],
+    queryKey: ["goals_for_pillars", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
-      const { data } = await supabase.from("goals").select("pillar,status").eq("company_id", current!.id);
+      const { data } = await supabase.from("goals").select("pillar,status").eq("company_id", current!.id)[currentContract ? "eq" : "is"]("contract_id", currentContract?.id ?? null);
       return data || [];
     },
   });
@@ -46,6 +48,7 @@ export default function Pillars() {
       if (form.score < 0 || form.score > 100) throw new Error("Score deve estar entre 0 e 100");
       const { error } = await supabase.from("pillar_scores").insert({
         company_id: current.id,
+        contract_id: currentContract?.id ?? null,
         pillar: form.pillar as any,
         score: form.score,
         blind_spots: form.blind_spots || null,

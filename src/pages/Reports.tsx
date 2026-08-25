@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
+import { useContract } from "@/hooks/useContract";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,21 +11,24 @@ import { toast } from "sonner";
 
 export default function Reports() {
   const { current } = useCompany();
+  const { currentContract } = useContract();
   const [reports, setReports] = useState<any[]>([]);
   const [generating, setGenerating] = useState(false);
 
   const load = async () => {
     if (!current) return;
-    const { data } = await supabase.from("reports").select("*").eq("company_id", current.id).order("created_at", { ascending: false });
+    let query = supabase.from("reports").select("*").eq("company_id", current.id).order("created_at", { ascending: false });
+    query = currentContract ? query.eq("contract_id", currentContract.id) : query.is("contract_id", null);
+    const { data } = await query;
     setReports(data || []);
   };
-  useEffect(() => { load(); }, [current]);
+  useEffect(() => { load(); }, [current, currentContract]);
 
   const generate = async () => {
     if (!current) return;
     setGenerating(true);
     const { error } = await supabase.functions.invoke("ai-action", {
-      body: { action: "monthly_report", company_id: current.id },
+      body: { action: "monthly_report", company_id: current.id, contract_id: currentContract?.id },
     });
     setGenerating(false);
     if (error) { toast.error("Erro ao gerar relatório"); return; }

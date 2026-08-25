@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
+import { useContract } from "@/hooks/useContract";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -48,6 +49,7 @@ const fmtDate = (v?: string | null) => (v ? new Date(v).toLocaleDateString("pt-B
 
 export default function Diagnostic() {
   const { current } = useCompany();
+  const { currentContract } = useContract();
   const { user, isStaff, roles } = useAuth();
   const qc = useQueryClient();
 
@@ -64,13 +66,14 @@ export default function Diagnostic() {
   });
 
   const { data: diagnostics = [], isLoading } = useQuery({
-    queryKey: ["diagnostics", current?.id],
+    queryKey: ["diagnostics", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("diagnostics")
         .select("*")
         .eq("company_id", current!.id)
+        [currentContract ? "eq" : "is"]("contract_id", currentContract?.id ?? null)
         .order("version", { ascending: false });
       if (error) throw error;
       return data;
@@ -117,6 +120,7 @@ export default function Diagnostic() {
       const nextVersion = (diagnostics[0]?.version ?? 0) + 1;
       const { error } = await supabase.from("diagnostics").insert({
         company_id: current.id,
+        contract_id: currentContract?.id ?? null,
         mode: "cliente",
         version: nextVersion,
         status: "rascunho",
@@ -214,11 +218,13 @@ export default function Diagnostic() {
     mutationFn: async () => {
       if (!activeDiag || !result) throw new Error("Sem resultado consolidado");
       if (activeDiag.status !== "validado") throw new Error("Valide o diagnóstico antes de gerar o Top 5");
-      const { data: existing, error: exErr } = await supabase
+      let existingQuery = supabase
         .from("bottlenecks")
         .select("blindspot_code")
         .eq("company_id", activeDiag.company_id)
         .not("blindspot_code", "is", null);
+      existingQuery = currentContract ? existingQuery.eq("contract_id", currentContract.id) : existingQuery.is("contract_id", null);
+      const { data: existing, error: exErr } = await existingQuery;
       if (exErr) throw exErr;
       const taken = new Set((existing ?? []).map((b) => b.blindspot_code));
       const rows = result.top5
@@ -228,6 +234,7 @@ export default function Diagnostic() {
           const score = result.blindspots.find((b) => b.code === code)?.improviso ?? 0;
           return {
             company_id: activeDiag.company_id,
+            contract_id: currentContract?.id ?? null,
             diagnostic_id: activeDiag.id,
             blindspot_code: code,
             name: bs.title,

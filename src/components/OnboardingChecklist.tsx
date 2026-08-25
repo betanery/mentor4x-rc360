@@ -9,21 +9,33 @@ import { CheckCircle2, Circle, Compass, X } from "lucide-react";
 
 type Step = { key: string; title: string; hint: string; to: string; done: boolean };
 
-const dismissKey = (companyId: string) => `m4x.onboarding.dismissed.${companyId}`;
+const dismissKey = (companyId: string, contractId?: string | null) => `m4x.onboarding.dismissed.${companyId}.${contractId ?? "company"}`;
 
-export function OnboardingChecklist({ companyId }: { companyId: string }) {
-  const [dismissed, setDismissed] = useState(() => localStorage.getItem(dismissKey(companyId)) === "1");
+export function OnboardingChecklist({ companyId, contractId }: { companyId: string; contractId?: string | null }) {
+  const [dismissed, setDismissed] = useState(() => localStorage.getItem(dismissKey(companyId, contractId)) === "1");
 
   const { data } = useQuery({
-    queryKey: ["onboarding", companyId],
+    queryKey: ["onboarding", companyId, contractId],
     queryFn: async () => {
-      const [diagnostics, bottlenecks, goals, cycles, meetings] = await Promise.all([
-        supabase.from("diagnostics").select("id").eq("company_id", companyId).eq("status", "validado").limit(1),
-        supabase.from("bottlenecks").select("id").eq("company_id", companyId).limit(1),
-        supabase.from("goals").select("id").eq("company_id", companyId).limit(1),
-        supabase.from("cycle_records").select("id").eq("company_id", companyId).limit(1),
-        supabase.from("meetings").select("id").eq("company_id", companyId).limit(1),
-      ]);
+      const diagnosticsQuery = supabase.from("diagnostics").select("id").eq("company_id", companyId).eq("status", "validado").limit(1);
+      const bottlenecksQuery = supabase.from("bottlenecks").select("id").eq("company_id", companyId).limit(1);
+      const goalsQuery = supabase.from("goals").select("id").eq("company_id", companyId).limit(1);
+      const cyclesQuery = supabase.from("cycle_records").select("id").eq("company_id", companyId).limit(1);
+      const meetingsQuery = supabase.from("meetings").select("id").eq("company_id", companyId).limit(1);
+      if (contractId) {
+        diagnosticsQuery.eq("contract_id", contractId);
+        bottlenecksQuery.eq("contract_id", contractId);
+        goalsQuery.eq("contract_id", contractId);
+        cyclesQuery.eq("contract_id", contractId);
+        meetingsQuery.eq("contract_id", contractId);
+      } else {
+        diagnosticsQuery.is("contract_id", null);
+        bottlenecksQuery.is("contract_id", null);
+        goalsQuery.is("contract_id", null);
+        cyclesQuery.is("contract_id", null);
+        meetingsQuery.is("contract_id", null);
+      }
+      const [diagnostics, bottlenecks, goals, cycles, meetings] = await Promise.all([diagnosticsQuery, bottlenecksQuery, goalsQuery, cyclesQuery, meetingsQuery]);
       return {
         diagnostic: (diagnostics.data || []).length > 0,
         bottlenecks: (bottlenecks.data || []).length > 0,
@@ -48,7 +60,7 @@ export function OnboardingChecklist({ companyId }: { companyId: string }) {
   if (doneCount === steps.length) return null;
 
   const dismiss = () => {
-    localStorage.setItem(dismissKey(companyId), "1");
+    localStorage.setItem(dismissKey(companyId, contractId), "1");
     setDismissed(true);
   };
 
