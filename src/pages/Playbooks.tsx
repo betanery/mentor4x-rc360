@@ -223,7 +223,7 @@ export default function Playbooks() {
                 </div>
               )}
               {pb.file_url && (
-                <Button variant="outline" size="sm" className="mt-4 w-full mt-auto" onClick={() => window.open(pb.file_url!, "_blank", "noopener")}>
+                <Button variant="outline" size="sm" className="mt-auto w-full" onClick={() => window.open(pb.file_url!, "_blank", "noopener")}>
                   <Download className="h-4 w-4 mr-2" /> Abrir material
                 </Button>
               )}
