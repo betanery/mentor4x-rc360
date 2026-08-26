@@ -14,7 +14,7 @@ import { toast } from "sonner";
 export default function Certificates() {
   const { current } = useCompany();
   const { currentContract } = useContract();
-  const { isStaff } = useAuth();
+  const { isConsultor } = useAuth();
   const [certs, setCerts] = useState<any[]>([]);
   const [issuing, setIssuing] = useState(false);
 
