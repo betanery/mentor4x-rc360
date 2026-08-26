@@ -174,7 +174,50 @@ const publicShape = (row: Record<string, unknown>) => ({
   result: row.result,
   recommendation: row.recommendation,
   completed_at: row.completed_at,
+  consent_lgpd: row.consent_lgpd,
+  consent_at: row.consent_at,
 });
+
+// ---- Fase 6b — LGPD e limitação de abuso -------------------------------------
+export const CONSENT_VERSION = "lgpd-v1";
+const CONSENT_TEXT =
+  "Autorizo o tratamento dos dados informados para geração do diagnóstico e contato da equipe Mentor 4X (RC360).";
+
+/** IP nunca é gravado em claro — apenas o hash. */
+async function ipHash(req: Request): Promise<string> {
+  const ip =
+    req.headers.get("cf-connecting-ip") ||
+    (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() ||
+    "desconhecido";
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`mentor4x:${ip}`));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+const LIMITS: Record<string, number> = { start: 5, save: 240, finish: 10, resume: 60 };
+
+/** Janela fixa de 1 hora por origem e ação. Retorna true quando o limite foi excedido. */
+async function throttled(admin: any, hash: string, action: string): Promise<boolean> {
+  const limit = LIMITS[action];
+  if (!limit) return false;
+  const now = new Date();
+  const windowStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), now.getUTCHours()));
+  const { data: existing } = await admin
+    .from("lead_throttle")
+    .select("id,count")
+    .eq("ip_hash", hash)
+    .eq("action", action)
+    .eq("window_start", windowStart.toISOString())
+    .maybeSingle();
+
+  if (!existing) {
+    await admin.from("lead_throttle").insert({ ip_hash: hash, action, window_start: windowStart.toISOString(), count: 1 });
+    return false;
+  }
+  if (existing.count >= limit) return true;
+  await admin.from("lead_throttle").update({ count: existing.count + 1 }).eq("id", existing.id);
+  return false;
+}
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
