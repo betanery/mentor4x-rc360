@@ -560,9 +560,14 @@ export default function Journey() {
                         <p className="text-[11px] mt-1 text-warning">Pendências justificadas: {record.gate_override_justification}</p>
                       )}
                       {record.evidence_url && (
-                        <a href={record.evidence_url} target="_blank" rel="noreferrer" className="text-[11px] text-primary font-bold inline-flex items-center gap-1 mt-1">
+                        <button
+                          type="button"
+                          onClick={async () => { if (!(await openStorageFile("evidences", record.evidence_url))) toast.error("Não foi possível abrir a evidência."); }}
+                          className="text-[11px] text-primary font-bold inline-flex items-center gap-1 mt-1"
+                        >
                           <Paperclip className="h-3 w-3" /> Evidência
-                        </a>
+                        </button>
+
                       )}
                     </div>
                   )}
