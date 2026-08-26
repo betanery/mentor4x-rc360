@@ -120,6 +120,54 @@ export default function Bottlenecks() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const { data: history = [] } = useQuery({
+    queryKey: ["bottleneck_rank_history", current?.id, currentContract?.id],
+    enabled: !!current,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("bottleneck_rank_history")
+        .select("*")
+        .eq("company_id", current!.id)
+        .order("created_at", { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      return data as RankHistory[];
+    },
+  });
+
+  const rankMut = useMutation({
+    mutationFn: async () => {
+      if (!rankTarget || !current) throw new Error("Selecione o gargalo");
+      const position = Number(newRank);
+      if (!position || position < 1 || position > 5) throw new Error("A posição deve estar entre 1 e 5");
+      if (!rankJustification.trim()) throw new Error("Registre a justificativa da mudança");
+      const { error } = await supabase
+        .from("bottlenecks")
+        .update({ rank_position: position })
+        .eq("id", rankTarget.id);
+      if (error) throw error;
+      // O histórico de posição é gravado automaticamente pelo banco; a justificativa entra na auditoria.
+      await supabase.from("governance_log").insert({
+        company_id: current.id,
+        actor_id: user?.id ?? null,
+        action: "top5_rank_change",
+        entity: "bottlenecks",
+        entity_id: rankTarget.id,
+        previous_value: rankTarget.rank_position ? String(rankTarget.rank_position) : null,
+        new_value: String(position),
+        justification: rankJustification.trim(),
+      });
+    },
+    onSuccess: () => {
+      toast.success("Posição do Top 5 atualizada e registrada no histórico");
+      setRankTarget(null);
+      setRankJustification("");
+      invalidate();
+      qc.invalidateQueries({ queryKey: ["bottleneck_rank_history", current?.id, currentContract?.id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const pickBlindspot = (code: string) => {
     const bs = blindspotByCode(code);
     setForm((s) => ({
@@ -132,8 +180,14 @@ export default function Bottlenecks() {
     }));
   };
 
-  const top5 = items.filter((i) => !i.resolved).slice(0, 5);
+  const active = items.filter((i) => !i.resolved);
+  const maxValue = Math.max(0, ...active.map((i) => Number(i.estimated_value || 0)));
+  const recommended = [...active].sort((a, b) => priorityScore(b, maxValue) - priorityScore(a, maxValue));
+  const recommendedRank = new Map(recommended.map((b, i) => [b.id, i + 1]));
+  const top5 = active.slice(0, 5);
   const totalImpact = top5.reduce((s, i) => s + Number(i.estimated_value || 0), 0);
+  const bottleneckName = (id: string) => items.find((i) => i.id === id)?.name ?? "Gargalo";
+
 
   return (
     <div className="space-y-6">
