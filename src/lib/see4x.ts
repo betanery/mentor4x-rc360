@@ -198,6 +198,12 @@ export interface DiagnosticResult {
   divergences: { question: string; label: string; spread: number; detail: string }[];
   suggestedMaturity: MaturityLevel;
   maturityCriteria: { label: string; met: boolean }[];
+  /** Score estrutural de Maturidade (0–100). `null` quando o bloco não foi respondido. */
+  maturityScore: number | null;
+  maturityDimensions: { key: string; label: string; score: number }[];
+  /** Verdadeiro quando a Maturidade veio das perguntas estruturais, não de fallback. */
+  maturityFromStructure: boolean;
+
   completeness: number;
   computedAt: string;
 }
