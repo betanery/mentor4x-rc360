@@ -507,6 +507,9 @@ export default function AdminProducts() {
         onOpenChange={(o) => { if (!o) setTemplateVersion(null); }}
       />
 
+      <VersionConfigDialog version={configVersion} onOpenChange={(o) => { if (!o) setConfigVersion(null); }} />
+
+
       <Dialog open={productDialog} onOpenChange={setProductDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{editingProduct ? "Editar produto" : "Novo produto"}</DialogTitle></DialogHeader>
