@@ -64,7 +64,7 @@
       {
         "name": "list_goals",
         "title": "Listar metas",
-        "description": "Lista as metas (semanais/mensais) de uma empresa no MENTOR 4X. Opcionalmente filtra por status.",
+        "description": "Lista as metas (semanais/mensais) de uma empresa no MENTOR 4X. Opcionalmente filtra por status. Resultado paginado: use `limit` e o `next_cursor` devolvido para buscar a próxima página.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -91,6 +91,16 @@
                 "bloqueado"
               ],
               "description": "Filtro opcional por status da meta."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "description": "Quantidade de metas por página (padrão 50, máximo 200)."
+            },
+            "cursor": {
+              "type": "string",
+              "description": "Cursor `next_cursor` devolvido pela página anterior."
             }
           },
           "required": [

@@ -81,6 +81,32 @@ function jsonResult(payload) {
     structuredContent: payload
   };
 }
+function decodeCursor(cursor) {
+  if (!cursor) return 0;
+  const parsed = Number.parseInt(cursor, 10);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error("Cursor inv\xE1lido. Use o valor `next_cursor` devolvido na p\xE1gina anterior.");
+  }
+  return parsed;
+}
+function pageBounds(limit, cursor) {
+  const size = Math.min(Math.max(limit ?? 50, 1), 200);
+  const offset = decodeCursor(cursor);
+  return { size, offset, from: offset, to: offset + size - 1 };
+}
+function pageMeta(rows, size, offset) {
+  const hasMore = rows.length > size;
+  const page = hasMore ? rows.slice(0, size) : rows;
+  return {
+    page,
+    pagination: {
+      limit: size,
+      returned: page.length,
+      has_more: hasMore,
+      next_cursor: hasMore ? String(offset + size) : null
+    }
+  };
+}
 
 // src/lib/mcp/tools/list-companies.ts
 var list_companies_default = defineTool({
@@ -146,28 +172,33 @@ import { z as z2 } from "npm:zod@^3.25.76";
 var list_goals_default = defineTool3({
   name: "list_goals",
   title: "Listar metas",
-  description: "Lista as metas (semanais/mensais) de uma empresa no MENTOR 4X. Opcionalmente filtra por status.",
+  description: "Lista as metas (semanais/mensais) de uma empresa no MENTOR 4X. Opcionalmente filtra por status. Resultado paginado: use `limit` e o `next_cursor` devolvido para buscar a pr\xF3xima p\xE1gina.",
   inputSchema: {
     company_id: z2.string().describe("UUID da empresa."),
     contract_id: z2.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, lista apenas registros legados sem contrata\xE7\xE3o."),
-    status: z2.enum(["nao_iniciado", "em_andamento", "concluido", "atrasado", "bloqueado"]).optional().describe("Filtro opcional por status da meta.")
+    status: z2.enum(["nao_iniciado", "em_andamento", "concluido", "atrasado", "bloqueado"]).optional().describe("Filtro opcional por status da meta."),
+    limit: z2.number().int().min(1).max(200).optional().describe("Quantidade de metas por p\xE1gina (padr\xE3o 50, m\xE1ximo 200)."),
+    cursor: z2.string().optional().describe("Cursor `next_cursor` devolvido pela p\xE1gina anterior.")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async ({ company_id, contract_id, status }, ctx) => {
+  handler: async ({ company_id, contract_id, status, limit, cursor }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated();
     const supabase = supabaseForUser(ctx);
     let scope;
+    let bounds;
     try {
       scope = await resolveContractScope(supabase, company_id, contract_id);
+      bounds = pageBounds(limit, cursor);
     } catch (e) {
       return errorResult(e instanceof Error ? e.message : String(e));
     }
-    let query = supabase.from("goals").select("id, title, description, status, pillar, indicator, due_date, week_start, financial_impact, mentor_comment, evidence_url").eq("company_id", company_id).order("due_date", { ascending: true }).limit(200);
+    let query = supabase.from("goals").select("id, title, description, status, pillar, indicator, due_date, week_start, financial_impact, mentor_comment, evidence_url, is_critical, approval_status, blindspot_code, capacity_code").eq("company_id", company_id).order("due_date", { ascending: true }).order("id", { ascending: true }).range(bounds.from, bounds.to + 1);
     query = applyContractScope(query, scope.contractId);
     if (status) query = query.eq("status", status);
     const { data, error } = await query;
     if (error) return errorResult(error.message);
-    return jsonResult({ goals: data ?? [] });
+    const { page, pagination } = pageMeta(data ?? [], bounds.size, bounds.offset);
+    return jsonResult({ goals: page, pagination });
   }
 });
 
