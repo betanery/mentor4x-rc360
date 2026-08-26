@@ -43,9 +43,14 @@ function priorityScore(b: Bottleneck, maxValue: number) {
 export default function Bottlenecks() {
   const { current } = useCompany();
   const { currentContract } = useContract();
+  const { user, isConsultor } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
+  const [rankTarget, setRankTarget] = useState<Bottleneck | null>(null);
+  const [newRank, setNewRank] = useState("1");
+  const [rankJustification, setRankJustification] = useState("");
+
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["bottlenecks", current?.id, currentContract?.id],
