@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Send, Target, FileText, AlertTriangle, TrendingUp, Loader2, Wand2, CheckCircle2, XCircle, PlayCircle } from "lucide-react";
+import { Sparkles, Send, Target, FileText, AlertTriangle, TrendingUp, Loader2, Wand2, CheckCircle2, XCircle, PlayCircle, History, Ban } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 
@@ -21,6 +21,20 @@ const QUICK_ACTIONS = [
   { label: "Analisar travas e bloqueios", icon: AlertTriangle, action: "analyze_blocks" },
   { label: "Avaliar risco do cliente", icon: TrendingUp, action: "risk_assessment" },
 ];
+
+const DECISION_LABEL: Record<string, string> = {
+  proposta: "Proposta",
+  executada: "Executada",
+  rejeitada: "Descartada",
+  falhou: "Falhou",
+};
+
+const DECISION_STYLE: Record<string, string> = {
+  proposta: "bg-muted text-foreground",
+  executada: "bg-success text-white",
+  rejeitada: "bg-royal text-white",
+  falhou: "bg-destructive text-white",
+};
 
 const TOOL_LABEL: Record<string, string> = {
   create_goal: "Criar meta",
@@ -45,6 +59,27 @@ export default function SocioIA() {
   const [proposalMsg, setProposalMsg] = useState("");
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [results, setResults] = useState<any[]>([]);
+  const [rejecting, setRejecting] = useState(false);
+
+  // Log de decisões da IA
+  const [logs, setLogs] = useState<any[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+
+  const loadLogs = async () => {
+    if (!current) return;
+    setLogsLoading(true);
+    const { data } = await supabase
+      .from("ai_logs")
+      .select("id, created_at, action, decision, tool_name, payload, entity, entity_id")
+      .eq("company_id", current.id)
+      .not("decision", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(60);
+    setLogs(data || []);
+    setLogsLoading(false);
+  };
+
+  useEffect(() => { loadLogs(); }, [current?.id]);
 
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages]);
 
@@ -134,6 +169,7 @@ export default function SocioIA() {
       });
       if (error) throw error;
       setResults(data.results || []);
+      loadLogs();
       const ok = (data.results || []).filter((r: any) => r.ok).length;
       toast.success(`${ok}/${(data.results || []).length} ações executadas`);
       setProposals([]);
@@ -141,6 +177,25 @@ export default function SocioIA() {
       toast.error(e.message || "Falha ao executar");
     } finally {
       setExecuting(false);
+    }
+  };
+
+  const rejectProposals = async () => {
+    if (!current || proposals.length === 0) return;
+    setRejecting(true);
+    try {
+      const { error } = await supabase.functions.invoke("socio-tools", {
+        body: { instruction, company_id: current.id, contract_id: currentContract?.id, decision: "reject", proposals },
+      });
+      if (error) throw error;
+      setProposals([]);
+      setProposalMsg("");
+      toast.success("Ações descartadas e registradas no log de decisões");
+      loadLogs();
+    } catch (e: any) {
+      toast.error(e.message || "Falha ao registrar a recusa");
+    } finally {
+      setRejecting(false);
     }
   };
 
@@ -165,6 +220,7 @@ export default function SocioIA() {
         <TabsList>
           <TabsTrigger value="chat"><Sparkles className="h-4 w-4 mr-2" /> Conversa</TabsTrigger>
           <TabsTrigger value="actions"><Wand2 className="h-4 w-4 mr-2" /> Ações</TabsTrigger>
+          <TabsTrigger value="logs"><History className="h-4 w-4 mr-2" /> Decisões</TabsTrigger>
         </TabsList>
 
         <TabsContent value="chat" className="mt-4">
@@ -233,10 +289,16 @@ export default function SocioIA() {
             <Card className="p-6 shadow-card space-y-4">
               <div className="flex items-center justify-between">
                 <h4 className="font-bold">Ações propostas ({proposals.length})</h4>
-                <Button onClick={execute} disabled={executing} variant="default">
-                  {executing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <PlayCircle className="h-4 w-4 mr-2" />}
-                  Executar todas
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={rejectProposals} disabled={rejecting || executing} variant="outline">
+                    {rejecting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Ban className="h-4 w-4 mr-2" />}
+                    Descartar
+                  </Button>
+                  <Button onClick={execute} disabled={executing || rejecting} variant="default">
+                    {executing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <PlayCircle className="h-4 w-4 mr-2" />}
+                    Executar todas
+                  </Button>
+                </div>
               </div>
               <div className="space-y-3">
                 {proposals.map((p, i) => (
@@ -266,6 +328,39 @@ export default function SocioIA() {
               ))}
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="logs" className="mt-4 space-y-4">
+          <Card className="p-6 shadow-card space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-lg">Log de decisões da IA</h3>
+                <p className="text-sm text-muted-foreground">Toda ação proposta pelo Sócio IA fica registrada com a decisão humana — executada, descartada ou falha.</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={loadLogs} disabled={logsLoading}>
+                {logsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Atualizar"}
+              </Button>
+            </div>
+            {logs.length === 0 && !logsLoading && (
+              <p className="text-sm text-muted-foreground">Nenhuma decisão registrada ainda.</p>
+            )}
+            <div className="space-y-2">
+              {logs.map((l) => (
+                <div key={l.id} className="border border-border rounded-lg p-3 flex items-start gap-3">
+                  <Badge className={DECISION_STYLE[l.decision] || "bg-muted text-foreground"}>{DECISION_LABEL[l.decision] || l.decision}</Badge>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold">{TOOL_LABEL[l.tool_name] || l.tool_name}</p>
+                    {l.payload && Object.keys(l.payload).length > 0 && (
+                      <pre className="text-[11px] bg-muted mt-1 p-2 rounded overflow-x-auto">{JSON.stringify(l.payload, null, 2)}</pre>
+                    )}
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      {new Date(l.created_at).toLocaleString("pt-BR")}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

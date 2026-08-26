@@ -18,28 +18,46 @@ export type Database = {
         Row: {
           action: string
           company_id: string | null
+          contract_id: string | null
           created_at: string
+          decision: string | null
+          entity: string | null
+          entity_id: string | null
           id: string
+          payload: Json | null
           prompt: string | null
           response: string | null
+          tool_name: string | null
           user_id: string | null
         }
         Insert: {
           action: string
           company_id?: string | null
+          contract_id?: string | null
           created_at?: string
+          decision?: string | null
+          entity?: string | null
+          entity_id?: string | null
           id?: string
+          payload?: Json | null
           prompt?: string | null
           response?: string | null
+          tool_name?: string | null
           user_id?: string | null
         }
         Update: {
           action?: string
           company_id?: string | null
+          contract_id?: string | null
           created_at?: string
+          decision?: string | null
+          entity?: string | null
+          entity_id?: string | null
           id?: string
+          payload?: Json | null
           prompt?: string | null
           response?: string | null
+          tool_name?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -50,60 +68,82 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ai_logs_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
         ]
       }
       bottlenecks: {
         Row: {
           area: string | null
           blindspot_code: string | null
+          capacity_code: string | null
           company_id: string
           contract_id: string | null
           correction_plan: string | null
           created_at: string
           diagnostic_id: string | null
+          due_date: string | null
           estimated_value: number | null
+          expected_result: string | null
           id: string
           impact: string | null
           name: string
           progress: number
+          rank_position: number | null
           resolved: boolean | null
           responsible_user_id: string | null
+          root_cause: string | null
           updated_at: string
           urgency: Database["public"]["Enums"]["bottleneck_urgency"]
         }
         Insert: {
           area?: string | null
           blindspot_code?: string | null
+          capacity_code?: string | null
           company_id: string
           contract_id?: string | null
           correction_plan?: string | null
           created_at?: string
           diagnostic_id?: string | null
+          due_date?: string | null
           estimated_value?: number | null
+          expected_result?: string | null
           id?: string
           impact?: string | null
           name: string
           progress?: number
+          rank_position?: number | null
           resolved?: boolean | null
           responsible_user_id?: string | null
+          root_cause?: string | null
           updated_at?: string
           urgency?: Database["public"]["Enums"]["bottleneck_urgency"]
         }
         Update: {
           area?: string | null
           blindspot_code?: string | null
+          capacity_code?: string | null
           company_id?: string
           contract_id?: string | null
           correction_plan?: string | null
           created_at?: string
           diagnostic_id?: string | null
+          due_date?: string | null
           estimated_value?: number | null
+          expected_result?: string | null
           id?: string
           impact?: string | null
           name?: string
           progress?: number
+          rank_position?: number | null
           resolved?: boolean | null
           responsible_user_id?: string | null
+          root_cause?: string | null
           updated_at?: string
           urgency?: Database["public"]["Enums"]["bottleneck_urgency"]
         }
@@ -1706,6 +1746,9 @@ export type Database = {
       }
       tasks: {
         Row: {
+          blindspot_code: string | null
+          capacity_code: string | null
+          checklist: Json
           company_id: string
           contract_id: string | null
           created_at: string
@@ -1714,10 +1757,15 @@ export type Database = {
           due_date: string | null
           goal_id: string | null
           id: string
+          priority: string
           responsible_user_id: string | null
           title: string
+          updated_at: string
         }
         Insert: {
+          blindspot_code?: string | null
+          capacity_code?: string | null
+          checklist?: Json
           company_id: string
           contract_id?: string | null
           created_at?: string
@@ -1726,10 +1774,15 @@ export type Database = {
           due_date?: string | null
           goal_id?: string | null
           id?: string
+          priority?: string
           responsible_user_id?: string | null
           title: string
+          updated_at?: string
         }
         Update: {
+          blindspot_code?: string | null
+          capacity_code?: string | null
+          checklist?: Json
           company_id?: string
           contract_id?: string | null
           created_at?: string
@@ -1738,8 +1791,10 @@ export type Database = {
           due_date?: string | null
           goal_id?: string | null
           id?: string
+          priority?: string
           responsible_user_id?: string | null
           title?: string
+          updated_at?: string
         }
         Relationships: [
           {

@@ -19,16 +19,28 @@
       {
         "name": "list_companies",
         "title": "Listar empresas",
-        "description": "Lista as empresas que o usuário conectado pode acessar no Mentor 4X, com o ciclo atual da Jornada SEE_4X, nível de Improviso e score geral.",
+        "description": "Lista as empresas que o usuário conectado pode acessar no Mentor 4X, com o ciclo atual da Jornada SEE_4X, nível de Improviso e score geral. Resultado paginado via `limit`/`cursor`.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
           "openWorldHint": false
         },
         "inputSchema": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
           "type": "object",
-          "properties": {}
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "description": "Quantidade de empresas por página (padrão 50, máximo 200)."
+            },
+            "cursor": {
+              "type": "string",
+              "description": "Cursor `next_cursor` devolvido pela página anterior."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
       },
@@ -64,7 +76,7 @@
       {
         "name": "list_goals",
         "title": "Listar metas",
-        "description": "Lista as metas (semanais/mensais) de uma empresa no MENTOR 4X. Opcionalmente filtra por status.",
+        "description": "Lista as metas (semanais/mensais) de uma empresa no MENTOR 4X. Opcionalmente filtra por status. Resultado paginado: use `limit` e o `next_cursor` devolvido para buscar a próxima página.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -91,6 +103,16 @@
                 "bloqueado"
               ],
               "description": "Filtro opcional por status da meta."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "description": "Quantidade de metas por página (padrão 50, máximo 200)."
+            },
+            "cursor": {
+              "type": "string",
+              "description": "Cursor `next_cursor` devolvido pela página anterior."
             }
           },
           "required": [
@@ -164,7 +186,7 @@
       {
         "name": "list_tasks",
         "title": "Listar plano de ação",
-        "description": "Lista as tarefas do plano de ação de uma empresa. Por padrão só as pendentes.",
+        "description": "Lista as tarefas do plano de ação de uma empresa, com prioridade e checklist. Por padrão só as pendentes. Resultado paginado: use `limit` e o `next_cursor` devolvido para a próxima página.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -184,6 +206,16 @@
             "include_done": {
               "type": "boolean",
               "description": "Se true, inclui também tarefas concluídas."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "description": "Quantidade de tarefas por página (padrão 50, máximo 200)."
+            },
+            "cursor": {
+              "type": "string",
+              "description": "Cursor `next_cursor` devolvido pela página anterior."
             }
           },
           "required": [
@@ -239,7 +271,7 @@
       {
         "name": "list_bottlenecks",
         "title": "Listar gargalos",
-        "description": "Lista os gargalos (bottlenecks) mapeados de uma empresa, com urgência, progresso da correção e valor estimado.",
+        "description": "Lista os gargalos (bottlenecks) mapeados de uma empresa, com posição no Top 5, urgência, causa raiz, resultado esperado, progresso da correção e valor estimado. Resultado paginado via `limit`/`cursor`.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -259,6 +291,16 @@
             "include_resolved": {
               "type": "boolean",
               "description": "Se true, inclui gargalos já resolvidos."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "description": "Quantidade de gargalos por página (padrão 50, máximo 200)."
+            },
+            "cursor": {
+              "type": "string",
+              "description": "Cursor `next_cursor` devolvido pela página anterior."
             }
           },
           "required": [

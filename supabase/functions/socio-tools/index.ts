@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
-    const { instruction, company_id, contract_id, confirm } = await req.json();
+    const { instruction, company_id, contract_id, confirm, decision, proposals: rejectedProposals } = await req.json();
     if (!instruction || !company_id) {
       return new Response(JSON.stringify({ error: "instruction and company_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -112,6 +112,37 @@ Deno.serve(async (req) => {
     if (contractScope.forbidden) {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+
+    // Log de decisão: usuário descartou as ações propostas pela IA.
+    if (decision === "reject") {
+      const rows = (Array.isArray(rejectedProposals) ? rejectedProposals : []).map((p: any) => ({
+        user_id: userId,
+        company_id,
+        contract_id: contractScope.contractId,
+        action: "socio_tools_decision",
+        decision: "rejeitada",
+        tool_name: String(p?.name ?? "desconhecida"),
+        payload: p?.args ?? {},
+        prompt: String(instruction).slice(0, 4000),
+        response: null,
+      }));
+      if (rows.length === 0) {
+        rows.push({
+          user_id: userId,
+          company_id,
+          contract_id: contractScope.contractId,
+          action: "socio_tools_decision",
+          decision: "rejeitada",
+          tool_name: "nenhuma",
+          payload: {},
+          prompt: String(instruction).slice(0, 4000),
+          response: null,
+        });
+      }
+      await admin.from("ai_logs").insert(rows);
+      return new Response(JSON.stringify({ rejected: true, logged: rows.length }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
@@ -145,11 +176,15 @@ Deno.serve(async (req) => {
 
     // Dry-run: return proposals for the user to confirm
     if (!confirm) {
-      await admin.from("ai_logs").insert({
-        user_id: userId, company_id, action: "socio_tools_propose",
-        prompt: instruction.slice(0, 4000),
-        response: JSON.stringify({ message: msg?.content, proposals }).slice(0, 8000),
-      });
+      await admin.from("ai_logs").insert(
+        (proposals.length ? proposals : [{ name: "nenhuma", args: {} }]).map((p: any) => ({
+          user_id: userId, company_id, contract_id: contractScope.contractId,
+          action: "socio_tools_propose", decision: "proposta",
+          tool_name: p.name, payload: p.args ?? {},
+          prompt: instruction.slice(0, 4000),
+          response: JSON.stringify({ message: msg?.content }).slice(0, 8000),
+        })),
+      );
       return new Response(JSON.stringify({ message: msg?.content || "", proposals }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -193,11 +228,20 @@ Deno.serve(async (req) => {
         results.push({ name: p.name, ok: false, error: String(e?.message || e) });
       }
     }
-    await admin.from("ai_logs").insert({
-      user_id: userId, company_id, action: "socio_tools_execute",
-      prompt: instruction.slice(0, 4000),
-      response: JSON.stringify(results).slice(0, 8000),
-    });
+    const entityByTool: Record<string, string> = { create_goal: "goals", create_bottleneck: "bottlenecks", schedule_meeting: "meetings" };
+    await admin.from("ai_logs").insert(
+      results.map((r: any) => ({
+        user_id: userId, company_id, contract_id: contractScope.contractId,
+        action: "socio_tools_execute",
+        decision: r.ok ? "executada" : "falhou",
+        tool_name: r.name,
+        entity: entityByTool[r.name] ?? null,
+        entity_id: r.row?.id ?? null,
+        payload: r.ok ? { title: r.row?.title ?? r.row?.name ?? null } : { error: r.error ?? null },
+        prompt: instruction.slice(0, 4000),
+        response: JSON.stringify(r).slice(0, 8000),
+      })),
+    );
     return new Response(JSON.stringify({ executed: true, results }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });

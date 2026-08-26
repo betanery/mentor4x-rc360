@@ -156,6 +156,27 @@ export default function WarRoom() {
     setSaving(true);
     const { id, created_at, updated_at, ...rest } = review;
     const payload: any = { ...rest, company_id: current.id, contract_id: currentContract?.id ?? null, week_start: weekStart, created_by: review.created_by ?? user.id, ...extra };
+
+    // Controle de edição concorrente: só grava se a ata não foi alterada por outra pessoa.
+    if (id && updated_at) {
+      const { data, error } = await supabase
+        .from("weekly_reviews")
+        .update(payload)
+        .eq("id", id)
+        .eq("updated_at", updated_at)
+        .select("id");
+      setSaving(false);
+      if (error) { toast.error(error.message); return; }
+      if (!data || data.length === 0) {
+        toast.error("Esta ata foi alterada por outra pessoa. Recarregamos a versão atual — revise e salve novamente.");
+        loadReviews();
+        return;
+      }
+      toast.success(message);
+      loadReviews();
+      return;
+    }
+
     const { error } = await supabase.from("weekly_reviews").upsert(payload, { onConflict: currentContract ? "company_id,contract_id,week_start" : "company_id,week_start" });
     setSaving(false);
     if (error) toast.error(error.message);

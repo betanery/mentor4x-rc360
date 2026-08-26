@@ -105,3 +105,33 @@ export function jsonResult(payload: unknown) {
     structuredContent: payload as Record<string, unknown>,
   };
 }
+
+/** Paginação simples por offset codificado em cursor opaco. */
+export function decodeCursor(cursor?: string): number {
+  if (!cursor) return 0;
+  const parsed = Number.parseInt(cursor, 10);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error("Cursor inválido. Use o valor `next_cursor` devolvido na página anterior.");
+  }
+  return parsed;
+}
+
+export function pageBounds(limit?: number, cursor?: string) {
+  const size = Math.min(Math.max(limit ?? 50, 1), 200);
+  const offset = decodeCursor(cursor);
+  return { size, offset, from: offset, to: offset + size - 1 };
+}
+
+export function pageMeta<T>(rows: T[], size: number, offset: number) {
+  const hasMore = rows.length > size;
+  const page = hasMore ? rows.slice(0, size) : rows;
+  return {
+    page,
+    pagination: {
+      limit: size,
+      returned: page.length,
+      has_more: hasMore,
+      next_cursor: hasMore ? String(offset + size) : null,
+    },
+  };
+}
