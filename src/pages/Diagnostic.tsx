@@ -482,9 +482,35 @@ export default function Diagnostic() {
                   </div>
 
                   <Card className="p-5">
-                    <h3 className="font-bold mb-1">Critérios mínimos de passagem de Maturidade</h3>
+                    <h3 className="font-bold mb-1">Maturidade estrutural (independente do Improviso)</h3>
                     <p className="text-xs text-muted-foreground mb-4">
-                      Maturidade mostra até onde levar; Improviso mostra por onde começar. Modelo híbrido: score + critérios + validação humana.
+                      Maturidade mostra até onde levar e é medida por capacidades, padrões, rituais, evidências e alçadas.
+                      Improviso mostra por onde começar. Uma variável nunca é calculada a partir da outra — a validação é do Consultor 4X.
+                    </p>
+                    {result.maturityScore === null ? (
+                      <p className="text-sm text-warning mb-4">
+                        Este diagnóstico não tem o bloco estrutural respondido: a Maturidade exibida é leitura histórica de compatibilidade.
+                      </p>
+                    ) : (
+                      <div className="mb-4 grid gap-2 sm:grid-cols-2">
+                        <div className="rounded-lg border p-3">
+                          <p className="text-xs text-muted-foreground">Score estrutural</p>
+                          <p className="text-2xl font-black">{result.maturityScore}/100</p>
+                        </div>
+                        <div className="rounded-lg border p-3">
+                          <p className="text-xs text-muted-foreground">Improviso geral (variável independente)</p>
+                          <p className="text-2xl font-black">{result.improvisoGeral}/100</p>
+                        </div>
+                        {result.maturityDimensions.map((d) => (
+                          <div key={d.key} className="flex items-center justify-between rounded-lg border p-2.5 text-sm">
+                            <span>{d.label}</span>
+                            <span className="font-bold">{d.score}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
+                      Critérios mínimos de passagem
                     </p>
                     <div className="grid gap-2 sm:grid-cols-2">
                       {result.maturityCriteria.map((c) => (
@@ -498,6 +524,7 @@ export default function Diagnostic() {
                         </div>
                       ))}
                     </div>
+
                     {activeDiag.notes && (
                       <p className="mt-4 text-sm text-muted-foreground border-t pt-3">
                         <strong>Nota do Consultor 4X:</strong> {activeDiag.notes}
