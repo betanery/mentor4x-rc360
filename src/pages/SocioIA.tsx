@@ -314,7 +314,12 @@ export default function SocioIA() {
           {proposals.length > 0 && (
             <Card className="p-6 shadow-card space-y-4">
               <div className="flex items-center justify-between">
-                <h4 className="font-bold">Ações propostas ({proposals.length})</h4>
+                <div>
+                  <h4 className="font-bold">Ações propostas ({proposals.length})</h4>
+                  <p className="text-xs text-muted-foreground">
+                    A confirmação executa exatamente o conteúdo exibido abaixo. Qualquer ajuste exige nova proposta.
+                  </p>
+                </div>
                 <div className="flex gap-2">
                   <Button onClick={rejectProposals} disabled={rejecting || executing} variant="outline">
                     {rejecting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Ban className="h-4 w-4 mr-2" />}
@@ -322,20 +327,29 @@ export default function SocioIA() {
                   </Button>
                   <Button onClick={execute} disabled={executing || rejecting} variant="default">
                     {executing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <PlayCircle className="h-4 w-4 mr-2" />}
-                    Executar todas
+                    Aprovar e executar
                   </Button>
                 </div>
               </div>
               <div className="space-y-3">
-                {proposals.map((p, i) => (
-                  <div key={i} className="border border-border rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-2">
+                {proposals.map((p) => (
+                  <div key={p.id} className="border border-border rounded-lg p-3">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
                       <Badge className="bg-royal text-white">{TOOL_LABEL[p.name] || p.name}</Badge>
+                      {p.required_scope && (
+                        <Badge variant="outline">{SCOPE_LABEL[p.required_scope] || p.required_scope}</Badge>
+                      )}
                     </div>
                     <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">{JSON.stringify(p.args, null, 2)}</pre>
+                    <p className="text-[10px] text-muted-foreground mt-2 font-mono break-all">
+                      ID {p.id}
+                      {p.payload_hash ? ` · assinatura ${p.payload_hash.slice(0, 16)}…` : ""}
+                      {p.expires_at ? ` · válida até ${new Date(p.expires_at).toLocaleString("pt-BR")}` : ""}
+                    </p>
                   </div>
                 ))}
               </div>
+
             </Card>
           )}
 
