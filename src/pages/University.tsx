@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { toEmbedUrl, isDirectVideo } from "@/lib/video";
+import { signedUrl } from "@/lib/storage";
+
 
 export default function University() {
   const { user } = useAuth();
