@@ -16,23 +16,41 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { URGENCY_LABEL, formatBRL, PILLAR_LABEL } from "@/lib/labels";
 import { BLINDSPOTS, blindspotByCode } from "@/lib/see4x";
-import { Plus, CheckCircle2, Trash2, Loader2, Target } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Plus, CheckCircle2, Trash2, Loader2, Target, History, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Bottleneck = Tables<"bottlenecks">;
+type RankHistory = Tables<"bottleneck_rank_history">;
 
 const EMPTY = {
   name: "", area: "", impact: "", urgency: "media", estimated_value: "0", correction_plan: "",
   blindspot_code: "", capacity_code: "", rank_position: "", root_cause: "", expected_result: "", due_date: "",
 };
 
+const URGENCY_WEIGHT: Record<string, number> = { critica: 4, alta: 3, media: 2, baixa: 1 };
+
+/** Recomendação do Top 5: criticidade × impacto financeiro × urgência (pendência considerada). */
+function priorityScore(b: Bottleneck, maxValue: number) {
+  const urgency = URGENCY_WEIGHT[b.urgency] ?? 1;
+  const impact = maxValue > 0 ? Number(b.estimated_value || 0) / maxValue : 0;
+  const pending = (100 - (b.progress ?? 0)) / 100;
+  return urgency * 25 + impact * 50 + pending * 25;
+}
+
+
 export default function Bottlenecks() {
   const { current } = useCompany();
   const { currentContract } = useContract();
+  const { user, isConsultor } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
+  const [rankTarget, setRankTarget] = useState<Bottleneck | null>(null);
+  const [newRank, setNewRank] = useState("1");
+  const [rankJustification, setRankJustification] = useState("");
+
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["bottlenecks", current?.id, currentContract?.id],
@@ -102,6 +120,54 @@ export default function Bottlenecks() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const { data: history = [] } = useQuery({
+    queryKey: ["bottleneck_rank_history", current?.id, currentContract?.id],
+    enabled: !!current,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("bottleneck_rank_history")
+        .select("*")
+        .eq("company_id", current!.id)
+        .order("created_at", { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      return data as RankHistory[];
+    },
+  });
+
+  const rankMut = useMutation({
+    mutationFn: async () => {
+      if (!rankTarget || !current) throw new Error("Selecione o gargalo");
+      const position = Number(newRank);
+      if (!position || position < 1 || position > 5) throw new Error("A posição deve estar entre 1 e 5");
+      if (!rankJustification.trim()) throw new Error("Registre a justificativa da mudança");
+      const { error } = await supabase
+        .from("bottlenecks")
+        .update({ rank_position: position })
+        .eq("id", rankTarget.id);
+      if (error) throw error;
+      // O histórico de posição é gravado automaticamente pelo banco; a justificativa entra na auditoria.
+      await supabase.from("governance_log").insert({
+        company_id: current.id,
+        actor_id: user?.id ?? null,
+        action: "top5_rank_change",
+        entity: "bottlenecks",
+        entity_id: rankTarget.id,
+        previous_value: rankTarget.rank_position ? String(rankTarget.rank_position) : null,
+        new_value: String(position),
+        justification: rankJustification.trim(),
+      });
+    },
+    onSuccess: () => {
+      toast.success("Posição do Top 5 atualizada e registrada no histórico");
+      setRankTarget(null);
+      setRankJustification("");
+      invalidate();
+      qc.invalidateQueries({ queryKey: ["bottleneck_rank_history", current?.id, currentContract?.id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const pickBlindspot = (code: string) => {
     const bs = blindspotByCode(code);
     setForm((s) => ({
@@ -114,8 +180,14 @@ export default function Bottlenecks() {
     }));
   };
 
-  const top5 = items.filter((i) => !i.resolved).slice(0, 5);
+  const active = items.filter((i) => !i.resolved);
+  const maxValue = Math.max(0, ...active.map((i) => Number(i.estimated_value || 0)));
+  const recommended = [...active].sort((a, b) => priorityScore(b, maxValue) - priorityScore(a, maxValue));
+  const recommendedRank = new Map(recommended.map((b, i) => [b.id, i + 1]));
+  const top5 = active.slice(0, 5);
   const totalImpact = top5.reduce((s, i) => s + Number(i.estimated_value || 0), 0);
+  const bottleneckName = (id: string) => items.find((i) => i.id === id)?.name ?? "Gargalo";
+
 
   return (
     <div className="space-y-6">
@@ -211,7 +283,13 @@ export default function Bottlenecks() {
                       {bs && <Badge variant="outline" className="border-gold text-gold">{bs.code} · BlindSpot</Badge>}
                       {b.capacity_code && <Badge variant="outline">{b.capacity_code}</Badge>}
                       {b.due_date && <Badge variant="secondary">Prazo {new Date(b.due_date + "T00:00:00").toLocaleDateString("pt-BR")}</Badge>}
+                      {recommendedRank.get(b.id) !== (b.rank_position ?? i + 1) && (
+                        <Badge variant="outline" className="border-primary text-primary">
+                          Recomendado #{recommendedRank.get(b.id)}
+                        </Badge>
+                      )}
                     </div>
+
                     {b.impact && <p className="mt-2 text-sm text-muted-foreground">{b.impact}</p>}
                     {(b.root_cause || b.expected_result) && (
                       <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -262,12 +340,85 @@ export default function Bottlenecks() {
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
+                  {isConsultor ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        setRankTarget(b);
+                        setNewRank(String(b.rank_position ?? recommendedRank.get(b.id) ?? i + 1));
+                        setRankJustification("");
+                      }}
+                    >
+                      <ArrowUpDown className="h-4 w-4 mr-1" /> Alterar posição
+                    </Button>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground text-center">
+                      Posição no Top 5 definida pelo Consultor 4X
+                    </p>
+                  )}
+
                 </div>
               </div>
             </Card>
           );
         })}
       </div>
+
+      <Card className="p-6 shadow-card">
+        <div className="flex items-center gap-2 mb-4">
+          <History className="h-4 w-4 text-primary" />
+          <h3 className="font-bold">Histórico do Top 5</h3>
+        </div>
+        {history.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhuma mudança de posição registrada até agora.</p>
+        ) : (
+          <div className="space-y-2">
+            {history.map((h) => (
+              <div key={h.id} className="flex flex-wrap items-center gap-2 text-sm p-3 rounded-lg bg-muted/30 border border-border">
+                <span className="font-semibold">{bottleneckName(h.bottleneck_id)}</span>
+                <Badge variant="outline">
+                  {h.previous_position ? `#${h.previous_position}` : "sem posição"} → {h.new_position ? `#${h.new_position}` : "sem posição"}
+                </Badge>
+                {h.cycle && <Badge variant="secondary">{h.cycle.replace("ciclo_", "Ciclo ")}</Badge>}
+                <span className="text-muted-foreground ml-auto text-xs">
+                  {new Date(h.created_at).toLocaleString("pt-BR")}
+                </span>
+                {h.justification && <p className="w-full text-xs text-muted-foreground">{h.justification}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      <Dialog open={!!rankTarget} onOpenChange={(v) => !v && setRankTarget(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Alterar posição no Top 5</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">{rankTarget?.name}</p>
+            <div>
+              <Label>Nova posição (1 a 5)</Label>
+              <Input type="number" min={1} max={5} value={newRank} onChange={(e) => setNewRank(e.target.value)} />
+            </div>
+            <div>
+              <Label>Justificativa</Label>
+              <Textarea
+                rows={3}
+                value={rankJustification}
+                onChange={(e) => setRankJustification(e.target.value)}
+                placeholder="Por que este gargalo muda de prioridade neste ciclo?"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => rankMut.mutate()} disabled={rankMut.isPending}>
+              {rankMut.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Registrar mudança
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 }

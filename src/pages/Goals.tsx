@@ -44,7 +44,7 @@ export default function Goals() {
   const [mentorDraft, setMentorDraft] = useState("");
   const [updateDraft, setUpdateDraft] = useState("");
   const [approvalDraft, setApprovalDraft] = useState("");
-  const [form, setForm] = useState({ title: "", description: "", pillar: "crescimento", indicator: "", financial_impact: "0", due_date: "", week_start: format(new Date(), "yyyy-MM-dd"), blindspot_code: "", capacity_code: "", bottleneck_id: "", capacity_justification: "" });
+  const [form, setForm] = useState({ title: "", description: "", pillar: "crescimento", indicator: "", financial_impact: "0", due_date: "", week_start: format(new Date(), "yyyy-MM-dd"), blindspot_code: "", capacity_code: "", bottleneck_id: "", capacity_justification: "", current_situation: "", expected_result: "", notes: "" });
 
 
   const { data: goals = [], isLoading } = useQuery({
@@ -177,6 +177,10 @@ export default function Goals() {
           blindspot_code: form.blindspot_code || null,
           capacity_code: form.capacity_code || null,
           bottleneck_id: form.bottleneck_id || null,
+          current_situation: form.current_situation || null,
+          expected_result: form.expected_result || null,
+          notes: form.notes || null,
+
           is_critical: true,
           approval_status: needsApproval ? "pendente" : "aprovada",
           capacity_justification: needsApproval ? form.capacity_justification.trim() : null,
@@ -199,7 +203,7 @@ export default function Goals() {
     onSuccess: (needsApproval) => {
       toast.success(needsApproval ? "Meta registrada como pendente de aprovação do Consultor 4X." : "Meta criada");
       setOpen(false);
-      setForm({ title: "", description: "", pillar: "crescimento", indicator: "", financial_impact: "0", due_date: "", week_start: format(new Date(), "yyyy-MM-dd"), blindspot_code: "", capacity_code: "", bottleneck_id: "", capacity_justification: "" });
+      setForm({ title: "", description: "", pillar: "crescimento", indicator: "", financial_impact: "0", due_date: "", week_start: format(new Date(), "yyyy-MM-dd"), blindspot_code: "", capacity_code: "", bottleneck_id: "", capacity_justification: "", current_situation: "", expected_result: "", notes: "" });
 
       invalidate();
     },
@@ -214,8 +218,9 @@ export default function Goals() {
         .from("goals")
         .update(
           approve
-            ? { approval_status: "aprovada", approved_by: user.id, approved_at: new Date().toISOString(), capacity_justification: note || goal.capacity_justification }
+            ? { approval_status: "aprovada", approved_by: user.id, approved_at: new Date().toISOString(), validated_by: user.id, validated_at: new Date().toISOString(), capacity_justification: note || goal.capacity_justification }
             : { approval_status: "rejeitada", approved_by: user.id, approved_at: new Date().toISOString() },
+
         )
         .eq("id", goal.id);
       if (error) throw error;
@@ -365,6 +370,22 @@ export default function Goals() {
                   <div><Label>Prazo</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
                   <div className="col-span-2"><Label>Semana (início)</Label><Input type="date" value={form.week_start} onChange={(e) => setForm({ ...form, week_start: e.target.value })} /></div>
                 </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <Label>Situação atual</Label>
+                    <Textarea rows={2} value={form.current_situation} onChange={(e) => setForm({ ...form, current_situation: e.target.value })} placeholder="Como está hoje, com número quando houver" />
+                  </div>
+                  <div>
+                    <Label>Resultado esperado</Label>
+                    <Textarea rows={2} value={form.expected_result} onChange={(e) => setForm({ ...form, expected_result: e.target.value })} placeholder="O que passa a ser verdade quando a meta for atingida" />
+                  </div>
+                  <div>
+                    <Label>Observações</Label>
+                    <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Riscos, dependências e combinados" />
+                  </div>
+                </div>
+
               </div>
               <DialogFooter><Button onClick={() => createMut.mutate()} disabled={!form.title || createMut.isPending}>Criar meta</Button></DialogFooter>
             </DialogContent>
@@ -518,6 +539,37 @@ export default function Goals() {
                 </div>
               )}
               {detail.description && <p className="text-sm text-muted-foreground">{detail.description}</p>}
+
+              {(detail.current_situation || detail.expected_result || detail.notes) && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {detail.current_situation && (
+                    <div className="rounded-lg border border-border bg-muted/30 p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Situação atual</p>
+                      <p className="text-sm whitespace-pre-wrap">{detail.current_situation}</p>
+                    </div>
+                  )}
+                  {detail.expected_result && (
+                    <div className="rounded-lg border border-border bg-muted/30 p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Resultado esperado</p>
+                      <p className="text-sm whitespace-pre-wrap">{detail.expected_result}</p>
+                    </div>
+                  )}
+                  {detail.notes && (
+                    <div className="rounded-lg border border-border bg-muted/30 p-3 sm:col-span-2">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Observações</p>
+                      <p className="text-sm whitespace-pre-wrap">{detail.notes}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {detail.validated_at && (
+                <p className="text-xs text-muted-foreground">
+                  Validada pelo Consultor 4X em {format(new Date(detail.validated_at), "dd/MM/yyyy HH:mm")}
+                </p>
+              )}
+
+
 
 
               <div>
