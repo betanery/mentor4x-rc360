@@ -50,6 +50,20 @@ export default function University() {
         setLessons((l.data || []).filter((lesson: any) => allowed.has(lesson.course_id)));
       });
     loadProgress();
+    if (currentContract) {
+      supabase
+        .from("contract_onboarding_items")
+        .select("course_id, due_date")
+        .eq("contract_id", currentContract.id)
+        .eq("item_type", "conteudo")
+        .then(({ data }) => {
+          const map: Record<string, string | null> = {};
+          (data || []).forEach((row) => { if (row.course_id) map[row.course_id] = row.due_date; });
+          setReleases(map);
+        });
+    } else {
+      setReleases({});
+    }
   }, [user, currentContract]);
 
   const lessonsOf = (id: string) => lessons.filter((l) => l.course_id === id);
