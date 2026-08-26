@@ -15,6 +15,8 @@ export type ActiveContract = {
   expected_completion: string | null;
   completed_at: string | null;
   notes: string | null;
+  access_expires_at: string | null;
+  onboarding_generated_at: string | null;
   product_name: string;
   version_label: string;
 };
