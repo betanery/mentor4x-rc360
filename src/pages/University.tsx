@@ -21,6 +21,23 @@ export default function University() {
   const [lessons, setLessons] = useState<any[]>([]);
   const [progress, setProgress] = useState<Record<string, { completed: boolean; progress_pct: number }>>({});
   const [active, setActive] = useState<any>(null);
+  // Fase 6c — links assinados curtos, renovados a cada abertura de aula
+  const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
+  const [activePdfUrl, setActivePdfUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancel = false;
+    if (!active) { setActiveVideoUrl(null); setActivePdfUrl(null); return; }
+    void (async () => {
+      const [v, p] = await Promise.all([
+        signedUrl("lessons", active.video_url ?? null),
+        signedUrl("lessons", active.pdf_url ?? null),
+      ]);
+      if (!cancel) { setActiveVideoUrl(v); setActivePdfUrl(p); }
+    })();
+    return () => { cancel = true; };
+  }, [active?.id]);
+
   const [releases, setReleases] = useState<Record<string, string | null>>({});
 
   const accessExpired = !!currentContract?.access_expires_at &&
