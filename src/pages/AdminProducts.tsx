@@ -129,6 +129,19 @@ export default function AdminProducts() {
   const [editingVersion, setEditingVersion] = useState<ProductVersion | null>(null);
   const [editingContract, setEditingContract] = useState<Contract | null>(null);
   const [deleting, setDeleting] = useState<{ table: "products" | "product_versions" | "contracts"; id: string; title: string } | null>(null);
+  const [templateVersion, setTemplateVersion] = useState<ProductVersion | null>(null);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
+
+  const generateOnboarding = async (contract: Contract) => {
+    setGeneratingId(contract.id);
+    const { data, error } = await supabase.rpc("generate_contract_onboarding", { _contract_id: contract.id });
+    setGeneratingId(null);
+    if (error) { toast.error(error.message); return; }
+    const count = (data as number) ?? 0;
+    toast.success(count > 0 ? `${count} item(ns) de onboarding gerados` : "Onboarding já estava gerado — nenhum item novo.");
+    await load();
+    await refreshContracts();
+  };
 
   const load = async () => {
     setLoading(true);
