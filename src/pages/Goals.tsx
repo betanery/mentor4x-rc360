@@ -365,6 +365,22 @@ export default function Goals() {
                   <div><Label>Prazo</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
                   <div className="col-span-2"><Label>Semana (início)</Label><Input type="date" value={form.week_start} onChange={(e) => setForm({ ...form, week_start: e.target.value })} /></div>
                 </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <Label>Situação atual</Label>
+                    <Textarea rows={2} value={form.current_situation} onChange={(e) => setForm({ ...form, current_situation: e.target.value })} placeholder="Como está hoje, com número quando houver" />
+                  </div>
+                  <div>
+                    <Label>Resultado esperado</Label>
+                    <Textarea rows={2} value={form.expected_result} onChange={(e) => setForm({ ...form, expected_result: e.target.value })} placeholder="O que passa a ser verdade quando a meta for atingida" />
+                  </div>
+                  <div>
+                    <Label>Observações</Label>
+                    <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Riscos, dependências e combinados" />
+                  </div>
+                </div>
+
               </div>
               <DialogFooter><Button onClick={() => createMut.mutate()} disabled={!form.title || createMut.isPending}>Criar meta</Button></DialogFooter>
             </DialogContent>
