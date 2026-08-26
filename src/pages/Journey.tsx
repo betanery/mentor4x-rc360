@@ -268,7 +268,7 @@ export default function Journey() {
               <div className="h-full bg-gradient-gold" style={{ width: `${overallProgress}%` }} />
             </div>
           </div>
-          {isStaff && activeStage !== "concluido" && (
+          {isConsultor && activeStage !== "concluido" && (
             <Dialog open={closeOpen} onOpenChange={setCloseOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-gold text-primary hover:bg-gold/90">
