@@ -63,6 +63,25 @@ type CycleRecord = {
   gate_override_justification: string | null;
 };
 
+type ContractStage = {
+  id: string;
+  title: string;
+  description: string | null;
+  order_index: number;
+  cycle_number: number | null;
+  status: string;
+  planned_start: string | null;
+  planned_end: string | null;
+  completed_at: string | null;
+};
+
+const STAGE_STATUS: Record<string, { label: string; cls: string }> = {
+  pendente: { label: "Pendente", cls: "bg-muted text-muted-foreground" },
+  em_andamento: { label: "Em andamento", cls: "bg-gold/20 text-gold" },
+  concluida: { label: "Concluída", cls: "bg-success/20 text-success" },
+};
+
+
 export default function Journey() {
   const { current } = useCompany();
   const { currentContract, refreshContracts } = useContract();
@@ -109,6 +128,50 @@ export default function Journey() {
       return data || [];
     },
   });
+
+  // Fase 5c — jornada real da contratação (cópia operacional da versão contratada)
+  const { data: contractStages = [] } = useQuery({
+    queryKey: ["contract_journey_stages", currentContract?.id],
+    enabled: !!currentContract,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("contract_journey_stages" as any) as any)
+        .select("id,title,description,order_index,cycle_number,status,planned_start,planned_end,completed_at")
+        .eq("contract_id", currentContract!.id)
+        .order("order_index", { ascending: true });
+      if (error) throw error;
+      return (data || []) as ContractStage[];
+    },
+  });
+
+  const generateJourney = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("generate_contract_journey", { _contract_id: currentContract!.id });
+      if (error) throw error;
+      return data as number;
+    },
+    onSuccess: (n) => {
+      toast.success(n ? `${n} etapa(s) da jornada geradas` : "Jornada já estava gerada");
+      qc.invalidateQueries({ queryKey: ["contract_journey_stages"] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const setStageStatus = useMutation({
+    mutationFn: async (v: { id: string; status: string }) => {
+      const { error } = await (supabase.from("contract_journey_stages" as any) as any)
+        .update({
+          status: v.status,
+          completed_at: v.status === "concluida" ? new Date().toISOString() : null,
+          completed_by: v.status === "concluida" ? user?.id ?? null : null,
+        })
+        .eq("id", v.id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["contract_journey_stages"] }),
+    onError: (e: any) => toast.error(e.message),
+  });
+
+
 
   const toggleItem = useMutation({
     mutationFn: async (v: { stage: string; item_key: string; item_type: string; done: boolean }) => {
@@ -390,6 +453,75 @@ export default function Journey() {
           })}
         </div>
       </Card>
+
+      {currentContract && (
+        <Card className="p-5 shadow-card">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Jornada da contratação</p>
+              <h3 className="text-lg font-black mt-1">Etapas do produto contratado</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Cópia operacional das etapas da versão contratada — cada produto tem sua própria estrutura.
+              </p>
+            </div>
+            {isStaff && contractStages.length === 0 && (
+              <Button variant="outline" size="sm" disabled={generateJourney.isPending} onClick={() => generateJourney.mutate()}>
+                {generateJourney.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Gerar jornada da contratação
+              </Button>
+            )}
+          </div>
+
+          {contractStages.length === 0 ? (
+            <p className="text-sm text-muted-foreground mt-4">
+              Nenhuma etapa gerada para esta contratação. A jornada é criada a partir das etapas cadastradas na versão do produto.
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-2">
+              {contractStages.map((s) => {
+                const st = STAGE_STATUS[s.status] ?? STAGE_STATUS.pendente;
+                return (
+                  <li key={s.id} className="rounded-lg border p-3 flex items-start justify-between gap-4 flex-wrap">
+                    <div className="min-w-[240px]">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-muted-foreground">{s.order_index}</span>
+                        <p className="font-bold text-sm">{s.title}</p>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${st.cls}`}>{st.label}</span>
+                      </div>
+                      {s.description && <p className="text-xs text-muted-foreground mt-1">{s.description}</p>}
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        {s.cycle_number ? `Ciclo ${s.cycle_number} · ` : ""}
+                        {s.planned_start && s.planned_end
+                          ? `${new Date(s.planned_start).toLocaleDateString("pt-BR")} → ${new Date(s.planned_end).toLocaleDateString("pt-BR")}`
+                          : "Sem datas previstas"}
+                        {s.completed_at ? ` · concluída em ${new Date(s.completed_at).toLocaleDateString("pt-BR")}` : ""}
+                      </p>
+                    </div>
+                    {isStaff && (
+                      <div className="flex gap-2">
+                        {s.status !== "em_andamento" && (
+                          <Button variant="outline" size="sm" onClick={() => setStageStatus.mutate({ id: s.id, status: "em_andamento" })}>
+                            Em andamento
+                          </Button>
+                        )}
+                        {s.status !== "concluida" ? (
+                          <Button size="sm" className="bg-gradient-brand" onClick={() => setStageStatus.mutate({ id: s.id, status: "concluida" })}>
+                            Concluir
+                          </Button>
+                        ) : (
+                          <Button variant="ghost" size="sm" onClick={() => setStageStatus.mutate({ id: s.id, status: "pendente" })}>
+                            Reabrir
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card>
+      )}
 
       <div className="space-y-4">
         {STAGES.map((stage, i) => {
