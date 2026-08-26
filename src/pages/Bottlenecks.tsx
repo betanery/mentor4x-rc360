@@ -340,6 +340,25 @@ export default function Bottlenecks() {
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
+                  {isConsultor ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        setRankTarget(b);
+                        setNewRank(String(b.rank_position ?? recommendedRank.get(b.id) ?? i + 1));
+                        setRankJustification("");
+                      }}
+                    >
+                      <ArrowUpDown className="h-4 w-4 mr-1" /> Alterar posição
+                    </Button>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground text-center">
+                      Posição no Top 5 definida pelo Consultor 4X
+                    </p>
+                  )}
+
                 </div>
               </div>
             </Card>
