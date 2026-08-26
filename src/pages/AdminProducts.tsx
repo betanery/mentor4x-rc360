@@ -305,6 +305,79 @@ export default function AdminProducts() {
     setContractForm({ ...contractForm, product_id: productId, product_version_id: firstVersion?.id || "" });
   };
 
+  const publishVersion = async (version: ProductVersion) => {
+    const { error } = await supabase.from("product_versions").update({ published_at: new Date().toISOString() }).eq("id", version.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Versão publicada — a partir de agora ela é imutável.");
+    await load();
+  };
+
+  const duplicateVersion = async (version: ProductVersion) => {
+    setDuplicatingId(version.id);
+    const { data: created, error } = await supabase
+      .from("product_versions")
+      .insert({
+        product_id: version.product_id,
+        version_label: `${version.version_label} (cópia)`,
+        methodology_code: version.methodology_code,
+        description: version.description,
+        cycle_count: version.cycle_count,
+        duration_days: version.duration_days,
+        is_active: false,
+      })
+      .select("id")
+      .single();
+    if (error || !created) { setDuplicatingId(null); toast.error(error?.message ?? "Falha ao duplicar versão"); return; }
+
+    const newId = created.id;
+    const [cfg, mts, sts] = await Promise.all([
+      supabase.from("product_version_config").select("*").eq("product_version_id", version.id).maybeSingle(),
+      supabase.from("product_version_meetings").select("*").eq("product_version_id", version.id).order("order_index"),
+      supabase.from("product_version_stages").select("*").eq("product_version_id", version.id).order("order_index"),
+    ]);
+
+    if (cfg.data) {
+      const { id: _id, created_at: _c, updated_at: _u, product_version_id: _pv, ...rest } = cfg.data;
+      await supabase.from("product_version_config").insert({ ...rest, product_version_id: newId });
+    }
+    if (mts.data?.length) {
+      await supabase.from("product_version_meetings").insert(
+        mts.data.map(({ id: _i, created_at: _c, updated_at: _u, product_version_id: _pv, ...rest }) => ({ ...rest, product_version_id: newId })),
+      );
+    }
+    const stageMap: Record<string, string> = {};
+    for (const stage of sts.data ?? []) {
+      const { id: oldId, created_at: _c, updated_at: _u, product_version_id: _pv, ...rest } = stage;
+      const { data: newStage } = await supabase
+        .from("product_version_stages")
+        .insert({ ...rest, product_version_id: newId })
+        .select("id")
+        .single();
+      if (newStage) stageMap[oldId] = newStage.id;
+    }
+    const { data: dls } = await supabase.from("product_version_deliverables").select("*").eq("product_version_id", version.id).order("order_index");
+    if (dls?.length) {
+      await supabase.from("product_version_deliverables").insert(
+        dls.map(({ id: _i, created_at: _c, updated_at: _u, product_version_id: _pv, stage_id, ...rest }) => ({
+          ...rest,
+          product_version_id: newId,
+          stage_id: stage_id ? stageMap[stage_id] ?? null : null,
+        })),
+      );
+    }
+    await supabase.from("product_inheritance").insert({
+      base_version_id: version.id,
+      derived_version_id: newId,
+      inherited_components: ["config", "encontros", "etapas", "entregaveis"],
+      notes: "Duplicada a partir da versão base para edição.",
+    });
+
+    setDuplicatingId(null);
+    toast.success("Versão duplicada — edite a cópia e publique quando estiver pronta.");
+    await load();
+  };
+
+
   return (
     <div className="space-y-6">
       <PageHeader
