@@ -218,8 +218,9 @@ export default function Goals() {
         .from("goals")
         .update(
           approve
-            ? { approval_status: "aprovada", approved_by: user.id, approved_at: new Date().toISOString(), capacity_justification: note || goal.capacity_justification }
+            ? { approval_status: "aprovada", approved_by: user.id, approved_at: new Date().toISOString(), validated_by: user.id, validated_at: new Date().toISOString(), capacity_justification: note || goal.capacity_justification }
             : { approval_status: "rejeitada", approved_by: user.id, approved_at: new Date().toISOString() },
+
         )
         .eq("id", goal.id);
       if (error) throw error;
