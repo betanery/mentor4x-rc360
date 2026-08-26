@@ -58,6 +58,8 @@ export function ContractProvider({ children }: { children: ReactNode }) {
     expected_completion: row.expected_completion,
     completed_at: row.completed_at,
     notes: row.notes,
+    access_expires_at: row.access_expires_at,
+    onboarding_generated_at: row.onboarding_generated_at,
     product_name: row.products?.name ?? "Produto",
     version_label: row.product_versions?.version_label ?? "Versão",
   }));
