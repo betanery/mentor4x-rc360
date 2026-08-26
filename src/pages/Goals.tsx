@@ -512,7 +512,7 @@ export default function Goals() {
                       </div>
                     </div>
                   )}
-                  {!isStaff && detail.approval_status === "pendente" && (
+                  {!isConsultor && detail.approval_status === "pendente" && (
                     <p className="mt-1 text-xs text-muted-foreground">Somente o Consultor 4X pode liberar esta meta.</p>
                   )}
                 </div>
