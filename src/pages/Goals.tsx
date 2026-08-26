@@ -274,9 +274,9 @@ export default function Goals() {
     const path = `${current.id}/${goal.id}/${crypto.randomUUID()}.${ext}`;
     const { error: upErr } = await supabase.storage.from("evidences").upload(path, file, { contentType: file.type });
     if (upErr) { setUploadingFor(null); toast.error(upErr.message); return; }
-    const { data: signed } = await supabase.storage.from("evidences").createSignedUrl(path, 60 * 60 * 24 * 365);
-    const url = signed?.signedUrl || path;
-    const { error: updErr } = await supabase.from("goals").update({ evidence_url: url }).eq("id", goal.id);
+    // Fase 6c — guardamos apenas o caminho; o link assinado é gerado sob demanda (5 min).
+    const { error: updErr } = await supabase.from("goals").update({ evidence_url: path }).eq("id", goal.id);
+
     setUploadingFor(null);
     if (updErr) { toast.error(updErr.message); return; }
     toast.success("Evidência anexada");
