@@ -77,6 +77,87 @@ export type Database = {
           },
         ]
       }
+      ai_proposals: {
+        Row: {
+          ai_message: string | null
+          company_id: string
+          contract_id: string | null
+          created_at: string
+          created_by: string | null
+          decided_at: string | null
+          decided_by: string | null
+          entity: string | null
+          entity_id: string | null
+          error_message: string | null
+          expires_at: string
+          id: string
+          instruction: string | null
+          payload: Json
+          payload_hash: string
+          required_scope: string
+          status: string
+          tool_name: string
+          updated_at: string
+        }
+        Insert: {
+          ai_message?: string | null
+          company_id: string
+          contract_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          entity?: string | null
+          entity_id?: string | null
+          error_message?: string | null
+          expires_at?: string
+          id?: string
+          instruction?: string | null
+          payload?: Json
+          payload_hash: string
+          required_scope?: string
+          status?: string
+          tool_name: string
+          updated_at?: string
+        }
+        Update: {
+          ai_message?: string | null
+          company_id?: string
+          contract_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          entity?: string | null
+          entity_id?: string | null
+          error_message?: string | null
+          expires_at?: string
+          id?: string
+          instruction?: string | null
+          payload?: Json
+          payload_hash?: string
+          required_scope?: string
+          status?: string
+          tool_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_proposals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_proposals_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bottlenecks: {
         Row: {
           area: string | null
