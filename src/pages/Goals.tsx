@@ -44,7 +44,7 @@ export default function Goals() {
   const [mentorDraft, setMentorDraft] = useState("");
   const [updateDraft, setUpdateDraft] = useState("");
   const [approvalDraft, setApprovalDraft] = useState("");
-  const [form, setForm] = useState({ title: "", description: "", pillar: "crescimento", indicator: "", financial_impact: "0", due_date: "", week_start: format(new Date(), "yyyy-MM-dd"), blindspot_code: "", capacity_code: "", bottleneck_id: "", capacity_justification: "" });
+  const [form, setForm] = useState({ title: "", description: "", pillar: "crescimento", indicator: "", financial_impact: "0", due_date: "", week_start: format(new Date(), "yyyy-MM-dd"), blindspot_code: "", capacity_code: "", bottleneck_id: "", capacity_justification: "", current_situation: "", expected_result: "", notes: "" });
 
 
   const { data: goals = [], isLoading } = useQuery({
