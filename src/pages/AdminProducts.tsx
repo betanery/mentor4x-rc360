@@ -397,10 +397,15 @@ export default function AdminProducts() {
                       {CYCLE_LABEL[contract.journey_stage]?.label ?? contract.journey_stage} · ciclo operacional {contract.current_cycle}
                       {contract.started_at ? ` · início ${new Date(contract.started_at).toLocaleDateString("pt-BR")}` : ""}
                       {contract.expected_completion ? ` · previsão ${new Date(contract.expected_completion).toLocaleDateString("pt-BR")}` : ""}
+                      {contract.access_expires_at ? ` · acesso até ${new Date(`${contract.access_expires_at}T12:00:00`).toLocaleDateString("pt-BR")}` : ""}
+                      {contract.onboarding_generated_at ? " · onboarding gerado" : " · onboarding pendente"}
                     </p>
                     {contract.notes && <p className="text-sm text-muted-foreground mt-2">{contract.notes}</p>}
                   </div>
                   <div className="flex gap-1">
+                    <Button size="sm" variant="outline" onClick={() => generateOnboarding(contract)} disabled={generatingId === contract.id}>
+                      {generatingId === contract.id ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ListChecks className="h-4 w-4 mr-1" />} Gerar onboarding
+                    </Button>
                     <Button size="sm" variant="ghost" onClick={() => openContract(contract)}><Pencil className="h-4 w-4 mr-1" /> Editar</Button>
                     <Button size="sm" variant="ghost" onClick={() => setDeleting({ table: "contracts", id: contract.id, title: `${contract.companies?.name ?? "Empresa"} · ${contract.products?.name ?? "Produto"}` })}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                   </div>
