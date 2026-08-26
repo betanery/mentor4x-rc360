@@ -357,6 +357,7 @@ export default function AdminProducts() {
                                 <p className="text-xs text-muted-foreground">{version.methodology_code} · {version.cycle_count} ciclos{version.duration_days ? ` · ${version.duration_days} dias` : ""}</p>
                               </div>
                               <Badge variant={version.is_active ? "default" : "secondary"}>{version.is_active ? "Ativa" : "Inativa"}</Badge>
+                              <Button size="sm" variant="outline" onClick={() => setTemplateVersion(version)}><ListChecks className="h-3.5 w-3.5 mr-1" /> Onboarding</Button>
                               <Button size="icon" variant="ghost" onClick={() => openVersion(version)}><Pencil className="h-4 w-4" /></Button>
                               <Button size="icon" variant="ghost" onClick={() => setDeleting({ table: "product_versions", id: version.id, title: version.version_label })}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                             </div>
