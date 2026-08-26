@@ -34,6 +34,9 @@ import {
 } from "recharts";
 import { MOTORES, PILLAR_LABEL } from "@/lib/labels";
 import { MATURITY_LABEL, improvisoBand } from "@/lib/see4x";
+import { structuringScore, executionIndex, economicImpact, formatBRL } from "@/lib/metrics";
+import { Progress } from "@/components/ui/progress";
+
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   rascunho: { label: "Rascunho", color: "bg-warning/15 text-warning" },
