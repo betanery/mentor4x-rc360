@@ -18,7 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { CYCLE_LABEL } from "@/lib/labels";
-import { Boxes, Calendar, Layers3, Loader2, Package, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { OnboardingTemplateDialog } from "@/components/OnboardingTemplateDialog";
+import { Boxes, Calendar, Layers3, ListChecks, Loader2, Package, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import type { Json, Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
 type Product = Tables<"products">;
@@ -415,6 +416,13 @@ export default function AdminProducts() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <OnboardingTemplateDialog
+        versionId={templateVersion?.id ?? null}
+        versionLabel={templateVersion?.version_label ?? ""}
+        open={!!templateVersion}
+        onOpenChange={(o) => { if (!o) setTemplateVersion(null); }}
+      />
 
       <Dialog open={productDialog} onOpenChange={setProductDialog}>
         <DialogContent className="max-w-lg">
