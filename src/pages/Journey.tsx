@@ -129,6 +129,50 @@ export default function Journey() {
     },
   });
 
+  // Fase 5c — jornada real da contratação (cópia operacional da versão contratada)
+  const { data: contractStages = [] } = useQuery({
+    queryKey: ["contract_journey_stages", currentContract?.id],
+    enabled: !!currentContract,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("contract_journey_stages" as any) as any)
+        .select("id,title,description,order_index,cycle_number,status,planned_start,planned_end,completed_at")
+        .eq("contract_id", currentContract!.id)
+        .order("order_index", { ascending: true });
+      if (error) throw error;
+      return (data || []) as ContractStage[];
+    },
+  });
+
+  const generateJourney = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("generate_contract_journey", { _contract_id: currentContract!.id });
+      if (error) throw error;
+      return data as number;
+    },
+    onSuccess: (n) => {
+      toast.success(n ? `${n} etapa(s) da jornada geradas` : "Jornada já estava gerada");
+      qc.invalidateQueries({ queryKey: ["contract_journey_stages"] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const setStageStatus = useMutation({
+    mutationFn: async (v: { id: string; status: string }) => {
+      const { error } = await (supabase.from("contract_journey_stages" as any) as any)
+        .update({
+          status: v.status,
+          completed_at: v.status === "concluida" ? new Date().toISOString() : null,
+          completed_by: v.status === "concluida" ? user?.id ?? null : null,
+        })
+        .eq("id", v.id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["contract_journey_stages"] }),
+    onError: (e: any) => toast.error(e.message),
+  });
+
+
+
   const toggleItem = useMutation({
     mutationFn: async (v: { stage: string; item_key: string; item_type: string; done: boolean }) => {
       if (!current) return;
