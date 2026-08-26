@@ -18,6 +18,7 @@ const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/diagnostico", label: "Diagnóstico SEE_4X", icon: Stethoscope },
   { to: "/jornada", label: "Jornada SEE_4X", icon: Map },
+  { to: "/onboarding", label: "Onboarding", icon: Rocket },
   { to: "/metas", label: "Metas", icon: Target },
   { to: "/plano-acao", label: "Plano de Ação", icon: ListChecks },
   { to: "/gargalos", label: "Top 5 Gargalos", icon: AlertTriangle },
