@@ -16,16 +16,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { URGENCY_LABEL, formatBRL, PILLAR_LABEL } from "@/lib/labels";
 import { BLINDSPOTS, blindspotByCode } from "@/lib/see4x";
-import { Plus, CheckCircle2, Trash2, Loader2, Target } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Plus, CheckCircle2, Trash2, Loader2, Target, History, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Bottleneck = Tables<"bottlenecks">;
+type RankHistory = Tables<"bottleneck_rank_history">;
 
 const EMPTY = {
   name: "", area: "", impact: "", urgency: "media", estimated_value: "0", correction_plan: "",
   blindspot_code: "", capacity_code: "", rank_position: "", root_cause: "", expected_result: "", due_date: "",
 };
+
+const URGENCY_WEIGHT: Record<string, number> = { critica: 4, alta: 3, media: 2, baixa: 1 };
+
+/** Recomendação do Top 5: criticidade × impacto financeiro × urgência (pendência considerada). */
+function priorityScore(b: Bottleneck, maxValue: number) {
+  const urgency = URGENCY_WEIGHT[b.urgency] ?? 1;
+  const impact = maxValue > 0 ? Number(b.estimated_value || 0) / maxValue : 0;
+  const pending = (100 - (b.progress ?? 0)) / 100;
+  return urgency * 25 + impact * 50 + pending * 25;
+}
+
 
 export default function Bottlenecks() {
   const { current } = useCompany();
