@@ -18,6 +18,8 @@ import { Plus, Calendar, DollarSign, Trash2, Paperclip, MessageSquare, Loader2, 
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { BLINDSPOTS, CAPACITIES, blindspotByCode, capacityByCode } from "@/lib/see4x";
+import { openStorageFile } from "@/lib/storage";
+
 import type { Tables } from "@/integrations/supabase/types";
 
 
