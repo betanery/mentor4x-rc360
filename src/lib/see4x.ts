@@ -128,7 +128,7 @@ export const IDD_DIMENSIONS: { key: string; label: string; statement: string }[]
 /** Todas as perguntas do questionário, na ordem de aplicação. */
 export interface Question {
   id: string;
-  section: "pilar" | "idd";
+  section: "pilar" | "idd" | "maturidade";
   pillar?: Pillar;
   blindspot?: string;
   label: string;
@@ -150,7 +150,14 @@ export const QUESTIONS: Question[] = [
     label: d.label,
     statement: d.statement,
   })),
+  ...MATURITY_DIMENSIONS.map<Question>((d) => ({
+    id: `MAT-${d.key}`,
+    section: "maturidade",
+    label: d.label,
+    statement: d.statement,
+  })),
 ];
+
 
 export const ANSWER_SCALE = [
   { value: 1, label: "Não existe" },
