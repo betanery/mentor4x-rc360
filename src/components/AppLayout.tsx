@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LayoutDashboard, Target, AlertTriangle, Compass, Map, Swords, Users, Briefcase, GraduationCap, Sparkles, FileText, Award, LogOut, Bell, Menu, X, Building2, ListChecks, BookOpen, Stethoscope, BarChart3, Boxes } from "lucide-react";
+import { LayoutDashboard, Target, AlertTriangle, Compass, Map, Swords, Users, Briefcase, GraduationCap, Sparkles, FileText, Award, LogOut, Bell, Menu, X, Building2, ListChecks, BookOpen, Stethoscope, BarChart3, Boxes, Rocket } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
