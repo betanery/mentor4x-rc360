@@ -444,6 +444,82 @@ export type Database = {
           },
         ]
       }
+      contract_journey_stages: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          completed_by: string | null
+          contract_id: string
+          created_at: string
+          cycle_number: number | null
+          description: string | null
+          id: string
+          order_index: number
+          planned_end: string | null
+          planned_start: string | null
+          stage_template_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          completed_by?: string | null
+          contract_id: string
+          created_at?: string
+          cycle_number?: number | null
+          description?: string | null
+          id?: string
+          order_index?: number
+          planned_end?: string | null
+          planned_start?: string | null
+          stage_template_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          contract_id?: string
+          created_at?: string
+          cycle_number?: number | null
+          description?: string | null
+          id?: string
+          order_index?: number
+          planned_end?: string | null
+          planned_start?: string | null
+          stage_template_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_journey_stages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_journey_stages_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_journey_stages_stage_template_id_fkey"
+            columns: ["stage_template_id"]
+            isOneToOne: false
+            referencedRelation: "product_version_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contract_onboarding_items: {
         Row: {
           company_id: string
@@ -1665,6 +1741,303 @@ export type Database = {
           },
         ]
       }
+      product_inheritance: {
+        Row: {
+          base_version_id: string
+          created_at: string
+          derived_version_id: string
+          id: string
+          inherited_components: string[]
+          notes: string | null
+          overridden_components: string[]
+          updated_at: string
+        }
+        Insert: {
+          base_version_id: string
+          created_at?: string
+          derived_version_id: string
+          id?: string
+          inherited_components?: string[]
+          notes?: string | null
+          overridden_components?: string[]
+          updated_at?: string
+        }
+        Update: {
+          base_version_id?: string
+          created_at?: string
+          derived_version_id?: string
+          id?: string
+          inherited_components?: string[]
+          notes?: string | null
+          overridden_components?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_inheritance_base_version_id_fkey"
+            columns: ["base_version_id"]
+            isOneToOne: false
+            referencedRelation: "product_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_inheritance_derived_version_id_fkey"
+            columns: ["derived_version_id"]
+            isOneToOne: false
+            referencedRelation: "product_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_upgrade_paths: {
+        Row: {
+          condition: string | null
+          created_at: string
+          from_product_id: string
+          from_version_id: string | null
+          id: string
+          notes: string | null
+          to_product_id: string
+          to_version_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          condition?: string | null
+          created_at?: string
+          from_product_id: string
+          from_version_id?: string | null
+          id?: string
+          notes?: string | null
+          to_product_id: string
+          to_version_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          condition?: string | null
+          created_at?: string
+          from_product_id?: string
+          from_version_id?: string | null
+          id?: string
+          notes?: string | null
+          to_product_id?: string
+          to_version_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_upgrade_paths_from_product_id_fkey"
+            columns: ["from_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_upgrade_paths_from_version_id_fkey"
+            columns: ["from_version_id"]
+            isOneToOne: false
+            referencedRelation: "product_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_upgrade_paths_to_product_id_fkey"
+            columns: ["to_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_upgrade_paths_to_version_id_fkey"
+            columns: ["to_version_id"]
+            isOneToOne: false
+            referencedRelation: "product_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_version_config: {
+        Row: {
+          access_days: number | null
+          ai_enabled: boolean
+          audience: string | null
+          bonuses: string | null
+          catalog_visibility: string
+          checkout_url: string | null
+          community_included: boolean
+          created_at: string
+          currency: string
+          duration_amount: number | null
+          duration_unit: string
+          format: string | null
+          id: string
+          notes: string | null
+          price_cents: number | null
+          product_version_id: string
+          recommendation_mode: string
+          sales_url: string | null
+          support_model: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_days?: number | null
+          ai_enabled?: boolean
+          audience?: string | null
+          bonuses?: string | null
+          catalog_visibility?: string
+          checkout_url?: string | null
+          community_included?: boolean
+          created_at?: string
+          currency?: string
+          duration_amount?: number | null
+          duration_unit?: string
+          format?: string | null
+          id?: string
+          notes?: string | null
+          price_cents?: number | null
+          product_version_id: string
+          recommendation_mode?: string
+          sales_url?: string | null
+          support_model?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_days?: number | null
+          ai_enabled?: boolean
+          audience?: string | null
+          bonuses?: string | null
+          catalog_visibility?: string
+          checkout_url?: string | null
+          community_included?: boolean
+          created_at?: string
+          currency?: string
+          duration_amount?: number | null
+          duration_unit?: string
+          format?: string | null
+          id?: string
+          notes?: string | null
+          price_cents?: number | null
+          product_version_id?: string
+          recommendation_mode?: string
+          sales_url?: string | null
+          support_model?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_version_config_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: true
+            referencedRelation: "product_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_version_deliverables: {
+        Row: {
+          created_at: string
+          description: string | null
+          format: string | null
+          id: string
+          order_index: number
+          product_version_id: string
+          required: boolean
+          stage_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          format?: string | null
+          id?: string
+          order_index?: number
+          product_version_id: string
+          required?: boolean
+          stage_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          format?: string | null
+          id?: string
+          order_index?: number
+          product_version_id?: string
+          required?: boolean
+          stage_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_version_deliverables_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "product_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_version_deliverables_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "product_version_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_version_meetings: {
+        Row: {
+          cadence: string | null
+          created_at: string
+          duration_min: number
+          id: string
+          meeting_type: Database["public"]["Enums"]["meeting_type"]
+          notes: string | null
+          order_index: number
+          product_version_id: string
+          quantity: number
+          required: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cadence?: string | null
+          created_at?: string
+          duration_min?: number
+          id?: string
+          meeting_type: Database["public"]["Enums"]["meeting_type"]
+          notes?: string | null
+          order_index?: number
+          product_version_id: string
+          quantity?: number
+          required?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cadence?: string | null
+          created_at?: string
+          duration_min?: number
+          id?: string
+          meeting_type?: Database["public"]["Enums"]["meeting_type"]
+          notes?: string | null
+          order_index?: number
+          product_version_id?: string
+          quantity?: number
+          required?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_version_meetings_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "product_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_version_onboarding_items: {
         Row: {
           course_id: string | null
@@ -1721,6 +2094,50 @@ export type Database = {
           },
           {
             foreignKeyName: "product_version_onboarding_items_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "product_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_version_stages: {
+        Row: {
+          created_at: string
+          cycle_number: number | null
+          description: string | null
+          duration_days: number | null
+          id: string
+          order_index: number
+          product_version_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cycle_number?: number | null
+          description?: string | null
+          duration_days?: number | null
+          id?: string
+          order_index?: number
+          product_version_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cycle_number?: number | null
+          description?: string | null
+          duration_days?: number | null
+          id?: string
+          order_index?: number
+          product_version_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_version_stages_product_version_id_fkey"
             columns: ["product_version_id"]
             isOneToOne: false
             referencedRelation: "product_versions"

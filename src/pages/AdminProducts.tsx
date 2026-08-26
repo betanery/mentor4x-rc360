@@ -19,7 +19,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { CYCLE_LABEL } from "@/lib/labels";
 import { OnboardingTemplateDialog } from "@/components/OnboardingTemplateDialog";
-import { Boxes, Calendar, Layers3, ListChecks, Loader2, Package, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { VersionConfigDialog } from "@/components/VersionConfigDialog";
+import { Boxes, Calendar, Copy, Layers3, ListChecks, Lock, Loader2, Package, Pencil, Plus, RefreshCw, SlidersHorizontal, Trash2 } from "lucide-react";
+
 import type { Json, Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
 type Product = Tables<"products">;
@@ -131,7 +133,10 @@ export default function AdminProducts() {
   const [editingContract, setEditingContract] = useState<Contract | null>(null);
   const [deleting, setDeleting] = useState<{ table: "products" | "product_versions" | "contracts"; id: string; title: string } | null>(null);
   const [templateVersion, setTemplateVersion] = useState<ProductVersion | null>(null);
+  const [configVersion, setConfigVersion] = useState<ProductVersion | null>(null);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+
 
   const generateOnboarding = async (contract: Contract) => {
     setGeneratingId(contract.id);
@@ -305,6 +310,79 @@ export default function AdminProducts() {
     setContractForm({ ...contractForm, product_id: productId, product_version_id: firstVersion?.id || "" });
   };
 
+  const publishVersion = async (version: ProductVersion) => {
+    const { error } = await supabase.from("product_versions").update({ published_at: new Date().toISOString() }).eq("id", version.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Versão publicada — a partir de agora ela é imutável.");
+    await load();
+  };
+
+  const duplicateVersion = async (version: ProductVersion) => {
+    setDuplicatingId(version.id);
+    const { data: created, error } = await supabase
+      .from("product_versions")
+      .insert({
+        product_id: version.product_id,
+        version_label: `${version.version_label} (cópia)`,
+        methodology_code: version.methodology_code,
+        description: version.description,
+        cycle_count: version.cycle_count,
+        duration_days: version.duration_days,
+        is_active: false,
+      })
+      .select("id")
+      .single();
+    if (error || !created) { setDuplicatingId(null); toast.error(error?.message ?? "Falha ao duplicar versão"); return; }
+
+    const newId = created.id;
+    const [cfg, mts, sts] = await Promise.all([
+      supabase.from("product_version_config").select("*").eq("product_version_id", version.id).maybeSingle(),
+      supabase.from("product_version_meetings").select("*").eq("product_version_id", version.id).order("order_index"),
+      supabase.from("product_version_stages").select("*").eq("product_version_id", version.id).order("order_index"),
+    ]);
+
+    if (cfg.data) {
+      const { id: _id, created_at: _c, updated_at: _u, product_version_id: _pv, ...rest } = cfg.data;
+      await supabase.from("product_version_config").insert({ ...rest, product_version_id: newId });
+    }
+    if (mts.data?.length) {
+      await supabase.from("product_version_meetings").insert(
+        mts.data.map(({ id: _i, created_at: _c, updated_at: _u, product_version_id: _pv, ...rest }) => ({ ...rest, product_version_id: newId })),
+      );
+    }
+    const stageMap: Record<string, string> = {};
+    for (const stage of sts.data ?? []) {
+      const { id: oldId, created_at: _c, updated_at: _u, product_version_id: _pv, ...rest } = stage;
+      const { data: newStage } = await supabase
+        .from("product_version_stages")
+        .insert({ ...rest, product_version_id: newId })
+        .select("id")
+        .single();
+      if (newStage) stageMap[oldId] = newStage.id;
+    }
+    const { data: dls } = await supabase.from("product_version_deliverables").select("*").eq("product_version_id", version.id).order("order_index");
+    if (dls?.length) {
+      await supabase.from("product_version_deliverables").insert(
+        dls.map(({ id: _i, created_at: _c, updated_at: _u, product_version_id: _pv, stage_id, ...rest }) => ({
+          ...rest,
+          product_version_id: newId,
+          stage_id: stage_id ? stageMap[stage_id] ?? null : null,
+        })),
+      );
+    }
+    await supabase.from("product_inheritance").insert({
+      base_version_id: version.id,
+      derived_version_id: newId,
+      inherited_components: ["config", "encontros", "etapas", "entregaveis"],
+      notes: "Duplicada a partir da versão base para edição.",
+    });
+
+    setDuplicatingId(null);
+    toast.success("Versão duplicada — edite a cópia e publique quando estiver pronta.");
+    await load();
+  };
+
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -358,9 +436,16 @@ export default function AdminProducts() {
                                 <p className="text-xs text-muted-foreground">{version.methodology_code} · {version.cycle_count} ciclos{version.duration_days ? ` · ${version.duration_days} dias` : ""}</p>
                               </div>
                               <Badge variant={version.is_active ? "default" : "secondary"}>{version.is_active ? "Ativa" : "Inativa"}</Badge>
+                              {version.published_at && <Badge variant="outline" className="gap-1"><Lock className="h-3 w-3" /> Publicada</Badge>}
+                              <Button size="sm" variant="outline" onClick={() => setConfigVersion(version)}><SlidersHorizontal className="h-3.5 w-3.5 mr-1" /> Configuração</Button>
                               <Button size="sm" variant="outline" onClick={() => setTemplateVersion(version)}><ListChecks className="h-3.5 w-3.5 mr-1" /> Onboarding</Button>
+                              <Button size="sm" variant="outline" onClick={() => duplicateVersion(version)} disabled={duplicatingId === version.id}>
+                                {duplicatingId === version.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Copy className="h-3.5 w-3.5 mr-1" />} Duplicar
+                              </Button>
+                              {!version.published_at && <Button size="sm" variant="outline" onClick={() => publishVersion(version)}>Publicar</Button>}
                               <Button size="icon" variant="ghost" onClick={() => openVersion(version)}><Pencil className="h-4 w-4" /></Button>
                               <Button size="icon" variant="ghost" onClick={() => setDeleting({ table: "product_versions", id: version.id, title: version.version_label })}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+
                             </div>
                           ))}
                         </div>
@@ -423,6 +508,9 @@ export default function AdminProducts() {
         open={!!templateVersion}
         onOpenChange={(o) => { if (!o) setTemplateVersion(null); }}
       />
+
+      <VersionConfigDialog version={configVersion} onOpenChange={(o) => { if (!o) setConfigVersion(null); }} />
+
 
       <Dialog open={productDialog} onOpenChange={setProductDialog}>
         <DialogContent className="max-w-lg">
