@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { CYCLE_LABEL, CYCLE_ORDER, MOTORES, MEETING_TYPE_LABEL } from "@/lib/labels";
+import { openStorageFile } from "@/lib/storage";
+
 import { CheckCircle2, Target, FileCheck, ArrowRight, Lock, Paperclip, CalendarDays, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
