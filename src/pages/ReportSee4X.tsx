@@ -34,6 +34,9 @@ import {
 } from "recharts";
 import { MOTORES, PILLAR_LABEL } from "@/lib/labels";
 import { MATURITY_LABEL, improvisoBand } from "@/lib/see4x";
+import { structuringScore, executionIndex, economicImpact, formatBRL } from "@/lib/metrics";
+import { Progress } from "@/components/ui/progress";
+
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   rascunho: { label: "Rascunho", color: "bg-warning/15 text-warning" },
@@ -119,6 +122,24 @@ export default function ReportSee4X() {
     },
   });
 
+  // Fase 6a — base de mensuração: todas as metas aprovadas (inclui concluídas).
+  const { data: allGoals = [] } = useQuery({
+    queryKey: ["metric_goals", current?.id, currentContract?.id],
+    enabled: !!current,
+    queryFn: async () => {
+      let query = supabase
+        .from("goals")
+        .select("status,due_date,evidence_url,validated_at,financial_impact,is_critical,updated_at")
+        .eq("company_id", current!.id)
+        .eq("approval_status", "aprovada");
+      query = currentContract ? query.eq("contract_id", currentContract.id) : query.is("contract_id", null);
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+  });
+
+
   const baseline = diagnostics.find((d) => d.id === baselineId);
   const followUp = diagnostics.find((d) => d.id === followUpId);
 
@@ -146,6 +167,14 @@ export default function ReportSee4X() {
 
   const topImprovements = blindspotDeltas.slice(0, 5).filter((b: any) => b.delta < 0);
   const topRegressions = blindspotDeltas.slice().reverse().slice(0, 5).filter((b: any) => b.delta > 0);
+
+  // Fase 6a — métricas de mensuração
+  const cycle = currentContract?.current_cycle ?? 1;
+  const structBaseline = baselineResult ? structuringScore(baselineResult.byPillar ?? [], cycle) : null;
+  const structFollowUp = followUpResult ? structuringScore(followUpResult.byPillar ?? [], cycle) : null;
+  const execution = executionIndex(allGoals as any);
+  const economic = economicImpact(allGoals as any);
+
 
   const generate = useMutation({
     mutationFn: async () => {
@@ -253,8 +282,137 @@ export default function ReportSee4X() {
         <Tabs defaultValue="comparativo">
           <TabsList>
             <TabsTrigger value="comparativo">Comparativo</TabsTrigger>
+            <TabsTrigger value="indicadores">Indicadores 4X</TabsTrigger>
             <TabsTrigger value="plano">Plano de 90 dias</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="indicadores" className="space-y-4 mt-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              <Card className="p-5 shadow-card">
+                <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground">
+                  Score de Estruturação 4X
+                </p>
+                <div className="flex items-end gap-2 mt-2">
+                  <span className="text-3xl font-black">{structFollowUp?.score ?? "—"}</span>
+                  <span className="text-sm text-muted-foreground mb-1">/ 100</span>
+                </div>
+                {structFollowUp && (
+                  <>
+                    <Progress value={structFollowUp.score} className="mt-3" />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Baseline: {structBaseline?.score ?? "—"} · pesos do ciclo {structFollowUp.cycle}
+                    </p>
+                  </>
+                )}
+              </Card>
+
+              <Card className="p-5 shadow-card">
+                <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground">
+                  Índice de Execução
+                </p>
+                <div className="flex items-end gap-2 mt-2">
+                  <span className="text-3xl font-black">{execution?.index ?? "—"}</span>
+                  <span className="text-sm text-muted-foreground mb-1">/ 100</span>
+                </div>
+                {execution && (
+                  <>
+                    <Progress value={execution.index} className="mt-3" />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {execution.concluded} de {execution.total} metas aprovadas concluídas
+                    </p>
+                  </>
+                )}
+              </Card>
+
+              <Card className="p-5 shadow-card">
+                <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground">
+                  Impacto Econômico realizado
+                </p>
+                <div className="text-3xl font-black mt-2">{formatBRL(economic.realizado)}</div>
+                <Progress value={economic.conversao} className="mt-3" />
+                <p className="text-xs text-muted-foreground mt-2">
+                  {economic.conversao}% do impacto declarado no plano ({formatBRL(economic.total)})
+                </p>
+              </Card>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Card className="p-5 shadow-card">
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
+                  Composição do Índice de Execução
+                </p>
+                {!execution ? (
+                  <p className="text-sm text-muted-foreground">Nenhuma meta aprovada para medir execução.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {execution.components.map((c) => (
+                      <div key={c.key}>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium">
+                            {c.label} <span className="text-muted-foreground text-xs">· peso {Math.round(c.weight * 100)}%</span>
+                          </span>
+                          <span className="font-semibold">{c.score}</span>
+                        </div>
+                        <Progress value={c.score} className="mt-1.5" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+
+              <Card className="p-5 shadow-card">
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
+                  Impacto Econômico por situação
+                </p>
+                <div className="space-y-2">
+                  {[
+                    { label: "Realizado e validado", value: economic.realizado, color: "bg-success/15 text-success" },
+                    { label: "Concluído aguardando validação", value: economic.aguardandoValidacao, color: "bg-info/15 text-info" },
+                    { label: "Previsto em execução", value: economic.previsto, color: "bg-muted text-muted-foreground" },
+                    { label: "Em risco (atrasado ou bloqueado)", value: economic.emRisco, color: "bg-destructive/15 text-destructive" },
+                  ].map((row) => (
+                    <div key={row.label} className="flex items-center justify-between rounded-lg border p-3">
+                      <span className="text-sm">{row.label}</span>
+                      <Badge className={row.color}>{formatBRL(row.value)}</Badge>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-3">
+                  Valores declarados nas metas aprovadas. A validação do Consultor 4X é o que confirma o resultado.
+                </p>
+              </Card>
+            </div>
+
+            {structFollowUp && (
+              <Card className="p-5 shadow-card">
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
+                  Estruturação por pilar · pesos do ciclo {structFollowUp.cycle}
+                </p>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {structFollowUp.byPillar.map((p) => {
+                    const before = structBaseline?.byPillar.find((x) => x.pillar === p.pillar)?.structuring;
+                    return (
+                      <div key={p.pillar}>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium">
+                            {PILLAR_LABEL[p.pillar]?.label}{" "}
+                            <span className="text-xs text-muted-foreground">· peso {Math.round(p.weight * 100)}%</span>
+                          </span>
+                          <span className="font-semibold">
+                            {before !== undefined ? `${before} → ` : ""}
+                            {p.structuring}
+                          </span>
+                        </div>
+                        <Progress value={p.structuring} className="mt-1.5" />
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
+          </TabsContent>
+
+
 
           <TabsContent value="comparativo" className="space-y-4 mt-4">
             <div className="grid gap-4 md:grid-cols-4">
