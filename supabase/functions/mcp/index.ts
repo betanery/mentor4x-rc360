@@ -252,28 +252,33 @@ import { z as z4 } from "npm:zod@^3.25.76";
 var list_tasks_default = defineTool5({
   name: "list_tasks",
   title: "Listar plano de a\xE7\xE3o",
-  description: "Lista as tarefas do plano de a\xE7\xE3o de uma empresa. Por padr\xE3o s\xF3 as pendentes.",
+  description: "Lista as tarefas do plano de a\xE7\xE3o de uma empresa, com prioridade e checklist. Por padr\xE3o s\xF3 as pendentes. Resultado paginado: use `limit` e o `next_cursor` devolvido para a pr\xF3xima p\xE1gina.",
   inputSchema: {
     company_id: z4.string().describe("UUID da empresa."),
     contract_id: z4.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, lista apenas registros legados sem contrata\xE7\xE3o."),
-    include_done: z4.boolean().optional().describe("Se true, inclui tamb\xE9m tarefas conclu\xEDdas.")
+    include_done: z4.boolean().optional().describe("Se true, inclui tamb\xE9m tarefas conclu\xEDdas."),
+    limit: z4.number().int().min(1).max(200).optional().describe("Quantidade de tarefas por p\xE1gina (padr\xE3o 50, m\xE1ximo 200)."),
+    cursor: z4.string().optional().describe("Cursor `next_cursor` devolvido pela p\xE1gina anterior.")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async ({ company_id, contract_id, include_done }, ctx) => {
+  handler: async ({ company_id, contract_id, include_done, limit, cursor }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated();
     const supabase = supabaseForUser(ctx);
     let scope;
+    let bounds;
     try {
       scope = await resolveContractScope(supabase, company_id, contract_id);
+      bounds = pageBounds(limit, cursor);
     } catch (e) {
       return errorResult(e instanceof Error ? e.message : String(e));
     }
-    let query = supabase.from("tasks").select("id, title, description, due_date, done, created_at").eq("company_id", company_id).order("due_date", { ascending: true }).limit(200);
+    let query = supabase.from("tasks").select("id, title, description, due_date, done, priority, checklist, blindspot_code, capacity_code, goal_id, created_at, updated_at").eq("company_id", company_id).order("due_date", { ascending: true }).order("id", { ascending: true }).range(bounds.from, bounds.to + 1);
     query = applyContractScope(query, scope.contractId);
     if (!include_done) query = query.eq("done", false);
     const { data, error } = await query;
     if (error) return errorResult(error.message);
-    return jsonResult({ tasks: data ?? [] });
+    const { page, pagination } = pageMeta(data ?? [], bounds.size, bounds.offset);
+    return jsonResult({ tasks: page, pagination });
   }
 });
 

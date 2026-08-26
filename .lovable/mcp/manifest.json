@@ -174,7 +174,7 @@
       {
         "name": "list_tasks",
         "title": "Listar plano de ação",
-        "description": "Lista as tarefas do plano de ação de uma empresa. Por padrão só as pendentes.",
+        "description": "Lista as tarefas do plano de ação de uma empresa, com prioridade e checklist. Por padrão só as pendentes. Resultado paginado: use `limit` e o `next_cursor` devolvido para a próxima página.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -194,6 +194,16 @@
             "include_done": {
               "type": "boolean",
               "description": "Se true, inclui também tarefas concluídas."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "description": "Quantidade de tarefas por página (padrão 50, máximo 200)."
+            },
+            "cursor": {
+              "type": "string",
+              "description": "Cursor `next_cursor` devolvido pela página anterior."
             }
           },
           "required": [
