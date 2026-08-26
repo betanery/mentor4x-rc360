@@ -66,7 +66,7 @@ type CycleRecord = {
 export default function Journey() {
   const { current } = useCompany();
   const { currentContract, refreshContracts } = useContract();
-  const { isStaff, user } = useAuth();
+  const { isStaff, isConsultor, user } = useAuth();
   const qc = useQueryClient();
   const [closeOpen, setCloseOpen] = useState(false);
   const [summary, setSummary] = useState("");
