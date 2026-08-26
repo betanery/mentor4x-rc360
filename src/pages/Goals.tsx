@@ -177,6 +177,10 @@ export default function Goals() {
           blindspot_code: form.blindspot_code || null,
           capacity_code: form.capacity_code || null,
           bottleneck_id: form.bottleneck_id || null,
+          current_situation: form.current_situation || null,
+          expected_result: form.expected_result || null,
+          notes: form.notes || null,
+
           is_critical: true,
           approval_status: needsApproval ? "pendente" : "aprovada",
           capacity_justification: needsApproval ? form.capacity_justification.trim() : null,
