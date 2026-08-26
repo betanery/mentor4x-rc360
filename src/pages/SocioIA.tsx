@@ -13,7 +13,14 @@ import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 
 type Msg = { role: "user" | "assistant"; content: string };
-type Proposal = { id: string; name: string; args: Record<string, any> };
+type Proposal = {
+  id: string;
+  name: string;
+  args: Record<string, any>;
+  payload_hash?: string;
+  required_scope?: "membro" | "estrategista" | "consultor";
+  expires_at?: string;
+};
 
 const QUICK_ACTIONS = [
   { label: "Sugerir 2 metas críticas para a semana", icon: Target, action: "suggest_goals" },
