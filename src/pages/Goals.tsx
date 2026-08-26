@@ -36,7 +36,7 @@ const GOVERNANCE_ACTION_LABEL: Record<string, string> = {
 export default function Goals() {
   const { current } = useCompany();
   const { currentContract } = useContract();
-  const { user, isStaff } = useAuth();
+  const { user, isStaff, isConsultor } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -494,7 +494,7 @@ export default function Goals() {
                       Justificativa de capacidade: {detail.capacity_justification}
                     </p>
                   )}
-                  {isStaff && detail.approval_status === "pendente" && (
+                  {isConsultor && detail.approval_status === "pendente" && (
                     <div className="mt-2 space-y-2">
                       <Textarea
                         rows={2}
@@ -512,7 +512,7 @@ export default function Goals() {
                       </div>
                     </div>
                   )}
-                  {!isStaff && detail.approval_status === "pendente" && (
+                  {!isConsultor && detail.approval_status === "pendente" && (
                     <p className="mt-1 text-xs text-muted-foreground">Somente o Consultor 4X pode liberar esta meta.</p>
                   )}
                 </div>

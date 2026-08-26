@@ -1744,6 +1744,36 @@ export type Database = {
           },
         ]
       }
+      role_capabilities: {
+        Row: {
+          capability: string
+          created_at: string
+          description: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          scope: string
+          updated_at: string
+        }
+        Insert: {
+          capability: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          scope?: string
+          updated_at?: string
+        }
+        Update: {
+          capability?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          scope?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           blindspot_code: string | null
@@ -1942,6 +1972,7 @@ export type Database = {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
+      is_consultor: { Args: { _user_id: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
       user_companies: { Args: { _user_id: string }; Returns: string[] }
     }

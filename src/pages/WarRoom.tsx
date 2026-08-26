@@ -74,7 +74,7 @@ function addRecurrence(date: Date, recurrence: string) {
 export default function WarRoom() {
   const { current } = useCompany();
   const { currentContract } = useContract();
-  const { user, isStaff } = useAuth();
+  const { user, isStaff, isConsultor } = useAuth();
   const [weekStart, setWeekStart] = useState(format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd"));
   const [review, setReview] = useState<any>({ done: "", blocked: "", indicators: "", next_steps: "", decisions: "", ai_summary: "", ata_status: "rascunho" });
   const [history, setHistory] = useState<any[]>([]);
@@ -385,12 +385,14 @@ export default function WarRoom() {
                   <Send className="h-4 w-4 mr-1" /> Enviar para revisão
                 </Button>
               )}
+              {isConsultor && (
+                <Button size="sm" className="bg-success text-success-foreground hover:bg-success/90" disabled={saving || review.ata_status === "aprovada"}
+                  onClick={() => persistReview({ ata_status: "aprovada", review_comment: reviewComment || null }, "Resumo de Ação aprovado")}>
+                  <CheckCircle2 className="h-4 w-4 mr-1" /> Aprovar ata
+                </Button>
+              )}
               {isStaff && (
                 <>
-                  <Button size="sm" className="bg-success text-success-foreground hover:bg-success/90" disabled={saving || review.ata_status === "aprovada"}
-                    onClick={() => persistReview({ ata_status: "aprovada", review_comment: reviewComment || null }, "Ata aprovada")}>
-                    <CheckCircle2 className="h-4 w-4 mr-1" /> Aprovar ata
-                  </Button>
                   <Button size="sm" variant="outline" disabled={saving}
                     onClick={() => {
                       if (!reviewComment.trim()) { toast.error("Descreva os ajustes necessários no parecer"); return; }
