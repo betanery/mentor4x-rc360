@@ -454,6 +454,75 @@ export default function Journey() {
         </div>
       </Card>
 
+      {currentContract && (
+        <Card className="p-5 shadow-card">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Jornada da contratação</p>
+              <h3 className="text-lg font-black mt-1">Etapas do produto contratado</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Cópia operacional das etapas da versão contratada — cada produto tem sua própria estrutura.
+              </p>
+            </div>
+            {isStaff && contractStages.length === 0 && (
+              <Button variant="outline" size="sm" disabled={generateJourney.isPending} onClick={() => generateJourney.mutate()}>
+                {generateJourney.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Gerar jornada da contratação
+              </Button>
+            )}
+          </div>
+
+          {contractStages.length === 0 ? (
+            <p className="text-sm text-muted-foreground mt-4">
+              Nenhuma etapa gerada para esta contratação. A jornada é criada a partir das etapas cadastradas na versão do produto.
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-2">
+              {contractStages.map((s) => {
+                const st = STAGE_STATUS[s.status] ?? STAGE_STATUS.pendente;
+                return (
+                  <li key={s.id} className="rounded-lg border p-3 flex items-start justify-between gap-4 flex-wrap">
+                    <div className="min-w-[240px]">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-muted-foreground">{s.order_index}</span>
+                        <p className="font-bold text-sm">{s.title}</p>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${st.cls}`}>{st.label}</span>
+                      </div>
+                      {s.description && <p className="text-xs text-muted-foreground mt-1">{s.description}</p>}
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        {s.cycle_number ? `Ciclo ${s.cycle_number} · ` : ""}
+                        {s.planned_start && s.planned_end
+                          ? `${new Date(s.planned_start).toLocaleDateString("pt-BR")} → ${new Date(s.planned_end).toLocaleDateString("pt-BR")}`
+                          : "Sem datas previstas"}
+                        {s.completed_at ? ` · concluída em ${new Date(s.completed_at).toLocaleDateString("pt-BR")}` : ""}
+                      </p>
+                    </div>
+                    {isStaff && (
+                      <div className="flex gap-2">
+                        {s.status !== "em_andamento" && (
+                          <Button variant="outline" size="sm" onClick={() => setStageStatus.mutate({ id: s.id, status: "em_andamento" })}>
+                            Em andamento
+                          </Button>
+                        )}
+                        {s.status !== "concluida" ? (
+                          <Button size="sm" className="bg-gradient-brand" onClick={() => setStageStatus.mutate({ id: s.id, status: "concluida" })}>
+                            Concluir
+                          </Button>
+                        ) : (
+                          <Button variant="ghost" size="sm" onClick={() => setStageStatus.mutate({ id: s.id, status: "pendente" })}>
+                            Reabrir
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card>
+      )}
+
       <div className="space-y-4">
         {STAGES.map((stage, i) => {
           const meta = CYCLE_LABEL[stage.key];
