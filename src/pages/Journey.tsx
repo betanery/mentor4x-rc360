@@ -248,8 +248,9 @@ export default function Journey() {
         const path = `${current.id}/ciclos/${cycle}-${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage.from("evidences").upload(path, evidenceFile, { contentType: evidenceFile.type });
         if (upErr) throw upErr;
-        const { data: signed } = await supabase.storage.from("evidences").createSignedUrl(path, 60 * 60 * 24 * 365);
-        evidenceUrl = signed?.signedUrl || path;
+        // Fase 6c — guardamos o caminho; o link assinado é gerado sob demanda.
+        evidenceUrl = path;
+
       }
 
       const payload = {
