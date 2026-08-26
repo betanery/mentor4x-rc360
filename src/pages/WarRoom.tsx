@@ -74,7 +74,7 @@ function addRecurrence(date: Date, recurrence: string) {
 export default function WarRoom() {
   const { current } = useCompany();
   const { currentContract } = useContract();
-  const { user, isStaff } = useAuth();
+  const { user, isStaff, isConsultor } = useAuth();
   const [weekStart, setWeekStart] = useState(format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd"));
   const [review, setReview] = useState<any>({ done: "", blocked: "", indicators: "", next_steps: "", decisions: "", ai_summary: "", ata_status: "rascunho" });
   const [history, setHistory] = useState<any[]>([]);
