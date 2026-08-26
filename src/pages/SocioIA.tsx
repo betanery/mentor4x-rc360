@@ -49,6 +49,12 @@ const TOOL_LABEL: Record<string, string> = {
   schedule_meeting: "Agendar reunião",
 };
 
+const SCOPE_LABEL: Record<string, string> = {
+  membro: "Aprovação do time",
+  estrategista: "Aprovação da equipe interna",
+  consultor: "Aprovação do Consultor 4X",
+};
+
 export default function SocioIA() {
   const { current } = useCompany();
   const { currentContract } = useContract();
