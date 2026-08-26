@@ -231,7 +231,7 @@ export default function Playbooks() {
                 </div>
               )}
               {pb.file_url && (
-                <Button variant="outline" size="sm" className="mt-auto w-full" onClick={() => window.open(pb.file_url!, "_blank", "noopener")}>
+                <Button variant="outline" size="sm" className="mt-auto w-full" onClick={async () => { if (!(await openStorageFile("lessons", pb.file_url))) toast.error("Não foi possível abrir o material."); }}>
                   <Download className="h-4 w-4 mr-2" /> Abrir material
                 </Button>
               )}
