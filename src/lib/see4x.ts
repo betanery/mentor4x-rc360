@@ -26,14 +26,31 @@ export const GROUP_LABEL: Record<RespondentGroup, string> = {
 export const DIVERGENCE_THRESHOLD = 20;
 
 export const MATURITY_LABEL: Record<MaturityLevel, { label: string; description: string; color: string }> = {
-  inicial: { label: "M1 · Inicial", description: "Empresa dependente do dono, sem padrões nem indicadores.", color: "bg-destructive/15 text-destructive" },
-  emergente: { label: "M2 · Emergente", description: "Primeiros controles e responsáveis definidos, execução instável.", color: "bg-warning/15 text-warning" },
-  estruturada: { label: "M3 · Estruturada", description: "Padrões prioritários em uso, indicadores medidos com fonte.", color: "bg-info/15 text-info" },
-  escalavel: { label: "M4 · Escalável", description: "Governança ativa, resultados comparáveis à linha de base.", color: "bg-primary/15 text-primary" },
-  autonoma: { label: "M5 · Autônoma", description: "Time assume a execução; dono decide, não opera.", color: "bg-success/15 text-success" },
+  inicial: { label: "M1 · Sonho", description: "Negócio nasce da intenção do dono: sem padrões, sem indicadores, tudo depende dele.", color: "bg-destructive/15 text-destructive" },
+  emergente: { label: "M2 · Sobrevivência", description: "Primeiros controles e responsáveis definidos, execução instável e reativa.", color: "bg-warning/15 text-warning" },
+  estruturada: { label: "M3 · Estruturação", description: "Padrões prioritários em uso, indicadores com fonte e rituais acontecendo.", color: "bg-info/15 text-info" },
+  escalavel: { label: "M4 · Autonomia", description: "Time decide dentro de alçadas, governança ativa e evidências registradas.", color: "bg-primary/15 text-primary" },
+  autonoma: { label: "M5 · Escala", description: "Capacidades instaladas sustentam crescimento sem o dono na operação.", color: "bg-success/15 text-success" },
 };
 
 export const MATURITY_ORDER: MaturityLevel[] = ["inicial", "emergente", "estruturada", "escalavel", "autonoma"];
+
+/**
+ * Dimensões ESTRUTURAIS da Maturidade. Medidas por perguntas próprias — nunca
+ * derivadas do Improviso nem do IDD. Improviso mostra por onde começar;
+ * Maturidade mostra até onde levar.
+ */
+export const MATURITY_DIMENSIONS: { key: string; label: string; statement: string }[] = [
+  { key: "capacidades", label: "Capacidades instaladas", statement: "As capacidades estruturantes prioritárias estão implantadas e em uso pelo time." },
+  { key: "padroes", label: "Padrões em uso", statement: "Os padrões definidos são seguidos mesmo quando a liderança não está presente." },
+  { key: "rituais", label: "Rituais de gestão", statement: "Os rituais de gestão acontecem na cadência combinada, com pauta e registro." },
+  { key: "evidencias", label: "Evidências", statement: "As entregas e decisões geram evidência registrada e auditável." },
+  { key: "indicadores", label: "Indicadores com fonte", statement: "Os indicadores de gestão têm fonte, responsável e são revisados na cadência." },
+  { key: "alcadas", label: "Autonomia de decisão", statement: "As decisões acontecem dentro de alçadas claras, sem depender de aprovação do dono." },
+  { key: "sucessao", label: "Sucessão e cobertura", statement: "Cada frente crítica tem substituto preparado e conhecimento registrado." },
+  { key: "melhoria", label: "Melhoria contínua", statement: "Existe ciclo formal de revisão que corrige padrões e capacidades ao longo do tempo." },
+];
+
 
 /** Faixas de leitura do Improviso (0–100; maior = mais improviso). */
 export function improvisoBand(score: number): { key: string; label: string; color: string } {
