@@ -64,14 +64,14 @@ export default function Certificates() {
               ? `${current.name} concluiu a Jornada SEE_4X de 6 ciclos — do improviso à autonomia.`
               : `${current.name} está atualmente em ${activeStage.replace("_", " ")}. Conclua os 6 ciclos para receber o certificado oficial.`}
           </p>
-          {isStaff && completed && (
+          {isConsultor && completed && (
             <Button onClick={issue} disabled={issuing} className="mt-6 bg-gold text-gold-foreground hover:bg-gold/90">
               <Sparkles className="h-4 w-4 mr-2" />{issuing ? "Emitindo..." : "Emitir novo certificado em PDF"}
             </Button>
           )}
-          {isStaff && !completed && (
+          {isConsultor && !completed && (
             <p className="text-xs text-primary-foreground/60 mt-4">
-              Como staff você pode emitir o certificado mesmo antes da conclusão para teste.
+              Como Consultor 4X você pode emitir o certificado mesmo antes da conclusão.
               <Button onClick={issue} disabled={issuing} variant="ghost" size="sm" className="ml-2 text-gold hover:bg-gold/10">
                 Emitir mesmo assim
               </Button>
