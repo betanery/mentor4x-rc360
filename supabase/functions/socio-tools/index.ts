@@ -176,11 +176,15 @@ Deno.serve(async (req) => {
 
     // Dry-run: return proposals for the user to confirm
     if (!confirm) {
-      await admin.from("ai_logs").insert({
-        user_id: userId, company_id, action: "socio_tools_propose",
-        prompt: instruction.slice(0, 4000),
-        response: JSON.stringify({ message: msg?.content, proposals }).slice(0, 8000),
-      });
+      await admin.from("ai_logs").insert(
+        (proposals.length ? proposals : [{ name: "nenhuma", args: {} }]).map((p: any) => ({
+          user_id: userId, company_id, contract_id: contractScope.contractId,
+          action: "socio_tools_propose", decision: "proposta",
+          tool_name: p.name, payload: p.args ?? {},
+          prompt: instruction.slice(0, 4000),
+          response: JSON.stringify({ message: msg?.content }).slice(0, 8000),
+        })),
+      );
       return new Response(JSON.stringify({ message: msg?.content || "", proposals }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
