@@ -365,6 +365,60 @@ export default function Bottlenecks() {
           );
         })}
       </div>
+
+      <Card className="p-6 shadow-card">
+        <div className="flex items-center gap-2 mb-4">
+          <History className="h-4 w-4 text-primary" />
+          <h3 className="font-bold">Histórico do Top 5</h3>
+        </div>
+        {history.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhuma mudança de posição registrada até agora.</p>
+        ) : (
+          <div className="space-y-2">
+            {history.map((h) => (
+              <div key={h.id} className="flex flex-wrap items-center gap-2 text-sm p-3 rounded-lg bg-muted/30 border border-border">
+                <span className="font-semibold">{bottleneckName(h.bottleneck_id)}</span>
+                <Badge variant="outline">
+                  {h.previous_position ? `#${h.previous_position}` : "sem posição"} → {h.new_position ? `#${h.new_position}` : "sem posição"}
+                </Badge>
+                {h.cycle && <Badge variant="secondary">{h.cycle.replace("ciclo_", "Ciclo ")}</Badge>}
+                <span className="text-muted-foreground ml-auto text-xs">
+                  {new Date(h.created_at).toLocaleString("pt-BR")}
+                </span>
+                {h.justification && <p className="w-full text-xs text-muted-foreground">{h.justification}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      <Dialog open={!!rankTarget} onOpenChange={(v) => !v && setRankTarget(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Alterar posição no Top 5</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">{rankTarget?.name}</p>
+            <div>
+              <Label>Nova posição (1 a 5)</Label>
+              <Input type="number" min={1} max={5} value={newRank} onChange={(e) => setNewRank(e.target.value)} />
+            </div>
+            <div>
+              <Label>Justificativa</Label>
+              <Textarea
+                rows={3}
+                value={rankJustification}
+                onChange={(e) => setRankJustification(e.target.value)}
+                placeholder="Por que este gargalo muda de prioridade neste ciclo?"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => rankMut.mutate()} disabled={rankMut.isPending}>
+              {rankMut.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Registrar mudança
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 }
