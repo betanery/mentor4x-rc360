@@ -231,13 +231,24 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } },
     );
 
+    const hash = await ipHash(req);
+    if (action && (await throttled(admin, hash, action))) {
+      return json({ error: "rate_limited", message: "Muitas tentativas a partir desta conexão. Tente novamente mais tarde." }, 429);
+    }
+
     if (action === "start") {
       const t = token();
       const utm = body?.utm ?? {};
+      const consent = body?.consent_lgpd === true;
+      if (!consent) return json({ error: "consent_required", consent_text: CONSENT_TEXT }, 400);
       const { data, error } = await admin
         .from("lead_diagnostics")
         .insert({
           resume_token: t,
+          consent_lgpd: true,
+          consent_at: new Date().toISOString(),
+          consent_version: CONSENT_VERSION,
+          consent_ip_hash: hash,
           utm_source: str(utm?.utm_source, 120),
           utm_medium: str(utm?.utm_medium, 120),
           utm_campaign: str(utm?.utm_campaign, 160),
@@ -251,6 +262,7 @@ Deno.serve(async (req) => {
       if (error) return json({ error: "start_failed" }, 500);
       return json({ lead: publicShape(data) });
     }
+
 
     const t = str(body?.resume_token, 80);
     if (!t || !/^[a-z0-9]{20,64}$/i.test(t)) return json({ error: "invalid_token" }, 400);
