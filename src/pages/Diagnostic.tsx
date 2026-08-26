@@ -721,7 +721,9 @@ export default function Diagnostic() {
               </Select>
               {live && (
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  Sugestão do sistema: {MATURITY_LABEL[live.suggestedMaturity].label} · Improviso {live.improvisoGeral} · IDD {live.idd.score}%
+                  Sugestão do sistema: {MATURITY_LABEL[live.suggestedMaturity].label} · Maturidade estrutural{" "}
+                  {live.maturityScore === null ? "não respondida" : `${live.maturityScore}/100`} · Improviso {live.improvisoGeral} · IDD {live.idd.score}%
+
                 </p>
               )}
             </div>
