@@ -119,6 +119,24 @@ export default function ReportSee4X() {
     },
   });
 
+  // Fase 6a — base de mensuração: todas as metas aprovadas (inclui concluídas).
+  const { data: allGoals = [] } = useQuery({
+    queryKey: ["metric_goals", current?.id, currentContract?.id],
+    enabled: !!current,
+    queryFn: async () => {
+      let query = supabase
+        .from("goals")
+        .select("status,due_date,evidence_url,validated_at,financial_impact,is_critical,updated_at")
+        .eq("company_id", current!.id)
+        .eq("approval_status", "aprovada");
+      query = currentContract ? query.eq("contract_id", currentContract.id) : query.is("contract_id", null);
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+  });
+
+
   const baseline = diagnostics.find((d) => d.id === baselineId);
   const followUp = diagnostics.find((d) => d.id === followUpId);
 
