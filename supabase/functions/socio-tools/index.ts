@@ -228,11 +228,20 @@ Deno.serve(async (req) => {
         results.push({ name: p.name, ok: false, error: String(e?.message || e) });
       }
     }
-    await admin.from("ai_logs").insert({
-      user_id: userId, company_id, action: "socio_tools_execute",
-      prompt: instruction.slice(0, 4000),
-      response: JSON.stringify(results).slice(0, 8000),
-    });
+    const entityByTool: Record<string, string> = { create_goal: "goals", create_bottleneck: "bottlenecks", schedule_meeting: "meetings" };
+    await admin.from("ai_logs").insert(
+      results.map((r: any) => ({
+        user_id: userId, company_id, contract_id: contractScope.contractId,
+        action: "socio_tools_execute",
+        decision: r.ok ? "executada" : "falhou",
+        tool_name: r.name,
+        entity: entityByTool[r.name] ?? null,
+        entity_id: r.row?.id ?? null,
+        payload: r.ok ? { title: r.row?.title ?? r.row?.name ?? null } : { error: r.error ?? null },
+        prompt: instruction.slice(0, 4000),
+        response: JSON.stringify(r).slice(0, 8000),
+      })),
+    );
     return new Response(JSON.stringify({ executed: true, results }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
