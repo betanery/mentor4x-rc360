@@ -158,6 +158,67 @@ export type Database = {
           },
         ]
       }
+      bottleneck_rank_history: {
+        Row: {
+          bottleneck_id: string
+          changed_by: string | null
+          company_id: string
+          contract_id: string | null
+          created_at: string
+          cycle: string | null
+          id: string
+          justification: string | null
+          new_position: number | null
+          previous_position: number | null
+        }
+        Insert: {
+          bottleneck_id: string
+          changed_by?: string | null
+          company_id: string
+          contract_id?: string | null
+          created_at?: string
+          cycle?: string | null
+          id?: string
+          justification?: string | null
+          new_position?: number | null
+          previous_position?: number | null
+        }
+        Update: {
+          bottleneck_id?: string
+          changed_by?: string | null
+          company_id?: string
+          contract_id?: string | null
+          created_at?: string
+          cycle?: string | null
+          id?: string
+          justification?: string | null
+          new_position?: number | null
+          previous_position?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bottleneck_rank_history_bottleneck_id_fkey"
+            columns: ["bottleneck_id"]
+            isOneToOne: false
+            referencedRelation: "bottlenecks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bottleneck_rank_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bottleneck_rank_history_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bottlenecks: {
         Row: {
           area: string | null
@@ -836,19 +897,24 @@ export type Database = {
           contract_id: string | null
           created_at: string
           created_by: string | null
+          current_situation: string | null
           description: string | null
           due_date: string | null
           evidence_url: string | null
+          expected_result: string | null
           financial_impact: number | null
           id: string
           indicator: string | null
           is_critical: boolean
           mentor_comment: string | null
+          notes: string | null
           pillar: Database["public"]["Enums"]["pillar"] | null
           responsible_user_id: string | null
           status: Database["public"]["Enums"]["goal_status"]
           title: string
           updated_at: string
+          validated_at: string | null
+          validated_by: string | null
           week_start: string | null
         }
         Insert: {
@@ -863,19 +929,24 @@ export type Database = {
           contract_id?: string | null
           created_at?: string
           created_by?: string | null
+          current_situation?: string | null
           description?: string | null
           due_date?: string | null
           evidence_url?: string | null
+          expected_result?: string | null
           financial_impact?: number | null
           id?: string
           indicator?: string | null
           is_critical?: boolean
           mentor_comment?: string | null
+          notes?: string | null
           pillar?: Database["public"]["Enums"]["pillar"] | null
           responsible_user_id?: string | null
           status?: Database["public"]["Enums"]["goal_status"]
           title: string
           updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
           week_start?: string | null
         }
         Update: {
@@ -890,19 +961,24 @@ export type Database = {
           contract_id?: string | null
           created_at?: string
           created_by?: string | null
+          current_situation?: string | null
           description?: string | null
           due_date?: string | null
           evidence_url?: string | null
+          expected_result?: string | null
           financial_impact?: number | null
           id?: string
           indicator?: string | null
           is_critical?: boolean
           mentor_comment?: string | null
+          notes?: string | null
           pillar?: Database["public"]["Enums"]["pillar"] | null
           responsible_user_id?: string | null
           status?: Database["public"]["Enums"]["goal_status"]
           title?: string
           updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
           week_start?: string | null
         }
         Relationships: [
