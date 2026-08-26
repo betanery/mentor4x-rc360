@@ -357,6 +357,10 @@ export function computeDiagnostic(responses: ResponseInput[]): DiagnosticResult 
     divergences,
     suggestedMaturity,
     maturityCriteria,
+    maturityScore,
+    maturityDimensions: maturityDimensions.map(({ key, label, score }) => ({ key, label, score })),
+    maturityFromStructure,
+
     completeness,
     computedAt: new Date().toISOString(),
   };
