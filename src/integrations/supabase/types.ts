@@ -1034,6 +1034,50 @@ export type Database = {
           },
         ]
       }
+      meeting_attendance: {
+        Row: {
+          created_at: string
+          id: string
+          meeting_id: string
+          note: string | null
+          participant_name: string | null
+          recorded_by: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meeting_id: string
+          note?: string | null
+          participant_name?: string | null
+          recorded_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meeting_id?: string
+          note?: string | null
+          participant_name?: string | null
+          recorded_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_attendance_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_notes: {
         Row: {
           author_id: string | null
@@ -1071,6 +1115,7 @@ export type Database = {
       }
       meetings: {
         Row: {
+          agenda: string | null
           company_id: string
           contract_id: string | null
           created_at: string
@@ -1080,10 +1125,19 @@ export type Database = {
           location: string | null
           meeting_type: Database["public"]["Enums"]["meeting_type"]
           meeting_url: string | null
+          recording_url: string | null
+          recurrence: string
+          recurrence_until: string | null
+          reschedule_reason: string | null
+          rescheduled_from: string | null
           scheduled_at: string
+          series_id: string | null
+          status: string
           title: string
+          updated_at: string
         }
         Insert: {
+          agenda?: string | null
           company_id: string
           contract_id?: string | null
           created_at?: string
@@ -1093,10 +1147,19 @@ export type Database = {
           location?: string | null
           meeting_type?: Database["public"]["Enums"]["meeting_type"]
           meeting_url?: string | null
+          recording_url?: string | null
+          recurrence?: string
+          recurrence_until?: string | null
+          reschedule_reason?: string | null
+          rescheduled_from?: string | null
           scheduled_at: string
+          series_id?: string | null
+          status?: string
           title: string
+          updated_at?: string
         }
         Update: {
+          agenda?: string | null
           company_id?: string
           contract_id?: string | null
           created_at?: string
@@ -1106,8 +1169,16 @@ export type Database = {
           location?: string | null
           meeting_type?: Database["public"]["Enums"]["meeting_type"]
           meeting_url?: string | null
+          recording_url?: string | null
+          recurrence?: string
+          recurrence_until?: string | null
+          reschedule_reason?: string | null
+          rescheduled_from?: string | null
           scheduled_at?: string
+          series_id?: string | null
+          status?: string
           title?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -1605,6 +1676,7 @@ export type Database = {
       weekly_reviews: {
         Row: {
           ai_summary: string | null
+          ata_status: string
           blocked: string | null
           company_id: string
           contract_id: string | null
@@ -1615,11 +1687,17 @@ export type Database = {
           id: string
           indicators: string | null
           next_steps: string | null
+          review_comment: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          submitted_at: string | null
+          submitted_by: string | null
           updated_at: string
           week_start: string
         }
         Insert: {
           ai_summary?: string | null
+          ata_status?: string
           blocked?: string | null
           company_id: string
           contract_id?: string | null
@@ -1630,11 +1708,17 @@ export type Database = {
           id?: string
           indicators?: string | null
           next_steps?: string | null
+          review_comment?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          submitted_at?: string | null
+          submitted_by?: string | null
           updated_at?: string
           week_start: string
         }
         Update: {
           ai_summary?: string | null
+          ata_status?: string
           blocked?: string | null
           company_id?: string
           contract_id?: string | null
@@ -1645,6 +1729,11 @@ export type Database = {
           id?: string
           indicators?: string | null
           next_steps?: string | null
+          review_comment?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          submitted_at?: string | null
+          submitted_by?: string | null
           updated_at?: string
           week_start?: string
         }
