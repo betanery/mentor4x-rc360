@@ -18,6 +18,8 @@ import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { BLINDSPOTS, blindspotByCode } from "@/lib/see4x";
 import { MOTORES, PILLAR_LABEL } from "@/lib/labels";
+import { openStorageFile } from "@/lib/storage";
+
 
 type Playbook = Tables<"playbooks">;
 
