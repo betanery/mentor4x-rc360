@@ -89,18 +89,27 @@ export default function University() {
     <div className="space-y-6">
       <PageHeader title="Universidade 4X" subtitle="Recursos de apoio do SEE_4X — trilhas, aulas e materiais de implementação." />
 
+      {accessExpired && (
+        <Card className="p-4 border-destructive/40 bg-destructive/5 text-sm">
+          O prazo de acesso desta contratação encerrou em {new Date(`${currentContract?.access_expires_at}T12:00:00`).toLocaleDateString("pt-BR")}. Fale com o Consultor 4X para renovar.
+        </Card>
+      )}
+
       {courses.length === 0 && <Card className="p-12 text-center text-muted-foreground">Nenhum curso publicado ainda.</Card>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {courses.map((c) => {
           const ls = lessonsOf(c.id);
           const pct = courseProgress(c.id);
+          const locked = isLocked(c.id);
           return (
-            <Card key={c.id} className="overflow-hidden shadow-card hover:shadow-elegant transition-all group">
+            <Card key={c.id} className={`overflow-hidden shadow-card transition-all group ${locked ? "opacity-70" : "hover:shadow-elegant"}`}>
               <div className="h-40 bg-gradient-brand relative flex items-center justify-center">
-                <GraduationCap className="h-16 w-16 text-gold/60" />
+                {locked ? <Lock className="h-14 w-14 text-gold/60" /> : <GraduationCap className="h-16 w-16 text-gold/60" />}
                 <Badge className="absolute top-3 left-3 bg-gold text-gold-foreground">{c.category}</Badge>
-                {pct === 100 && <Badge className="absolute top-3 right-3 bg-success text-success-foreground">Concluído</Badge>}
+                {locked
+                  ? <Badge className="absolute top-3 right-3 bg-muted text-muted-foreground">{accessExpired ? "Acesso expirado" : `Libera ${new Date(`${releaseDate(c.id)}T12:00:00`).toLocaleDateString("pt-BR")}`}</Badge>
+                  : pct === 100 && <Badge className="absolute top-3 right-3 bg-success text-success-foreground">Concluído</Badge>}
               </div>
               <div className="p-5">
                 <h3 className="font-bold text-lg">{c.title}</h3>
