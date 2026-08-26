@@ -116,7 +116,7 @@ export default function Playbooks() {
     const path = `playbooks/${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from("lessons").upload(path, file, { contentType: file.type });
     if (error) { setUploading(false); toast.error(error.message); return; }
-    const { data: signed } = await supabase.storage.from("lessons").createSignedUrl(path, 60 * 60 * 24 * 365);
+    
     // Fase 6c — guarda o caminho; link assinado curto é gerado ao abrir.
     setForm((f) => ({ ...f, file_url: path }));
 
