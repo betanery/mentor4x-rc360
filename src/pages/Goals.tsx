@@ -540,6 +540,37 @@ export default function Goals() {
               )}
               {detail.description && <p className="text-sm text-muted-foreground">{detail.description}</p>}
 
+              {(detail.current_situation || detail.expected_result || detail.notes) && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {detail.current_situation && (
+                    <div className="rounded-lg border border-border bg-muted/30 p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Situação atual</p>
+                      <p className="text-sm whitespace-pre-wrap">{detail.current_situation}</p>
+                    </div>
+                  )}
+                  {detail.expected_result && (
+                    <div className="rounded-lg border border-border bg-muted/30 p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Resultado esperado</p>
+                      <p className="text-sm whitespace-pre-wrap">{detail.expected_result}</p>
+                    </div>
+                  )}
+                  {detail.notes && (
+                    <div className="rounded-lg border border-border bg-muted/30 p-3 sm:col-span-2">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Observações</p>
+                      <p className="text-sm whitespace-pre-wrap">{detail.notes}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {detail.validated_at && (
+                <p className="text-xs text-muted-foreground">
+                  Validada pelo Consultor 4X em {format(new Date(detail.validated_at), "dd/MM/yyyy HH:mm")}
+                </p>
+              )}
+
+
+
 
               <div>
                 <Label className="text-xs uppercase tracking-wide">Evidência</Label>
