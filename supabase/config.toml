@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.daily-alerts]
 verify_jwt = false
+
+[functions.lead-diagnostic]
+verify_jwt = false
