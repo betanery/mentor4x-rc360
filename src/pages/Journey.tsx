@@ -63,6 +63,25 @@ type CycleRecord = {
   gate_override_justification: string | null;
 };
 
+type ContractStage = {
+  id: string;
+  title: string;
+  description: string | null;
+  order_index: number;
+  cycle_number: number | null;
+  status: string;
+  planned_start: string | null;
+  planned_end: string | null;
+  completed_at: string | null;
+};
+
+const STAGE_STATUS: Record<string, { label: string; cls: string }> = {
+  pendente: { label: "Pendente", cls: "bg-muted text-muted-foreground" },
+  em_andamento: { label: "Em andamento", cls: "bg-gold/20 text-gold" },
+  concluida: { label: "Concluída", cls: "bg-success/20 text-success" },
+};
+
+
 export default function Journey() {
   const { current } = useCompany();
   const { currentContract, refreshContracts } = useContract();
