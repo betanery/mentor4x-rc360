@@ -203,7 +203,7 @@ export default function Goals() {
     onSuccess: (needsApproval) => {
       toast.success(needsApproval ? "Meta registrada como pendente de aprovação do Consultor 4X." : "Meta criada");
       setOpen(false);
-      setForm({ title: "", description: "", pillar: "crescimento", indicator: "", financial_impact: "0", due_date: "", week_start: format(new Date(), "yyyy-MM-dd"), blindspot_code: "", capacity_code: "", bottleneck_id: "", capacity_justification: "" });
+      setForm({ title: "", description: "", pillar: "crescimento", indicator: "", financial_impact: "0", due_date: "", week_start: format(new Date(), "yyyy-MM-dd"), blindspot_code: "", capacity_code: "", bottleneck_id: "", capacity_justification: "", current_situation: "", expected_result: "", notes: "" });
 
       invalidate();
     },
