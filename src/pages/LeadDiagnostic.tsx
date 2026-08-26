@@ -105,7 +105,7 @@ export default function LeadDiagnostic() {
     });
   }, []);
 
-  // Início ou retomada: token da URL, do storage local, ou criação de um novo registro.
+  // Retomada: token da URL ou do storage local. Um novo registro só é criado após o consentimento.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -122,34 +122,44 @@ export default function LeadDiagnostic() {
       } catch {
         localStorage.removeItem(STORAGE_KEY);
       }
-
-      const params = new URLSearchParams(window.location.search);
-      const utm: Record<string, string> = {};
-      for (const k of UTM_KEYS) {
-        const v = params.get(k);
-        if (v) utm[k] = v;
-      }
-      try {
-        const l = await call({
-          action: "start",
-          utm,
-          referrer: document.referrer || null,
-          landing_page: window.location.href,
-        });
-        if (cancelled) return;
-        localStorage.setItem(STORAGE_KEY, l.resume_token);
-        hydrate(l);
-      } catch {
-        toast.error("Não foi possível iniciar o diagnóstico agora.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+      if (!cancelled) setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeToken]);
+
+  // Início efetivo do diagnóstico — exige consentimento LGPD explícito (Fase 6b).
+  const startWithConsent = async () => {
+    const params = new URLSearchParams(window.location.search);
+    const utm: Record<string, string> = {};
+    for (const k of UTM_KEYS) {
+      const v = params.get(k);
+      if (v) utm[k] = v;
+    }
+    setStarting(true);
+    try {
+      const l = await call({
+        action: "start",
+        consent_lgpd: true,
+        utm,
+        referrer: document.referrer || null,
+        landing_page: window.location.href,
+      });
+      localStorage.setItem(STORAGE_KEY, l.resume_token);
+      hydrate(l);
+    } catch (e) {
+      toast.error(
+        (e as Error).message === "rate_limited"
+          ? "Muitas tentativas a partir desta conexão. Tente novamente mais tarde."
+          : "Não foi possível iniciar o diagnóstico agora.",
+      );
+    } finally {
+      setStarting(false);
+    }
+  };
+
 
   const persist = useCallback(
     async (nextStep = step) => {
