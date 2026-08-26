@@ -610,6 +610,26 @@ export default function Diagnostic() {
                       ))}
                     </div>
                   </Card>
+
+                  <Card className="p-5">
+                    <h3 className="font-bold">Maturidade estrutural</h3>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      Oito dimensões de estrutura instalada. Este bloco define a Maturidade e não influencia o Improviso.
+                    </p>
+                    <div className="space-y-4">
+                      {MATURITY_DIMENSIONS.map((d) => (
+                        <QuestionRow
+                          key={d.key}
+                          code={d.label}
+                          title={d.label}
+                          statement={d.statement}
+                          value={answers[`MAT-${d.key}`]}
+                          onChange={(v) => setAnswers((a) => ({ ...a, [`MAT-${d.key}`]: v }))}
+                        />
+                      ))}
+                    </div>
+                  </Card>
+
                 </>
               )}
             </TabsContent>
