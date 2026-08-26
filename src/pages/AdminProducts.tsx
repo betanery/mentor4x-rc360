@@ -131,7 +131,10 @@ export default function AdminProducts() {
   const [editingContract, setEditingContract] = useState<Contract | null>(null);
   const [deleting, setDeleting] = useState<{ table: "products" | "product_versions" | "contracts"; id: string; title: string } | null>(null);
   const [templateVersion, setTemplateVersion] = useState<ProductVersion | null>(null);
+  const [configVersion, setConfigVersion] = useState<ProductVersion | null>(null);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+
 
   const generateOnboarding = async (contract: Contract) => {
     setGeneratingId(contract.id);
