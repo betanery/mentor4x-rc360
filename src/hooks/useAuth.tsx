@@ -59,10 +59,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const isStaff = roles.some((r) => ["super_admin", "mentor", "estrategista"].includes(r));
+  const isConsultor = roles.some((r) => ["super_admin", "mentor"].includes(r));
   const hasRole = (r: AppRole) => roles.includes(r);
 
   return (
-    <Ctx.Provider value={{ user, session, roles, loading, isStaff, hasRole, signOut, refreshRoles }}>
+    <Ctx.Provider value={{ user, session, roles, loading, isStaff, isConsultor, hasRole, signOut, refreshRoles }}>
       {children}
     </Ctx.Provider>
   );
