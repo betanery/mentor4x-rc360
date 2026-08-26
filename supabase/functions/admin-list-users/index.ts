@@ -66,10 +66,13 @@ Deno.serve(async (req) => {
     });
     const membersMap = new Map<string, any[]>();
     (members.data || []).forEach((m: any) => {
+      // fora do escopo do Estrategista, o vínculo não é exposto
+      if (scopedCompanyIds && !scopedCompanyIds.includes(m.company_id)) return;
       const arr = membersMap.get(m.user_id) || [];
       arr.push({ ...m, company: companyMap.get(m.company_id) });
       membersMap.set(m.user_id, arr);
     });
+
 
     const users = (authList.data?.users || []).map((u: any) => {
       const confirmed = !!u.email_confirmed_at;
