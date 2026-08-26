@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { GraduationCap, Play, FileText, Clock, CheckCircle2 } from "lucide-react";
+import { GraduationCap, Play, FileText, Clock, CheckCircle2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -19,6 +19,17 @@ export default function University() {
   const [lessons, setLessons] = useState<any[]>([]);
   const [progress, setProgress] = useState<Record<string, { completed: boolean; progress_pct: number }>>({});
   const [active, setActive] = useState<any>(null);
+  const [releases, setReleases] = useState<Record<string, string | null>>({});
+
+  const accessExpired = !!currentContract?.access_expires_at &&
+    new Date(`${currentContract.access_expires_at}T12:00:00`).getTime() < Date.now();
+
+  const releaseDate = (courseId: string) => releases[courseId] ?? null;
+  const isLocked = (courseId: string) => {
+    if (accessExpired) return true;
+    const date = releaseDate(courseId);
+    return !!date && new Date(`${date}T12:00:00`).getTime() > Date.now();
+  };
 
   const loadProgress = async () => {
     if (!user) return;
@@ -39,6 +50,20 @@ export default function University() {
         setLessons((l.data || []).filter((lesson: any) => allowed.has(lesson.course_id)));
       });
     loadProgress();
+    if (currentContract) {
+      supabase
+        .from("contract_onboarding_items")
+        .select("course_id, due_date")
+        .eq("contract_id", currentContract.id)
+        .eq("item_type", "conteudo")
+        .then(({ data }) => {
+          const map: Record<string, string | null> = {};
+          (data || []).forEach((row) => { if (row.course_id) map[row.course_id] = row.due_date; });
+          setReleases(map);
+        });
+    } else {
+      setReleases({});
+    }
   }, [user, currentContract]);
 
   const lessonsOf = (id: string) => lessons.filter((l) => l.course_id === id);
@@ -64,18 +89,27 @@ export default function University() {
     <div className="space-y-6">
       <PageHeader title="Universidade 4X" subtitle="Recursos de apoio do SEE_4X — trilhas, aulas e materiais de implementação." />
 
+      {accessExpired && (
+        <Card className="p-4 border-destructive/40 bg-destructive/5 text-sm">
+          O prazo de acesso desta contratação encerrou em {new Date(`${currentContract?.access_expires_at}T12:00:00`).toLocaleDateString("pt-BR")}. Fale com o Consultor 4X para renovar.
+        </Card>
+      )}
+
       {courses.length === 0 && <Card className="p-12 text-center text-muted-foreground">Nenhum curso publicado ainda.</Card>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {courses.map((c) => {
           const ls = lessonsOf(c.id);
           const pct = courseProgress(c.id);
+          const locked = isLocked(c.id);
           return (
-            <Card key={c.id} className="overflow-hidden shadow-card hover:shadow-elegant transition-all group">
+            <Card key={c.id} className={`overflow-hidden shadow-card transition-all group ${locked ? "opacity-70" : "hover:shadow-elegant"}`}>
               <div className="h-40 bg-gradient-brand relative flex items-center justify-center">
-                <GraduationCap className="h-16 w-16 text-gold/60" />
+                {locked ? <Lock className="h-14 w-14 text-gold/60" /> : <GraduationCap className="h-16 w-16 text-gold/60" />}
                 <Badge className="absolute top-3 left-3 bg-gold text-gold-foreground">{c.category}</Badge>
-                {pct === 100 && <Badge className="absolute top-3 right-3 bg-success text-success-foreground">Concluído</Badge>}
+                {locked
+                  ? <Badge className="absolute top-3 right-3 bg-muted text-muted-foreground">{accessExpired ? "Acesso expirado" : `Libera ${new Date(`${releaseDate(c.id)}T12:00:00`).toLocaleDateString("pt-BR")}`}</Badge>
+                  : pct === 100 && <Badge className="absolute top-3 right-3 bg-success text-success-foreground">Concluído</Badge>}
               </div>
               <div className="p-5">
                 <h3 className="font-bold text-lg">{c.title}</h3>
@@ -88,8 +122,8 @@ export default function University() {
                   {ls.slice(0, 4).map((l) => {
                     const done = progress[l.id]?.completed;
                     return (
-                      <button key={l.id} onClick={() => setActive(l)} className="w-full text-left flex items-center gap-2 text-sm py-1.5 px-2 rounded hover:bg-muted transition-colors">
-                        {done ? <CheckCircle2 className="h-3.5 w-3.5 text-success" /> : <Play className="h-3 w-3 text-royal" />}
+                      <button key={l.id} onClick={() => { if (locked) { toast.error(accessExpired ? "Prazo de acesso encerrado." : "Conteúdo ainda não liberado nesta contratação."); return; } setActive(l); }} className="w-full text-left flex items-center gap-2 text-sm py-1.5 px-2 rounded hover:bg-muted transition-colors disabled:opacity-60" disabled={locked}>
+                        {locked ? <Lock className="h-3 w-3 text-muted-foreground" /> : done ? <CheckCircle2 className="h-3.5 w-3.5 text-success" /> : <Play className="h-3 w-3 text-royal" />}
                         <span className={`flex-1 truncate ${done ? "line-through text-muted-foreground" : ""}`}>{l.title}</span>
                         <span className="text-[10px] text-muted-foreground"><Clock className="h-3 w-3 inline" /> {l.duration_min}min</span>
                       </button>

@@ -262,8 +262,105 @@ export type Database = {
           },
         ]
       }
+      contract_onboarding_items: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          completed_by: string | null
+          contract_id: string
+          course_id: string | null
+          created_at: string
+          description: string | null
+          done: boolean
+          due_date: string | null
+          id: string
+          item_type: Database["public"]["Enums"]["onboarding_item_type"]
+          meeting_id: string | null
+          order_index: number
+          stage: string | null
+          template_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          completed_by?: string | null
+          contract_id: string
+          course_id?: string | null
+          created_at?: string
+          description?: string | null
+          done?: boolean
+          due_date?: string | null
+          id?: string
+          item_type: Database["public"]["Enums"]["onboarding_item_type"]
+          meeting_id?: string | null
+          order_index?: number
+          stage?: string | null
+          template_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          contract_id?: string
+          course_id?: string | null
+          created_at?: string
+          description?: string | null
+          done?: boolean
+          due_date?: string | null
+          id?: string
+          item_type?: Database["public"]["Enums"]["onboarding_item_type"]
+          meeting_id?: string | null
+          order_index?: number
+          stage?: string | null
+          template_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_onboarding_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_onboarding_items_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_onboarding_items_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_onboarding_items_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_onboarding_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "product_version_onboarding_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contracts: {
         Row: {
+          access_expires_at: string | null
           company_id: string
           completed_at: string | null
           contracted_scope: Json
@@ -273,6 +370,7 @@ export type Database = {
           id: string
           journey_stage: Database["public"]["Enums"]["journey_stage"]
           notes: string | null
+          onboarding_generated_at: string | null
           product_id: string
           product_version_id: string
           started_at: string | null
@@ -280,6 +378,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          access_expires_at?: string | null
           company_id: string
           completed_at?: string | null
           contracted_scope?: Json
@@ -289,6 +388,7 @@ export type Database = {
           id?: string
           journey_stage?: Database["public"]["Enums"]["journey_stage"]
           notes?: string | null
+          onboarding_generated_at?: string | null
           product_id: string
           product_version_id: string
           started_at?: string | null
@@ -296,6 +396,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          access_expires_at?: string | null
           company_id?: string
           completed_at?: string | null
           contracted_scope?: Json
@@ -305,6 +406,7 @@ export type Database = {
           id?: string
           journey_stage?: Database["public"]["Enums"]["journey_stage"]
           notes?: string | null
+          onboarding_generated_at?: string | null
           product_id?: string
           product_version_id?: string
           started_at?: string | null
@@ -1182,6 +1284,69 @@ export type Database = {
           },
         ]
       }
+      product_version_onboarding_items: {
+        Row: {
+          course_id: string | null
+          created_at: string
+          description: string | null
+          duration_min: number | null
+          id: string
+          item_type: Database["public"]["Enums"]["onboarding_item_type"]
+          meeting_type: Database["public"]["Enums"]["meeting_type"] | null
+          offset_days: number
+          order_index: number
+          product_version_id: string
+          stage: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          course_id?: string | null
+          created_at?: string
+          description?: string | null
+          duration_min?: number | null
+          id?: string
+          item_type: Database["public"]["Enums"]["onboarding_item_type"]
+          meeting_type?: Database["public"]["Enums"]["meeting_type"] | null
+          offset_days?: number
+          order_index?: number
+          product_version_id: string
+          stage?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          course_id?: string | null
+          created_at?: string
+          description?: string | null
+          duration_min?: number | null
+          id?: string
+          item_type?: Database["public"]["Enums"]["onboarding_item_type"]
+          meeting_type?: Database["public"]["Enums"]["meeting_type"] | null
+          offset_days?: number
+          order_index?: number
+          product_version_id?: string
+          stage?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_version_onboarding_items_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_version_onboarding_items_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "product_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_versions: {
         Row: {
           created_at: string
@@ -1505,6 +1670,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_contract_onboarding: {
+        Args: { _contract_id: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1562,6 +1731,7 @@ export type Database = {
         | "kickoff"
         | "review"
         | "checkin_semanal"
+      onboarding_item_type: "etapa" | "encontro" | "entregavel" | "conteudo"
       pillar: "crescimento" | "eficiencia" | "encantamento" | "lideranca"
       respondent_group: "dono_socio" | "gestor" | "equipe"
     }
@@ -1738,6 +1908,7 @@ export const Constants = {
         "review",
         "checkin_semanal",
       ],
+      onboarding_item_type: ["etapa", "encontro", "entregavel", "conteudo"],
       pillar: ["crescimento", "eficiencia", "encantamento", "lideranca"],
       respondent_group: ["dono_socio", "gestor", "equipe"],
     },

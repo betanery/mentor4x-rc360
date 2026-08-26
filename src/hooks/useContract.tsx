@@ -15,6 +15,8 @@ export type ActiveContract = {
   expected_completion: string | null;
   completed_at: string | null;
   notes: string | null;
+  access_expires_at: string | null;
+  onboarding_generated_at: string | null;
   product_name: string;
   version_label: string;
 };
@@ -56,6 +58,8 @@ export function ContractProvider({ children }: { children: ReactNode }) {
     expected_completion: row.expected_completion,
     completed_at: row.completed_at,
     notes: row.notes,
+    access_expires_at: row.access_expires_at,
+    onboarding_generated_at: row.onboarding_generated_at,
     product_name: row.products?.name ?? "Produto",
     version_label: row.product_versions?.version_label ?? "Versão",
   }));
@@ -70,7 +74,7 @@ export function ContractProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     const { data } = await supabase
       .from("contracts")
-      .select("id, company_id, product_id, product_version_id, status, journey_stage, current_cycle, started_at, expected_completion, completed_at, notes, products(name), product_versions(version_label)")
+      .select("id, company_id, product_id, product_version_id, status, journey_stage, current_cycle, started_at, expected_completion, completed_at, notes, access_expires_at, onboarding_generated_at, products(name), product_versions(version_label)")
       .eq("company_id", current.id)
       .in("status", ["ativo", "pausado"])
       .order("started_at", { ascending: false, nullsFirst: false })

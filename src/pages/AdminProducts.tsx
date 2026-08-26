@@ -18,7 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { CYCLE_LABEL } from "@/lib/labels";
-import { Boxes, Calendar, Layers3, Loader2, Package, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { OnboardingTemplateDialog } from "@/components/OnboardingTemplateDialog";
+import { Boxes, Calendar, Layers3, ListChecks, Loader2, Package, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import type { Json, Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
 type Product = Tables<"products">;
@@ -129,6 +130,19 @@ export default function AdminProducts() {
   const [editingVersion, setEditingVersion] = useState<ProductVersion | null>(null);
   const [editingContract, setEditingContract] = useState<Contract | null>(null);
   const [deleting, setDeleting] = useState<{ table: "products" | "product_versions" | "contracts"; id: string; title: string } | null>(null);
+  const [templateVersion, setTemplateVersion] = useState<ProductVersion | null>(null);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
+
+  const generateOnboarding = async (contract: Contract) => {
+    setGeneratingId(contract.id);
+    const { data, error } = await supabase.rpc("generate_contract_onboarding", { _contract_id: contract.id });
+    setGeneratingId(null);
+    if (error) { toast.error(error.message); return; }
+    const count = (data as number) ?? 0;
+    toast.success(count > 0 ? `${count} item(ns) de onboarding gerados` : "Onboarding já estava gerado — nenhum item novo.");
+    await load();
+    await refreshContracts();
+  };
 
   const load = async () => {
     setLoading(true);
@@ -344,6 +358,7 @@ export default function AdminProducts() {
                                 <p className="text-xs text-muted-foreground">{version.methodology_code} · {version.cycle_count} ciclos{version.duration_days ? ` · ${version.duration_days} dias` : ""}</p>
                               </div>
                               <Badge variant={version.is_active ? "default" : "secondary"}>{version.is_active ? "Ativa" : "Inativa"}</Badge>
+                              <Button size="sm" variant="outline" onClick={() => setTemplateVersion(version)}><ListChecks className="h-3.5 w-3.5 mr-1" /> Onboarding</Button>
                               <Button size="icon" variant="ghost" onClick={() => openVersion(version)}><Pencil className="h-4 w-4" /></Button>
                               <Button size="icon" variant="ghost" onClick={() => setDeleting({ table: "product_versions", id: version.id, title: version.version_label })}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                             </div>
@@ -383,10 +398,15 @@ export default function AdminProducts() {
                       {CYCLE_LABEL[contract.journey_stage]?.label ?? contract.journey_stage} · ciclo operacional {contract.current_cycle}
                       {contract.started_at ? ` · início ${new Date(contract.started_at).toLocaleDateString("pt-BR")}` : ""}
                       {contract.expected_completion ? ` · previsão ${new Date(contract.expected_completion).toLocaleDateString("pt-BR")}` : ""}
+                      {contract.access_expires_at ? ` · acesso até ${new Date(`${contract.access_expires_at}T12:00:00`).toLocaleDateString("pt-BR")}` : ""}
+                      {contract.onboarding_generated_at ? " · onboarding gerado" : " · onboarding pendente"}
                     </p>
                     {contract.notes && <p className="text-sm text-muted-foreground mt-2">{contract.notes}</p>}
                   </div>
                   <div className="flex gap-1">
+                    <Button size="sm" variant="outline" onClick={() => generateOnboarding(contract)} disabled={generatingId === contract.id}>
+                      {generatingId === contract.id ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ListChecks className="h-4 w-4 mr-1" />} Gerar onboarding
+                    </Button>
                     <Button size="sm" variant="ghost" onClick={() => openContract(contract)}><Pencil className="h-4 w-4 mr-1" /> Editar</Button>
                     <Button size="sm" variant="ghost" onClick={() => setDeleting({ table: "contracts", id: contract.id, title: `${contract.companies?.name ?? "Empresa"} · ${contract.products?.name ?? "Produto"}` })}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                   </div>
@@ -396,6 +416,13 @@ export default function AdminProducts() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <OnboardingTemplateDialog
+        versionId={templateVersion?.id ?? null}
+        versionLabel={templateVersion?.version_label ?? ""}
+        open={!!templateVersion}
+        onOpenChange={(o) => { if (!o) setTemplateVersion(null); }}
+      />
 
       <Dialog open={productDialog} onOpenChange={setProductDialog}>
         <DialogContent className="max-w-lg">
