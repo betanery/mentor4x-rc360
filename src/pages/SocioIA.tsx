@@ -178,7 +178,13 @@ export default function SocioIA() {
     setExecuting(true);
     try {
       const { data, error } = await supabase.functions.invoke("socio-tools", {
-        body: { instruction, company_id: current.id, contract_id: currentContract?.id, confirm: true },
+        body: {
+          instruction,
+          company_id: current.id,
+          contract_id: currentContract?.id,
+          confirm: true,
+          proposal_ids: proposals.map((p) => p.id),
+        },
       });
       if (error) throw error;
       setResults(data.results || []);
@@ -198,7 +204,13 @@ export default function SocioIA() {
     setRejecting(true);
     try {
       const { error } = await supabase.functions.invoke("socio-tools", {
-        body: { instruction, company_id: current.id, contract_id: currentContract?.id, decision: "reject", proposals },
+        body: {
+          instruction,
+          company_id: current.id,
+          contract_id: currentContract?.id,
+          decision: "reject",
+          proposal_ids: proposals.map((p) => p.id),
+        },
       });
       if (error) throw error;
       setProposals([]);
@@ -211,6 +223,7 @@ export default function SocioIA() {
       setRejecting(false);
     }
   };
+
 
   if (!current) {
     return (
