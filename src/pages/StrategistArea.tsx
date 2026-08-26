@@ -28,17 +28,23 @@ export default function StrategistArea() {
   const { data, isLoading } = useQuery({
     queryKey: ["strategist-area"],
     queryFn: async () => {
-      const [companies, goals, tasks, bottlenecks] = await Promise.all([
+      const [companies, goals, tasks, bottlenecks, leads] = await Promise.all([
         supabase.from("companies").select("*").order("name"),
         supabase.from("goals").select("id, company_id, title, status, due_date, financial_impact"),
         supabase.from("tasks").select("id, company_id, title, description, due_date").eq("done", false).order("due_date", { nullsFirst: false }),
         supabase.from("bottlenecks").select("id, company_id, name, urgency, resolved").eq("resolved", false),
+        supabase
+          .from("lead_diagnostics")
+          .select("id, full_name, email, company_name, status, improviso_score, idd_score, priority_pillar, recommendation, utm_source, utm_campaign, current_step, created_at, completed_at")
+          .order("created_at", { ascending: false })
+          .limit(50),
       ]);
       return {
         companies: companies.data || [],
         goals: goals.data || [],
         tasks: tasks.data || [],
         bottlenecks: bottlenecks.data || [],
+        leads: leads.data || [],
       };
     },
   });
@@ -107,6 +113,7 @@ export default function StrategistArea() {
           <TabsTrigger value="carteira">Carteira</TabsTrigger>
           <TabsTrigger value="risco">Metas em risco</TabsTrigger>
           <TabsTrigger value="tarefas">Ações abertas</TabsTrigger>
+          <TabsTrigger value="leads">Leads do diagnóstico</TabsTrigger>
           <TabsTrigger value="mensagens">Mensagens prontas</TabsTrigger>
         </TabsList>
 
@@ -181,6 +188,36 @@ export default function StrategistArea() {
               </Link>
             );
           })}
+        </TabsContent>
+
+        <TabsContent value="leads" className="space-y-2">
+          {(data?.leads.length || 0) === 0 && (
+            <Card className="p-8 text-center text-muted-foreground">Nenhum diagnóstico público registrado ainda.</Card>
+          )}
+          {(data?.leads || []).map((l: any) => (
+            <Card key={l.id} className="p-4 shadow-card flex flex-col md:flex-row md:items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold truncate">{l.company_name || "Empresa não informada"}</h4>
+                <p className="text-xs text-muted-foreground truncate">
+                  {[l.full_name, l.email].filter(Boolean).join(" · ") || "sem contato"}
+                  {l.utm_source ? ` · origem ${l.utm_source}${l.utm_campaign ? `/${l.utm_campaign}` : ""}` : ""}
+                </p>
+                {l.recommendation?.track && (
+                  <p className="text-xs text-gold font-semibold mt-1">Caminho: {l.recommendation.track}</p>
+                )}
+              </div>
+              {l.status === "concluido" ? (
+                <>
+                  <Badge variant="outline">Improviso {l.improviso_score}</Badge>
+                  <Badge variant="outline">IDD {l.idd_score}</Badge>
+                  <Badge className="bg-success/15 text-success">Concluído</Badge>
+                </>
+              ) : (
+                <Badge variant="secondary">Em andamento · etapa {(l.current_step ?? 0) + 1}/6</Badge>
+              )}
+              <Badge variant="outline">{format(new Date(l.created_at), "dd/MM/yyyy", { locale: ptBR })}</Badge>
+            </Card>
+          ))}
         </TabsContent>
 
         <TabsContent value="mensagens" className="space-y-3">
