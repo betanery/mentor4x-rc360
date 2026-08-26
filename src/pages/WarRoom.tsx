@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useCompany } from "@/hooks/useCompany";
 import { useContract } from "@/hooks/useContract";
 import { useAuth } from "@/hooks/useAuth";
@@ -217,7 +218,7 @@ export default function WarRoom() {
     loadMeetings();
   };
 
-  const updateMeeting = async (id: string, patch: Record<string, any>, message: string) => {
+  const updateMeeting = async (id: string, patch: TablesUpdate<"meetings">, message: string) => {
     const { error } = await supabase.from("meetings").update(patch).eq("id", id);
     if (error) { toast.error(error.message); return false; }
     toast.success(message);
