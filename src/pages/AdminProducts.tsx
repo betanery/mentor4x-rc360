@@ -19,7 +19,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { CYCLE_LABEL } from "@/lib/labels";
 import { OnboardingTemplateDialog } from "@/components/OnboardingTemplateDialog";
-import { Boxes, Calendar, Layers3, ListChecks, Loader2, Package, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { VersionConfigDialog } from "@/components/VersionConfigDialog";
+import { Boxes, Calendar, Copy, Layers3, ListChecks, Lock, Loader2, Package, Pencil, Plus, RefreshCw, SlidersHorizontal, Trash2 } from "lucide-react";
+
 import type { Json, Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
 type Product = Tables<"products">;
