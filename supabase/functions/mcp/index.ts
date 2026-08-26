@@ -7,6 +7,7 @@ import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.26.3";
 
 // src/lib/mcp/tools/list-companies.ts
 import { defineTool } from "npm:@lovable.dev/mcp-js@0.26.3";
+import { z } from "npm:zod@^3.25.76";
 
 // src/lib/mcp/supabase.ts
 import { createClient } from "npm:@supabase/supabase-js@^2.104.1";
@@ -112,28 +113,38 @@ function pageMeta(rows, size, offset) {
 var list_companies_default = defineTool({
   name: "list_companies",
   title: "Listar empresas",
-  description: "Lista as empresas que o usu\xE1rio conectado pode acessar no Mentor 4X, com o ciclo atual da Jornada SEE_4X, n\xEDvel de Improviso e score geral.",
-  inputSchema: {},
+  description: "Lista as empresas que o usu\xE1rio conectado pode acessar no Mentor 4X, com o ciclo atual da Jornada SEE_4X, n\xEDvel de Improviso e score geral. Resultado paginado via `limit`/`cursor`.",
+  inputSchema: {
+    limit: z.number().int().min(1).max(200).optional().describe("Quantidade de empresas por p\xE1gina (padr\xE3o 50, m\xE1ximo 200)."),
+    cursor: z.string().optional().describe("Cursor `next_cursor` devolvido pela p\xE1gina anterior.")
+  },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async (_input, ctx) => {
+  handler: async ({ limit, cursor }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated();
     const supabase = supabaseForUser(ctx);
-    const { data, error } = await supabase.from("companies").select("id, name, segment, journey_stage, chaos_level, overall_score, owner_dependency, projected_revenue, started_at, contracts(id, status, journey_stage, current_cycle, product_id, product_version_id)").order("name");
+    let bounds;
+    try {
+      bounds = pageBounds(limit, cursor);
+    } catch (e) {
+      return errorResult(e instanceof Error ? e.message : String(e));
+    }
+    const { data, error } = await supabase.from("companies").select("id, name, segment, journey_stage, chaos_level, overall_score, owner_dependency, projected_revenue, started_at, contracts(id, status, journey_stage, current_cycle, product_id, product_version_id)").order("name").order("id", { ascending: true }).range(bounds.from, bounds.to + 1);
     if (error) return errorResult(error.message);
-    return jsonResult({ companies: data ?? [] });
+    const { page, pagination } = pageMeta(data ?? [], bounds.size, bounds.offset);
+    return jsonResult({ companies: page, pagination });
   }
 });
 
 // src/lib/mcp/tools/get-company-overview.ts
 import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.26.3";
-import { z } from "npm:zod@^3.25.76";
+import { z as z2 } from "npm:zod@^3.25.76";
 var get_company_overview_default = defineTool2({
   name: "get_company_overview",
   title: "Diagn\xF3stico da empresa",
   description: "Retorna o panorama de uma empresa: dados gerais, \xFAltimos scores por pilar, metas em aberto, gargalos n\xE3o resolvidos e tarefas pendentes.",
   inputSchema: {
-    company_id: z.string().describe("UUID da empresa (use list_companies para descobrir)."),
-    contract_id: z.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo, quando a empresa tiver mais de uma contrata\xE7\xE3o.")
+    company_id: z2.string().describe("UUID da empresa (use list_companies para descobrir)."),
+    contract_id: z2.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo, quando a empresa tiver mais de uma contrata\xE7\xE3o.")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ company_id, contract_id }, ctx) => {
@@ -168,17 +179,17 @@ var get_company_overview_default = defineTool2({
 
 // src/lib/mcp/tools/list-goals.ts
 import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.26.3";
-import { z as z2 } from "npm:zod@^3.25.76";
+import { z as z3 } from "npm:zod@^3.25.76";
 var list_goals_default = defineTool3({
   name: "list_goals",
   title: "Listar metas",
   description: "Lista as metas (semanais/mensais) de uma empresa no MENTOR 4X. Opcionalmente filtra por status. Resultado paginado: use `limit` e o `next_cursor` devolvido para buscar a pr\xF3xima p\xE1gina.",
   inputSchema: {
-    company_id: z2.string().describe("UUID da empresa."),
-    contract_id: z2.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, lista apenas registros legados sem contrata\xE7\xE3o."),
-    status: z2.enum(["nao_iniciado", "em_andamento", "concluido", "atrasado", "bloqueado"]).optional().describe("Filtro opcional por status da meta."),
-    limit: z2.number().int().min(1).max(200).optional().describe("Quantidade de metas por p\xE1gina (padr\xE3o 50, m\xE1ximo 200)."),
-    cursor: z2.string().optional().describe("Cursor `next_cursor` devolvido pela p\xE1gina anterior.")
+    company_id: z3.string().describe("UUID da empresa."),
+    contract_id: z3.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, lista apenas registros legados sem contrata\xE7\xE3o."),
+    status: z3.enum(["nao_iniciado", "em_andamento", "concluido", "atrasado", "bloqueado"]).optional().describe("Filtro opcional por status da meta."),
+    limit: z3.number().int().min(1).max(200).optional().describe("Quantidade de metas por p\xE1gina (padr\xE3o 50, m\xE1ximo 200)."),
+    cursor: z3.string().optional().describe("Cursor `next_cursor` devolvido pela p\xE1gina anterior.")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ company_id, contract_id, status, limit, cursor }, ctx) => {
@@ -204,20 +215,20 @@ var list_goals_default = defineTool3({
 
 // src/lib/mcp/tools/create-goal.ts
 import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.26.3";
-import { z as z3 } from "npm:zod@^3.25.76";
+import { z as z4 } from "npm:zod@^3.25.76";
 var create_goal_default = defineTool4({
   name: "create_goal",
   title: "Criar meta",
   description: "Cria uma nova meta de execu\xE7\xE3o para uma empresa do MENTOR 4X. Use ap\xF3s confirmar a empresa correta com list_companies.",
   inputSchema: {
-    company_id: z3.string().describe("UUID da empresa."),
-    contract_id: z3.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, cria registro legado sem contrata\xE7\xE3o."),
-    title: z3.string().describe("T\xEDtulo da meta, objetivo e mensur\xE1vel."),
-    description: z3.string().optional().describe("Detalhes do plano de execu\xE7\xE3o."),
-    pillar: z3.enum(["crescimento", "eficiencia", "encantamento", "lideranca"]).optional().describe("Pilar 4X relacionado, se aplic\xE1vel."),
-    indicator: z3.string().optional().describe("Indicador de sucesso (KPI)."),
-    due_date: z3.string().optional().describe("Prazo no formato YYYY-MM-DD."),
-    financial_impact: z3.number().optional().describe("Impacto financeiro estimado em BRL.")
+    company_id: z4.string().describe("UUID da empresa."),
+    contract_id: z4.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, cria registro legado sem contrata\xE7\xE3o."),
+    title: z4.string().describe("T\xEDtulo da meta, objetivo e mensur\xE1vel."),
+    description: z4.string().optional().describe("Detalhes do plano de execu\xE7\xE3o."),
+    pillar: z4.enum(["crescimento", "eficiencia", "encantamento", "lideranca"]).optional().describe("Pilar 4X relacionado, se aplic\xE1vel."),
+    indicator: z4.string().optional().describe("Indicador de sucesso (KPI)."),
+    due_date: z4.string().optional().describe("Prazo no formato YYYY-MM-DD."),
+    financial_impact: z4.number().optional().describe("Impacto financeiro estimado em BRL.")
   },
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   handler: async (input, ctx) => {
@@ -248,17 +259,17 @@ var create_goal_default = defineTool4({
 
 // src/lib/mcp/tools/list-tasks.ts
 import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.26.3";
-import { z as z4 } from "npm:zod@^3.25.76";
+import { z as z5 } from "npm:zod@^3.25.76";
 var list_tasks_default = defineTool5({
   name: "list_tasks",
   title: "Listar plano de a\xE7\xE3o",
   description: "Lista as tarefas do plano de a\xE7\xE3o de uma empresa, com prioridade e checklist. Por padr\xE3o s\xF3 as pendentes. Resultado paginado: use `limit` e o `next_cursor` devolvido para a pr\xF3xima p\xE1gina.",
   inputSchema: {
-    company_id: z4.string().describe("UUID da empresa."),
-    contract_id: z4.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, lista apenas registros legados sem contrata\xE7\xE3o."),
-    include_done: z4.boolean().optional().describe("Se true, inclui tamb\xE9m tarefas conclu\xEDdas."),
-    limit: z4.number().int().min(1).max(200).optional().describe("Quantidade de tarefas por p\xE1gina (padr\xE3o 50, m\xE1ximo 200)."),
-    cursor: z4.string().optional().describe("Cursor `next_cursor` devolvido pela p\xE1gina anterior.")
+    company_id: z5.string().describe("UUID da empresa."),
+    contract_id: z5.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, lista apenas registros legados sem contrata\xE7\xE3o."),
+    include_done: z5.boolean().optional().describe("Se true, inclui tamb\xE9m tarefas conclu\xEDdas."),
+    limit: z5.number().int().min(1).max(200).optional().describe("Quantidade de tarefas por p\xE1gina (padr\xE3o 50, m\xE1ximo 200)."),
+    cursor: z5.string().optional().describe("Cursor `next_cursor` devolvido pela p\xE1gina anterior.")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ company_id, contract_id, include_done, limit, cursor }, ctx) => {
@@ -284,17 +295,17 @@ var list_tasks_default = defineTool5({
 
 // src/lib/mcp/tools/create-task.ts
 import { defineTool as defineTool6 } from "npm:@lovable.dev/mcp-js@0.26.3";
-import { z as z5 } from "npm:zod@^3.25.76";
+import { z as z6 } from "npm:zod@^3.25.76";
 var create_task_default = defineTool6({
   name: "create_task",
   title: "Criar tarefa",
   description: "Adiciona uma tarefa ao plano de a\xE7\xE3o de uma empresa do MENTOR 4X.",
   inputSchema: {
-    company_id: z5.string().describe("UUID da empresa."),
-    contract_id: z5.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, cria registro legado sem contrata\xE7\xE3o."),
-    title: z5.string().describe("T\xEDtulo curto e acion\xE1vel da tarefa."),
-    description: z5.string().optional().describe("Detalhes da execu\xE7\xE3o."),
-    due_date: z5.string().optional().describe("Prazo no formato YYYY-MM-DD.")
+    company_id: z6.string().describe("UUID da empresa."),
+    contract_id: z6.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, cria registro legado sem contrata\xE7\xE3o."),
+    title: z6.string().describe("T\xEDtulo curto e acion\xE1vel da tarefa."),
+    description: z6.string().optional().describe("Detalhes da execu\xE7\xE3o."),
+    due_date: z6.string().optional().describe("Prazo no formato YYYY-MM-DD.")
   },
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   handler: async ({ company_id, contract_id, title, description, due_date }, ctx) => {
@@ -321,17 +332,17 @@ var create_task_default = defineTool6({
 
 // src/lib/mcp/tools/list-bottlenecks.ts
 import { defineTool as defineTool7 } from "npm:@lovable.dev/mcp-js@0.26.3";
-import { z as z6 } from "npm:zod@^3.25.76";
+import { z as z7 } from "npm:zod@^3.25.76";
 var list_bottlenecks_default = defineTool7({
   name: "list_bottlenecks",
   title: "Listar gargalos",
   description: "Lista os gargalos (bottlenecks) mapeados de uma empresa, com posi\xE7\xE3o no Top 5, urg\xEAncia, causa raiz, resultado esperado, progresso da corre\xE7\xE3o e valor estimado. Resultado paginado via `limit`/`cursor`.",
   inputSchema: {
-    company_id: z6.string().describe("UUID da empresa."),
-    contract_id: z6.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, lista apenas registros legados sem contrata\xE7\xE3o."),
-    include_resolved: z6.boolean().optional().describe("Se true, inclui gargalos j\xE1 resolvidos."),
-    limit: z6.number().int().min(1).max(200).optional().describe("Quantidade de gargalos por p\xE1gina (padr\xE3o 50, m\xE1ximo 200)."),
-    cursor: z6.string().optional().describe("Cursor `next_cursor` devolvido pela p\xE1gina anterior.")
+    company_id: z7.string().describe("UUID da empresa."),
+    contract_id: z7.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, lista apenas registros legados sem contrata\xE7\xE3o."),
+    include_resolved: z7.boolean().optional().describe("Se true, inclui gargalos j\xE1 resolvidos."),
+    limit: z7.number().int().min(1).max(200).optional().describe("Quantidade de gargalos por p\xE1gina (padr\xE3o 50, m\xE1ximo 200)."),
+    cursor: z7.string().optional().describe("Cursor `next_cursor` devolvido pela p\xE1gina anterior.")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ company_id, contract_id, include_resolved, limit, cursor }, ctx) => {
@@ -357,20 +368,20 @@ var list_bottlenecks_default = defineTool7({
 
 // src/lib/mcp/tools/create-bottleneck.ts
 import { defineTool as defineTool8 } from "npm:@lovable.dev/mcp-js@0.26.3";
-import { z as z7 } from "npm:zod@^3.25.76";
+import { z as z8 } from "npm:zod@^3.25.76";
 var create_bottleneck_default = defineTool8({
   name: "create_bottleneck",
   title: "Registrar gargalo",
   description: "Registra um novo gargalo operacional de uma empresa do MENTOR 4X, com urg\xEAncia e plano de corre\xE7\xE3o.",
   inputSchema: {
-    company_id: z7.string().describe("UUID da empresa."),
-    contract_id: z7.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, cria registro legado sem contrata\xE7\xE3o."),
-    name: z7.string().describe("Nome do gargalo."),
-    area: z7.string().optional().describe("\xC1rea da empresa afetada (ex.: comercial, financeiro)."),
-    impact: z7.string().optional().describe("Descri\xE7\xE3o do impacto no neg\xF3cio."),
-    urgency: z7.enum(["baixa", "media", "alta", "critica"]).optional().describe("Urg\xEAncia do gargalo. Padr\xE3o: media."),
-    correction_plan: z7.string().optional().describe("Plano de corre\xE7\xE3o proposto."),
-    estimated_value: z7.number().optional().describe("Valor estimado em BRL travado por este gargalo.")
+    company_id: z8.string().describe("UUID da empresa."),
+    contract_id: z8.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, cria registro legado sem contrata\xE7\xE3o."),
+    name: z8.string().describe("Nome do gargalo."),
+    area: z8.string().optional().describe("\xC1rea da empresa afetada (ex.: comercial, financeiro)."),
+    impact: z8.string().optional().describe("Descri\xE7\xE3o do impacto no neg\xF3cio."),
+    urgency: z8.enum(["baixa", "media", "alta", "critica"]).optional().describe("Urg\xEAncia do gargalo. Padr\xE3o: media."),
+    correction_plan: z8.string().optional().describe("Plano de corre\xE7\xE3o proposto."),
+    estimated_value: z8.number().optional().describe("Valor estimado em BRL travado por este gargalo.")
   },
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   handler: async (input, ctx) => {
@@ -401,18 +412,18 @@ var create_bottleneck_default = defineTool8({
 
 // src/lib/mcp/tools/record-pillar-score.ts
 import { defineTool as defineTool9 } from "npm:@lovable.dev/mcp-js@0.26.3";
-import { z as z8 } from "npm:zod@^3.25.76";
+import { z as z9 } from "npm:zod@^3.25.76";
 var record_pillar_score_default = defineTool9({
   name: "record_pillar_score",
   title: "Registrar score de pilar",
   description: "Registra uma nova nota (0 a 100) para um pilar do m\xE9todo 4X de uma empresa, com pontos cegos e recomenda\xE7\xF5es. Requer permiss\xE3o de mentor/estrategista.",
   inputSchema: {
-    company_id: z8.string().describe("UUID da empresa."),
-    contract_id: z8.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, cria registro legado sem contrata\xE7\xE3o."),
-    pillar: z8.enum(["crescimento", "eficiencia", "encantamento", "lideranca"]).describe("Pilar do m\xE9todo 4X."),
-    score: z8.number().describe("Nota de 0 a 100."),
-    blind_spots: z8.string().optional().describe("Pontos cegos identificados."),
-    recommendations: z8.string().optional().describe("Recomenda\xE7\xF5es de a\xE7\xE3o.")
+    company_id: z9.string().describe("UUID da empresa."),
+    contract_id: z9.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, cria registro legado sem contrata\xE7\xE3o."),
+    pillar: z9.enum(["crescimento", "eficiencia", "encantamento", "lideranca"]).describe("Pilar do m\xE9todo 4X."),
+    score: z9.number().describe("Nota de 0 a 100."),
+    blind_spots: z9.string().optional().describe("Pontos cegos identificados."),
+    recommendations: z9.string().optional().describe("Recomenda\xE7\xF5es de a\xE7\xE3o.")
   },
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   handler: async (input, ctx) => {
