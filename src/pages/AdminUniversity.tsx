@@ -165,8 +165,9 @@ export default function AdminUniversity() {
     const path = `${lessonForm.course_id || "misc"}/${kind}-${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from("lessons").upload(path, file, { upsert: false });
     if (error) { toast.error(error.message); setUp(false); return; }
-    const { data: signed } = await supabase.storage.from("lessons").createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
-    const url = signed?.signedUrl || "";
+    // Fase 6c — guarda o caminho no bucket; o player gera link assinado curto ao abrir a aula.
+    const url = path;
+
     setLessonForm((f) => kind === "video" ? { ...f, video_url: url } : { ...f, pdf_url: url });
     setUp(false);
     toast.success(`${kind === "video" ? "Vídeo" : "PDF"} enviado`);

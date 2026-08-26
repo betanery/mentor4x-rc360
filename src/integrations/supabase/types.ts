@@ -1233,6 +1233,10 @@ export type Database = {
           answers: Json
           company_name: string | null
           completed_at: string | null
+          consent_at: string | null
+          consent_ip_hash: string | null
+          consent_lgpd: boolean
+          consent_version: string | null
           converted_company_id: string | null
           created_at: string
           current_step: number
@@ -1267,6 +1271,10 @@ export type Database = {
           answers?: Json
           company_name?: string | null
           completed_at?: string | null
+          consent_at?: string | null
+          consent_ip_hash?: string | null
+          consent_lgpd?: boolean
+          consent_version?: string | null
           converted_company_id?: string | null
           created_at?: string
           current_step?: number
@@ -1301,6 +1309,10 @@ export type Database = {
           answers?: Json
           company_name?: string | null
           completed_at?: string | null
+          consent_at?: string | null
+          consent_ip_hash?: string | null
+          consent_lgpd?: boolean
+          consent_version?: string | null
           converted_company_id?: string | null
           created_at?: string
           current_step?: number
@@ -1340,6 +1352,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lead_throttle: {
+        Row: {
+          action: string
+          count: number
+          created_at: string
+          id: string
+          ip_hash: string
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          action: string
+          count?: number
+          created_at?: string
+          id?: string
+          ip_hash: string
+          updated_at?: string
+          window_start: string
+        }
+        Update: {
+          action?: string
+          count?: number
+          created_at?: string
+          id?: string
+          ip_hash?: string
+          updated_at?: string
+          window_start?: string
+        }
+        Relationships: []
       }
       lesson_progress: {
         Row: {

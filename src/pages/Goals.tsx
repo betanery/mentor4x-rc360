@@ -18,6 +18,8 @@ import { Plus, Calendar, DollarSign, Trash2, Paperclip, MessageSquare, Loader2, 
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { BLINDSPOTS, CAPACITIES, blindspotByCode, capacityByCode } from "@/lib/see4x";
+import { openStorageFile } from "@/lib/storage";
+
 import type { Tables } from "@/integrations/supabase/types";
 
 
@@ -274,9 +276,9 @@ export default function Goals() {
     const path = `${current.id}/${goal.id}/${crypto.randomUUID()}.${ext}`;
     const { error: upErr } = await supabase.storage.from("evidences").upload(path, file, { contentType: file.type });
     if (upErr) { setUploadingFor(null); toast.error(upErr.message); return; }
-    const { data: signed } = await supabase.storage.from("evidences").createSignedUrl(path, 60 * 60 * 24 * 365);
-    const url = signed?.signedUrl || path;
-    const { error: updErr } = await supabase.from("goals").update({ evidence_url: url }).eq("id", goal.id);
+    // Fase 6c — guardamos apenas o caminho; o link assinado é gerado sob demanda (5 min).
+    const { error: updErr } = await supabase.from("goals").update({ evidence_url: path }).eq("id", goal.id);
+
     setUploadingFor(null);
     if (updErr) { toast.error(updErr.message); return; }
     toast.success("Evidência anexada");
@@ -575,10 +577,15 @@ export default function Goals() {
               <div>
                 <Label className="text-xs uppercase tracking-wide">Evidência</Label>
                 {detail.evidence_url ? (
-                  <a href={detail.evidence_url} target="_blank" rel="noreferrer" className="mt-1 flex items-center gap-2 text-sm text-primary hover:underline">
+                  <button
+                    type="button"
+                    onClick={async () => { if (!(await openStorageFile("evidences", detail.evidence_url))) toast.error("Não foi possível abrir a evidência."); }}
+                    className="mt-1 flex items-center gap-2 text-sm text-primary hover:underline"
+                  >
                     <Paperclip className="h-4 w-4" /> Ver evidência atual <ExternalLink className="h-3 w-3" />
-                  </a>
+                  </button>
                 ) : (
+
                   <p className="text-xs text-muted-foreground mt-1">Sem evidência ainda.</p>
                 )}
                 <div className="mt-2 flex items-center gap-2">

@@ -18,6 +18,8 @@ import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { BLINDSPOTS, blindspotByCode } from "@/lib/see4x";
 import { MOTORES, PILLAR_LABEL } from "@/lib/labels";
+import { openStorageFile } from "@/lib/storage";
+
 
 type Playbook = Tables<"playbooks">;
 
@@ -116,8 +118,10 @@ export default function Playbooks() {
     const path = `playbooks/${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from("lessons").upload(path, file, { contentType: file.type });
     if (error) { setUploading(false); toast.error(error.message); return; }
-    const { data: signed } = await supabase.storage.from("lessons").createSignedUrl(path, 60 * 60 * 24 * 365);
-    setForm((f) => ({ ...f, file_url: signed?.signedUrl || path }));
+    
+    // Fase 6c — guarda o caminho; link assinado curto é gerado ao abrir.
+    setForm((f) => ({ ...f, file_url: path }));
+
     setUploading(false);
     toast.success("Arquivo anexado");
   };
@@ -229,7 +233,7 @@ export default function Playbooks() {
                 </div>
               )}
               {pb.file_url && (
-                <Button variant="outline" size="sm" className="mt-auto w-full" onClick={() => window.open(pb.file_url!, "_blank", "noopener")}>
+                <Button variant="outline" size="sm" className="mt-auto w-full" onClick={async () => { if (!(await openStorageFile("lessons", pb.file_url))) toast.error("Não foi possível abrir o material."); }}>
                   <Download className="h-4 w-4 mr-2" /> Abrir material
                 </Button>
               )}

@@ -69,6 +69,9 @@ export default function LeadDiagnostic() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [finishing, setFinishing] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [consent, setConsent] = useState(false);
+
   const [contact, setContact] = useState({
     full_name: "",
     email: "",
@@ -105,7 +108,7 @@ export default function LeadDiagnostic() {
     });
   }, []);
 
-  // Início ou retomada: token da URL, do storage local, ou criação de um novo registro.
+  // Retomada: token da URL ou do storage local. Um novo registro só é criado após o consentimento.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -122,34 +125,44 @@ export default function LeadDiagnostic() {
       } catch {
         localStorage.removeItem(STORAGE_KEY);
       }
-
-      const params = new URLSearchParams(window.location.search);
-      const utm: Record<string, string> = {};
-      for (const k of UTM_KEYS) {
-        const v = params.get(k);
-        if (v) utm[k] = v;
-      }
-      try {
-        const l = await call({
-          action: "start",
-          utm,
-          referrer: document.referrer || null,
-          landing_page: window.location.href,
-        });
-        if (cancelled) return;
-        localStorage.setItem(STORAGE_KEY, l.resume_token);
-        hydrate(l);
-      } catch {
-        toast.error("Não foi possível iniciar o diagnóstico agora.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+      if (!cancelled) setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeToken]);
+
+  // Início efetivo do diagnóstico — exige consentimento LGPD explícito (Fase 6b).
+  const startWithConsent = async () => {
+    const params = new URLSearchParams(window.location.search);
+    const utm: Record<string, string> = {};
+    for (const k of UTM_KEYS) {
+      const v = params.get(k);
+      if (v) utm[k] = v;
+    }
+    setStarting(true);
+    try {
+      const l = await call({
+        action: "start",
+        consent_lgpd: true,
+        utm,
+        referrer: document.referrer || null,
+        landing_page: window.location.href,
+      });
+      localStorage.setItem(STORAGE_KEY, l.resume_token);
+      hydrate(l);
+    } catch (e) {
+      toast.error(
+        (e as Error).message === "rate_limited"
+          ? "Muitas tentativas a partir desta conexão. Tente novamente mais tarde."
+          : "Não foi possível iniciar o diagnóstico agora.",
+      );
+    } finally {
+      setStarting(false);
+    }
+  };
+
 
   const persist = useCallback(
     async (nextStep = step) => {
@@ -263,8 +276,34 @@ export default function LeadDiagnostic() {
           </p>
         </div>
 
-        {done && lead?.result ? (
+        {!lead ? (
+          <Card className="p-6 shadow-card space-y-4">
+            <div className="flex items-center gap-2 text-xs font-bold tracking-widest text-gold uppercase">
+              <Lock className="h-4 w-4" /> Privacidade e consentimento
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Coletamos apenas os dados necessários para gerar sua leitura SEE_4X e para o contato da equipe. Suas respostas
+              não são publicadas, seu IP não é armazenado em texto e você pode solicitar exclusão a qualquer momento.
+            </p>
+            <label className="flex items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 accent-current"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+              />
+              <span>
+                Autorizo o tratamento dos dados informados para geração do diagnóstico e contato da equipe Mentor 4X (RC360).
+              </span>
+            </label>
+            <Button disabled={!consent || starting} onClick={() => void startWithConsent()}>
+              {starting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              Iniciar diagnóstico
+            </Button>
+          </Card>
+        ) : done && lead?.result ? (
           <>
+
             <Card className="p-8 shadow-elegant bg-gradient-brand text-primary-foreground relative overflow-hidden">
               <div className="absolute -top-16 -right-16 h-48 w-48 bg-gold/15 rounded-full blur-3xl" />
               <div className="relative">

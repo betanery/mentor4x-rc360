@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { CYCLE_LABEL, CYCLE_ORDER, MOTORES, MEETING_TYPE_LABEL } from "@/lib/labels";
+import { openStorageFile } from "@/lib/storage";
+
 import { CheckCircle2, Target, FileCheck, ArrowRight, Lock, Paperclip, CalendarDays, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -246,8 +248,9 @@ export default function Journey() {
         const path = `${current.id}/ciclos/${cycle}-${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage.from("evidences").upload(path, evidenceFile, { contentType: evidenceFile.type });
         if (upErr) throw upErr;
-        const { data: signed } = await supabase.storage.from("evidences").createSignedUrl(path, 60 * 60 * 24 * 365);
-        evidenceUrl = signed?.signedUrl || path;
+        // Fase 6c — guardamos o caminho; o link assinado é gerado sob demanda.
+        evidenceUrl = path;
+
       }
 
       const payload = {
@@ -557,9 +560,14 @@ export default function Journey() {
                         <p className="text-[11px] mt-1 text-warning">Pendências justificadas: {record.gate_override_justification}</p>
                       )}
                       {record.evidence_url && (
-                        <a href={record.evidence_url} target="_blank" rel="noreferrer" className="text-[11px] text-primary font-bold inline-flex items-center gap-1 mt-1">
+                        <button
+                          type="button"
+                          onClick={async () => { if (!(await openStorageFile("evidences", record.evidence_url))) toast.error("Não foi possível abrir a evidência."); }}
+                          className="text-[11px] text-primary font-bold inline-flex items-center gap-1 mt-1"
+                        >
                           <Paperclip className="h-3 w-3" /> Evidência
-                        </a>
+                        </button>
+
                       )}
                     </div>
                   )}

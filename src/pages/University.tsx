@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { toEmbedUrl, isDirectVideo } from "@/lib/video";
+import { signedUrl } from "@/lib/storage";
+
 
 export default function University() {
   const { user } = useAuth();
@@ -19,6 +21,23 @@ export default function University() {
   const [lessons, setLessons] = useState<any[]>([]);
   const [progress, setProgress] = useState<Record<string, { completed: boolean; progress_pct: number }>>({});
   const [active, setActive] = useState<any>(null);
+  // Fase 6c — links assinados curtos, renovados a cada abertura de aula
+  const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
+  const [activePdfUrl, setActivePdfUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancel = false;
+    if (!active) { setActiveVideoUrl(null); setActivePdfUrl(null); return; }
+    void (async () => {
+      const [v, p] = await Promise.all([
+        signedUrl("lessons", active.video_url ?? null),
+        signedUrl("lessons", active.pdf_url ?? null),
+      ]);
+      if (!cancel) { setActiveVideoUrl(v); setActivePdfUrl(p); }
+    })();
+    return () => { cancel = true; };
+  }, [active?.id]);
+
   const [releases, setReleases] = useState<Record<string, string | null>>({});
 
   const accessExpired = !!currentContract?.access_expires_at &&
@@ -142,16 +161,18 @@ export default function University() {
           <p className="text-sm text-muted-foreground">{active?.description}</p>
           {active?.video_url ? (
             <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-              {isDirectVideo(active.video_url) ? (
+              {!activeVideoUrl ? (
+                <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">Preparando o vídeo...</div>
+              ) : isDirectVideo(active.video_url) ? (
                 <video
-                  src={active.video_url}
+                  src={activeVideoUrl}
                   controls
                   className="w-full h-full"
                   onEnded={() => { if (!progress[active.id]?.completed) toggleComplete(active.id, true); }}
                 />
               ) : (
                 <iframe
-                  src={toEmbedUrl(active.video_url)}
+                  src={toEmbedUrl(activeVideoUrl)}
                   title={active.title}
                   className="w-full h-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
@@ -165,7 +186,14 @@ export default function University() {
             </div>
           )}
           <div className="flex flex-wrap gap-2 justify-end">
-            {active?.pdf_url && <Button variant="outline" asChild><a href={active.pdf_url} target="_blank"><FileText className="h-4 w-4 mr-2" /> Material PDF</a></Button>}
+            {active?.pdf_url && (
+              <Button variant="outline" disabled={!activePdfUrl} asChild={!!activePdfUrl}>
+                {activePdfUrl
+                  ? <a href={activePdfUrl} target="_blank" rel="noreferrer"><FileText className="h-4 w-4 mr-2" /> Material PDF</a>
+                  : <span><FileText className="h-4 w-4 mr-2 inline" /> Material PDF</span>}
+              </Button>
+            )}
+
             {active && (
               <Button
                 onClick={() => toggleComplete(active.id, !progress[active.id]?.completed)}
