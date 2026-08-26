@@ -22,7 +22,10 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Bottleneck = Tables<"bottlenecks">;
 
-const EMPTY = { name: "", area: "", impact: "", urgency: "media", estimated_value: "0", correction_plan: "", blindspot_code: "" };
+const EMPTY = {
+  name: "", area: "", impact: "", urgency: "media", estimated_value: "0", correction_plan: "",
+  blindspot_code: "", capacity_code: "", rank_position: "", root_cause: "", expected_result: "", due_date: "",
+};
 
 export default function Bottlenecks() {
   const { current } = useCompany();
@@ -39,6 +42,7 @@ export default function Bottlenecks() {
         .from("bottlenecks")
         .select("*")
         .eq("company_id", current!.id)
+        .order("rank_position", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: false })
         .limit(200);
       query = currentContract ? query.eq("contract_id", currentContract.id) : query.is("contract_id", null);
@@ -63,6 +67,11 @@ export default function Bottlenecks() {
         estimated_value: Number(form.estimated_value) || 0,
         correction_plan: form.correction_plan || null,
         blindspot_code: form.blindspot_code || null,
+        capacity_code: form.capacity_code || null,
+        rank_position: form.rank_position ? Number(form.rank_position) : null,
+        root_cause: form.root_cause || null,
+        expected_result: form.expected_result || null,
+        due_date: form.due_date || null,
       });
       if (error) throw error;
     },
@@ -98,6 +107,7 @@ export default function Bottlenecks() {
     setForm((s) => ({
       ...s,
       blindspot_code: code,
+      capacity_code: bs?.capacities[0] ?? "",
       name: s.name || bs?.title || "",
       area: bs ? PILLAR_LABEL[bs.pillar].label : s.area,
       correction_plan: s.correction_plan || (bs ? `Capacidades estruturantes: 1) ${bs.capacities[0]} · 2) ${bs.capacities[1]}` : ""),
@@ -142,6 +152,25 @@ export default function Bottlenecks() {
                 </div>
                 <div><Label>Impacto</Label><Textarea value={form.impact} onChange={(e) => setForm({ ...form, impact: e.target.value })} /></div>
                 <div><Label>Valor estimado (R$)</Label><Input type="number" value={form.estimated_value} onChange={(e) => setForm({ ...form, estimated_value: e.target.value })} /></div>
+                {form.blindspot_code && (
+                  <div>
+                    <Label>Capacidade estruturante</Label>
+                    <Select value={form.capacity_code} onValueChange={(v) => setForm({ ...form, capacity_code: v })}>
+                      <SelectTrigger><SelectValue placeholder="Escolha a capacidade" /></SelectTrigger>
+                      <SelectContent>
+                        {(blindspotByCode(form.blindspot_code)?.capacities ?? []).map((c) => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <div><Label>Causa raiz</Label><Textarea value={form.root_cause} onChange={(e) => setForm({ ...form, root_cause: e.target.value })} rows={2} placeholder="Por que o gargalo existe hoje?" /></div>
+                <div><Label>Resultado esperado</Label><Textarea value={form.expected_result} onChange={(e) => setForm({ ...form, expected_result: e.target.value })} rows={2} placeholder="O que muda quando estiver resolvido" /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Posição no Top 5</Label><Input type="number" min={1} max={5} value={form.rank_position} onChange={(e) => setForm({ ...form, rank_position: e.target.value })} placeholder="1 a 5" /></div>
+                  <div><Label>Prazo</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
+                </div>
                 <div><Label>Plano de correção</Label><Textarea value={form.correction_plan} onChange={(e) => setForm({ ...form, correction_plan: e.target.value })} rows={3} /></div>
               </div>
               <DialogFooter><Button onClick={() => createMut.mutate()} disabled={!form.name || createMut.isPending}>Registrar</Button></DialogFooter>
@@ -172,7 +201,7 @@ export default function Bottlenecks() {
               <div className="flex flex-col lg:flex-row gap-4">
                 <div className="flex items-start gap-4 flex-1 min-w-0">
                   <div className="h-12 w-12 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0">
-                    <span className="font-black text-destructive">#{i + 1}</span>
+                    <span className="font-black text-destructive">#{b.rank_position ?? i + 1}</span>
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -180,8 +209,26 @@ export default function Bottlenecks() {
                       <Badge className={u.color} variant="secondary">{u.label}</Badge>
                       {b.area && <Badge variant="outline">{b.area}</Badge>}
                       {bs && <Badge variant="outline" className="border-gold text-gold">{bs.code} · BlindSpot</Badge>}
+                      {b.capacity_code && <Badge variant="outline">{b.capacity_code}</Badge>}
+                      {b.due_date && <Badge variant="secondary">Prazo {new Date(b.due_date + "T00:00:00").toLocaleDateString("pt-BR")}</Badge>}
                     </div>
                     {b.impact && <p className="mt-2 text-sm text-muted-foreground">{b.impact}</p>}
+                    {(b.root_cause || b.expected_result) && (
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        {b.root_cause && (
+                          <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Causa raiz</p>
+                            <p className="text-sm whitespace-pre-wrap">{b.root_cause}</p>
+                          </div>
+                        )}
+                        {b.expected_result && (
+                          <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Resultado esperado</p>
+                            <p className="text-sm whitespace-pre-wrap">{b.expected_result}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     {bs && (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {bs.capacities.map((c) => (
