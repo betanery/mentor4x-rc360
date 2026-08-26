@@ -69,6 +69,9 @@ export default function LeadDiagnostic() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [finishing, setFinishing] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [consent, setConsent] = useState(false);
+
   const [contact, setContact] = useState({
     full_name: "",
     email: "",
