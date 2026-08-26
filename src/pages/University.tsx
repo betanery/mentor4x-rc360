@@ -19,6 +19,17 @@ export default function University() {
   const [lessons, setLessons] = useState<any[]>([]);
   const [progress, setProgress] = useState<Record<string, { completed: boolean; progress_pct: number }>>({});
   const [active, setActive] = useState<any>(null);
+  const [releases, setReleases] = useState<Record<string, string | null>>({});
+
+  const accessExpired = !!currentContract?.access_expires_at &&
+    new Date(`${currentContract.access_expires_at}T12:00:00`).getTime() < Date.now();
+
+  const releaseDate = (courseId: string) => releases[courseId] ?? null;
+  const isLocked = (courseId: string) => {
+    if (accessExpired) return true;
+    const date = releaseDate(courseId);
+    return !!date && new Date(`${date}T12:00:00`).getTime() > Date.now();
+  };
 
   const loadProgress = async () => {
     if (!user) return;
