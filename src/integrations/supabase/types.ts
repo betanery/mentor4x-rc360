@@ -955,6 +955,119 @@ export type Database = {
           },
         ]
       }
+      lead_diagnostics: {
+        Row: {
+          answers: Json
+          company_name: string | null
+          completed_at: string | null
+          converted_company_id: string | null
+          created_at: string
+          current_step: number
+          email: string | null
+          full_name: string | null
+          id: string
+          idd_score: number | null
+          improviso_score: number | null
+          landing_page: string | null
+          last_seen_at: string
+          phone: string | null
+          priority_blindspot: string | null
+          priority_pillar: string | null
+          recommendation: Json | null
+          referrer: string | null
+          result: Json | null
+          resume_token: string
+          revenue_band: string | null
+          role_title: string | null
+          segment: string | null
+          status: string
+          team_size: string | null
+          top5: string[] | null
+          updated_at: string
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+        }
+        Insert: {
+          answers?: Json
+          company_name?: string | null
+          completed_at?: string | null
+          converted_company_id?: string | null
+          created_at?: string
+          current_step?: number
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          idd_score?: number | null
+          improviso_score?: number | null
+          landing_page?: string | null
+          last_seen_at?: string
+          phone?: string | null
+          priority_blindspot?: string | null
+          priority_pillar?: string | null
+          recommendation?: Json | null
+          referrer?: string | null
+          result?: Json | null
+          resume_token: string
+          revenue_band?: string | null
+          role_title?: string | null
+          segment?: string | null
+          status?: string
+          team_size?: string | null
+          top5?: string[] | null
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Update: {
+          answers?: Json
+          company_name?: string | null
+          completed_at?: string | null
+          converted_company_id?: string | null
+          created_at?: string
+          current_step?: number
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          idd_score?: number | null
+          improviso_score?: number | null
+          landing_page?: string | null
+          last_seen_at?: string
+          phone?: string | null
+          priority_blindspot?: string | null
+          priority_pillar?: string | null
+          recommendation?: Json | null
+          referrer?: string | null
+          result?: Json | null
+          resume_token?: string
+          revenue_band?: string | null
+          role_title?: string | null
+          segment?: string | null
+          status?: string
+          team_size?: string | null
+          top5?: string[] | null
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_diagnostics_converted_company_id_fkey"
+            columns: ["converted_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_progress: {
         Row: {
           completed: boolean | null
