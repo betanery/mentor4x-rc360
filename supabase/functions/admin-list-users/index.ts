@@ -20,18 +20,38 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: "unauthenticated" }, 401);
 
     const { data: callerRoles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
-    const isStaff = (callerRoles || []).some((r: any) => STAFF_ROLES.includes(r.role));
+    const roleList = (callerRoles || []).map((r: any) => r.role);
+    const isStaff = roleList.some((r: string) => STAFF_ROLES.includes(r));
     if (!isStaff) return json({ error: "forbidden" }, 403);
+    // Fase 6c — Estrategista vê apenas as empresas em que atua; Super Admin e Consultor veem tudo.
+    const isFullScope = roleList.includes("super_admin") || roleList.includes("mentor");
+
+    let scopedCompanyIds: string[] | null = null;
+    if (!isFullScope) {
+      const { data: own } = await supabase.from("company_members").select("company_id").eq("user_id", user.id);
+      scopedCompanyIds = [...new Set((own || []).map((m: any) => m.company_id))];
+    }
+
+    const page = Math.max(1, Number(new URL(req.url).searchParams.get("page") ?? "1"));
+    const perPage = Math.min(200, Math.max(10, Number(new URL(req.url).searchParams.get("per_page") ?? "200")));
+
+    const companiesQuery = supabase.from("companies").select("id, name");
+    const auditQuery = supabase.from("invite_audit").select("*").order("created_at", { ascending: false }).limit(200);
+    if (scopedCompanyIds) {
+      companiesQuery.in("id", scopedCompanyIds.length ? scopedCompanyIds : ["00000000-0000-0000-0000-000000000000"]);
+      auditQuery.in("company_id", scopedCompanyIds.length ? scopedCompanyIds : ["00000000-0000-0000-0000-000000000000"]);
+    }
 
     // Single consolidated fetch — paralelo
     const [authList, profiles, roles, members, companies, audit] = await Promise.all([
-      supabase.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+      supabase.auth.admin.listUsers({ page, perPage }),
       supabase.from("profiles").select("user_id, full_name, avatar_url, job_title, phone"),
       supabase.from("user_roles").select("user_id, role"),
       supabase.from("company_members").select("user_id, company_id, member_role, is_primary"),
-      supabase.from("companies").select("id, name"),
-      supabase.from("invite_audit").select("*").order("created_at", { ascending: false }).limit(200),
+      companiesQuery,
+      auditQuery,
     ]);
+
 
     if (authList.error) return json({ error: authList.error.message }, 500);
 
