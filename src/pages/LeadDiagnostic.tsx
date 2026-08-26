@@ -276,8 +276,34 @@ export default function LeadDiagnostic() {
           </p>
         </div>
 
-        {done && lead?.result ? (
+        {!lead ? (
+          <Card className="p-6 shadow-card space-y-4">
+            <div className="flex items-center gap-2 text-xs font-bold tracking-widest text-gold uppercase">
+              <Lock className="h-4 w-4" /> Privacidade e consentimento
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Coletamos apenas os dados necessários para gerar sua leitura SEE_4X e para o contato da equipe. Suas respostas
+              não são publicadas, seu IP não é armazenado em texto e você pode solicitar exclusão a qualquer momento.
+            </p>
+            <label className="flex items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 accent-current"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+              />
+              <span>
+                Autorizo o tratamento dos dados informados para geração do diagnóstico e contato da equipe Mentor 4X (RC360).
+              </span>
+            </label>
+            <Button disabled={!consent || starting} onClick={() => void startWithConsent()}>
+              {starting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              Iniciar diagnóstico
+            </Button>
+          </Card>
+        ) : done && lead?.result ? (
           <>
+
             <Card className="p-8 shadow-elegant bg-gradient-brand text-primary-foreground relative overflow-hidden">
               <div className="absolute -top-16 -right-16 h-48 w-48 bg-gold/15 rounded-full blur-3xl" />
               <div className="relative">
