@@ -10,6 +10,8 @@ interface AuthCtx {
   roles: AppRole[];
   loading: boolean;
   isStaff: boolean;
+  /** Consultor 4X (papel técnico `mentor`) ou Super Admin — detém as alçadas de aprovação. */
+  isConsultor: boolean;
   hasRole: (r: AppRole) => boolean;
   signOut: () => Promise<void>;
   refreshRoles: () => Promise<void>;
