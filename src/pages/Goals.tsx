@@ -494,7 +494,7 @@ export default function Goals() {
                       Justificativa de capacidade: {detail.capacity_justification}
                     </p>
                   )}
-                  {isStaff && detail.approval_status === "pendente" && (
+                  {isConsultor && detail.approval_status === "pendente" && (
                     <div className="mt-2 space-y-2">
                       <Textarea
                         rows={2}
