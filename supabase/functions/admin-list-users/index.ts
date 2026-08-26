@@ -93,11 +93,23 @@ Deno.serve(async (req) => {
       };
     });
 
+    // Estrategista: apenas usuários das empresas em que atua (e ele mesmo).
+    const scopedUsers = scopedCompanyIds
+      ? users.filter((u: any) =>
+          u.id === user.id ||
+          (u.memberships || []).some((m: any) => scopedCompanyIds!.includes(m.company_id)))
+      : users;
+
     return json({
-      users,
+      users: scopedUsers,
       companies: companies.data || [],
       audit: audit.data || [],
+      scope: isFullScope ? "global" : "empresa",
+      page,
+      per_page: perPage,
+      has_more: (authList.data?.users || []).length === perPage,
     });
+
   } catch (e) {
     return json({ error: String(e) }, 500);
   }
