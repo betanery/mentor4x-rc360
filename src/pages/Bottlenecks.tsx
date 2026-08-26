@@ -283,7 +283,13 @@ export default function Bottlenecks() {
                       {bs && <Badge variant="outline" className="border-gold text-gold">{bs.code} · BlindSpot</Badge>}
                       {b.capacity_code && <Badge variant="outline">{b.capacity_code}</Badge>}
                       {b.due_date && <Badge variant="secondary">Prazo {new Date(b.due_date + "T00:00:00").toLocaleDateString("pt-BR")}</Badge>}
+                      {recommendedRank.get(b.id) !== (b.rank_position ?? i + 1) && (
+                        <Badge variant="outline" className="border-primary text-primary">
+                          Recomendado #{recommendedRank.get(b.id)}
+                        </Badge>
+                      )}
                     </div>
+
                     {b.impact && <p className="mt-2 text-sm text-muted-foreground">{b.impact}</p>}
                     {(b.root_cause || b.expected_result) && (
                       <div className="mt-3 grid gap-3 sm:grid-cols-2">
