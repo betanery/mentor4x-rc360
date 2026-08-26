@@ -165,6 +165,14 @@ export default function ReportSee4X() {
   const topImprovements = blindspotDeltas.slice(0, 5).filter((b: any) => b.delta < 0);
   const topRegressions = blindspotDeltas.slice().reverse().slice(0, 5).filter((b: any) => b.delta > 0);
 
+  // Fase 6a — métricas de mensuração
+  const cycle = currentContract?.current_cycle ?? 1;
+  const structBaseline = baselineResult ? structuringScore(baselineResult.byPillar ?? [], cycle) : null;
+  const structFollowUp = followUpResult ? structuringScore(followUpResult.byPillar ?? [], cycle) : null;
+  const execution = executionIndex(allGoals as any);
+  const economic = economicImpact(allGoals as any);
+
+
   const generate = useMutation({
     mutationFn: async () => {
       if (!current || !baselineId || !followUpId) throw new Error("Selecione os dois diagnósticos");
