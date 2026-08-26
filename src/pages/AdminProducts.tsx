@@ -434,9 +434,16 @@ export default function AdminProducts() {
                                 <p className="text-xs text-muted-foreground">{version.methodology_code} · {version.cycle_count} ciclos{version.duration_days ? ` · ${version.duration_days} dias` : ""}</p>
                               </div>
                               <Badge variant={version.is_active ? "default" : "secondary"}>{version.is_active ? "Ativa" : "Inativa"}</Badge>
+                              {version.published_at && <Badge variant="outline" className="gap-1"><Lock className="h-3 w-3" /> Publicada</Badge>}
+                              <Button size="sm" variant="outline" onClick={() => setConfigVersion(version)}><SlidersHorizontal className="h-3.5 w-3.5 mr-1" /> Configuração</Button>
                               <Button size="sm" variant="outline" onClick={() => setTemplateVersion(version)}><ListChecks className="h-3.5 w-3.5 mr-1" /> Onboarding</Button>
+                              <Button size="sm" variant="outline" onClick={() => duplicateVersion(version)} disabled={duplicatingId === version.id}>
+                                {duplicatingId === version.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Copy className="h-3.5 w-3.5 mr-1" />} Duplicar
+                              </Button>
+                              {!version.published_at && <Button size="sm" variant="outline" onClick={() => publishVersion(version)}>Publicar</Button>}
                               <Button size="icon" variant="ghost" onClick={() => openVersion(version)}><Pencil className="h-4 w-4" /></Button>
                               <Button size="icon" variant="ghost" onClick={() => setDeleting({ table: "product_versions", id: version.id, title: version.version_label })}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+
                             </div>
                           ))}
                         </div>
