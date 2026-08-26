@@ -113,6 +113,37 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Log de decisão: usuário descartou as ações propostas pela IA.
+    if (decision === "reject") {
+      const rows = (Array.isArray(rejectedProposals) ? rejectedProposals : []).map((p: any) => ({
+        user_id: userId,
+        company_id,
+        contract_id: contractScope.contractId,
+        action: "socio_tools_decision",
+        decision: "rejeitada",
+        tool_name: String(p?.name ?? "desconhecida"),
+        payload: p?.args ?? {},
+        prompt: String(instruction).slice(0, 4000),
+        response: null,
+      }));
+      if (rows.length === 0) {
+        rows.push({
+          user_id: userId,
+          company_id,
+          contract_id: contractScope.contractId,
+          action: "socio_tools_decision",
+          decision: "rejeitada",
+          tool_name: "nenhuma",
+          payload: {},
+          prompt: String(instruction).slice(0, 4000),
+          response: null,
+        });
+      }
+      await admin.from("ai_logs").insert(rows);
+      return new Response(JSON.stringify({ rejected: true, logged: rows.length }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
 
