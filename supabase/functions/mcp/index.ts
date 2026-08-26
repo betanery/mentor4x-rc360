@@ -325,28 +325,33 @@ import { z as z6 } from "npm:zod@^3.25.76";
 var list_bottlenecks_default = defineTool7({
   name: "list_bottlenecks",
   title: "Listar gargalos",
-  description: "Lista os gargalos (bottlenecks) mapeados de uma empresa, com urg\xEAncia, progresso da corre\xE7\xE3o e valor estimado.",
+  description: "Lista os gargalos (bottlenecks) mapeados de uma empresa, com posi\xE7\xE3o no Top 5, urg\xEAncia, causa raiz, resultado esperado, progresso da corre\xE7\xE3o e valor estimado. Resultado paginado via `limit`/`cursor`.",
   inputSchema: {
     company_id: z6.string().describe("UUID da empresa."),
     contract_id: z6.string().optional().describe("UUID da contrata\xE7\xE3o/ciclo ativo. Se omitido, lista apenas registros legados sem contrata\xE7\xE3o."),
-    include_resolved: z6.boolean().optional().describe("Se true, inclui gargalos j\xE1 resolvidos.")
+    include_resolved: z6.boolean().optional().describe("Se true, inclui gargalos j\xE1 resolvidos."),
+    limit: z6.number().int().min(1).max(200).optional().describe("Quantidade de gargalos por p\xE1gina (padr\xE3o 50, m\xE1ximo 200)."),
+    cursor: z6.string().optional().describe("Cursor `next_cursor` devolvido pela p\xE1gina anterior.")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async ({ company_id, contract_id, include_resolved }, ctx) => {
+  handler: async ({ company_id, contract_id, include_resolved, limit, cursor }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated();
     const supabase = supabaseForUser(ctx);
     let scope;
+    let bounds;
     try {
       scope = await resolveContractScope(supabase, company_id, contract_id);
+      bounds = pageBounds(limit, cursor);
     } catch (e) {
       return errorResult(e instanceof Error ? e.message : String(e));
     }
-    let query = supabase.from("bottlenecks").select("id, name, area, impact, urgency, progress, estimated_value, correction_plan, resolved").eq("company_id", company_id).order("urgency", { ascending: false }).limit(200);
+    let query = supabase.from("bottlenecks").select("id, name, area, impact, urgency, progress, estimated_value, correction_plan, resolved, rank_position, root_cause, expected_result, due_date, blindspot_code, capacity_code").eq("company_id", company_id).order("rank_position", { ascending: true, nullsFirst: false }).order("id", { ascending: true }).range(bounds.from, bounds.to + 1);
     query = applyContractScope(query, scope.contractId);
     if (!include_resolved) query = query.eq("resolved", false);
     const { data, error } = await query;
     if (error) return errorResult(error.message);
-    return jsonResult({ bottlenecks: data ?? [] });
+    const { page, pagination } = pageMeta(data ?? [], bounds.size, bounds.offset);
+    return jsonResult({ bottlenecks: page, pagination });
   }
 });
 
