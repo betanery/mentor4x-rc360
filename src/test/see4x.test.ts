@@ -42,21 +42,21 @@ describe("computeDiagnostic", () => {
   });
 
   it("respostas máximas geram improviso mínimo e vice-versa", () => {
-    const best = computeDiagnostic([{ group: "dono_socio", answers: uniform(5) }])!;
-    const worst = computeDiagnostic([{ group: "dono_socio", answers: uniform(1) }])!;
+    const best = computeDiagnostic([{ respondent_group: "dono_socio", answers: uniform(5) }])!;
+    const worst = computeDiagnostic([{ respondent_group: "dono_socio", answers: uniform(1) }])!;
     expect(best.improvisoGeral).toBeLessThan(worst.improvisoGeral);
     expect(best.improvisoGeral).toBeGreaterThanOrEqual(0);
     expect(worst.improvisoGeral).toBeLessThanOrEqual(100);
   });
 
   it("IDD fica na escala 0–100", () => {
-    const r = computeDiagnostic([{ group: "gestor", answers: uniform(3) }])!;
+    const r = computeDiagnostic([{ respondent_group: "gestor", answers: uniform(3) }])!;
     expect(r.idd.score).toBeGreaterThanOrEqual(0);
     expect(r.idd.score).toBeLessThanOrEqual(100);
   });
 
   it("Top 5 nunca excede cinco BlindSpots", () => {
-    const r = computeDiagnostic([{ group: "dono_socio", answers: uniform(2) }])!;
+    const r = computeDiagnostic([{ respondent_group: "dono_socio", answers: uniform(2) }])!;
     expect(r.top5.length).toBeLessThanOrEqual(5);
   });
 
@@ -65,7 +65,7 @@ describe("computeDiagnostic", () => {
     MATURITY_DIMENSIONS.forEach((d) => {
       answers[`MAT-${d.key}`] = 5;
     });
-    const r = computeDiagnostic([{ group: "dono_socio", answers }])!;
+    const r = computeDiagnostic([{ respondent_group: "dono_socio", answers }])!;
     expect(r.improvisoGeral).toBeGreaterThan(50);
     expect(r.maturityFromStructure).toBe(true);
     expect(r.maturityScore).toBeGreaterThan(50);
