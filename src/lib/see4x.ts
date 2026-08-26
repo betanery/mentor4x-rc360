@@ -285,20 +285,55 @@ export function computeDiagnostic(responses: ResponseInput[]): DiagnosticResult 
     return { group: g, count: rs.length, improviso: avg === null ? 0 : toImproviso(avg) };
   });
 
-  // Maturidade sugerida: score + critérios mínimos de passagem. Validação é humana.
-  const worstPillar = Math.max(...byPillar.map((p) => p.improviso));
-  const maturityCriteria = [
-    { label: "Improviso geral abaixo de 60", met: improvisoGeral < 60 },
-    { label: "Nenhum pilar acima de 70 de Improviso", met: worstPillar <= 70 },
-    { label: "Dependência do dono (IDD) abaixo de 50", met: iddScore < 50 },
-    { label: "Ao menos dois grupos respondentes", met: groupsPresent.length >= 2 },
-  ];
-  const metCount = maturityCriteria.filter((c) => c.met).length;
+  // ---------------------------------------------------------------------------
+  // MATURIDADE — calculada SOMENTE pelas perguntas estruturais (MAT-*).
+  // Nenhum valor de Improviso ou IDD entra neste cálculo. Diagnósticos antigos,
+  // sem o bloco estrutural, caem no fallback histórico e ficam sinalizados.
+  // ---------------------------------------------------------------------------
+  const maturityDimensions = MATURITY_DIMENSIONS.map((d) => {
+    const avg = weightedAvg([`MAT-${d.key}`]);
+    return { key: d.key, label: d.label, score: avg === null ? 0 : Math.round(((avg - 1) / 4) * 100), answered: avg !== null };
+  });
+  const answeredDims = maturityDimensions.filter((d) => d.answered);
+  const maturityFromStructure = answeredDims.length >= Math.ceil(MATURITY_DIMENSIONS.length / 2);
+  const maturityScore = maturityFromStructure
+    ? Math.round(answeredDims.reduce((s, d) => s + d.score, 0) / answeredDims.length)
+    : null;
+
   let suggestedMaturity: MaturityLevel = "inicial";
-  if (improvisoGeral < 20 && metCount === 4) suggestedMaturity = "autonoma";
-  else if (improvisoGeral < 35 && metCount >= 3) suggestedMaturity = "escalavel";
-  else if (improvisoGeral < 50 && metCount >= 2) suggestedMaturity = "estruturada";
-  else if (improvisoGeral < 70) suggestedMaturity = "emergente";
+  let maturityCriteria: { label: string; met: boolean }[];
+
+  if (maturityScore !== null) {
+    const weakest = Math.min(...answeredDims.map((d) => d.score));
+    const alcadas = maturityDimensions.find((d) => d.key === "alcadas")?.score ?? 0;
+    const evidencias = maturityDimensions.find((d) => d.key === "evidencias")?.score ?? 0;
+    const rituais = maturityDimensions.find((d) => d.key === "rituais")?.score ?? 0;
+
+    maturityCriteria = [
+      { label: "Rituais de gestão acontecendo na cadência (≥ 50)", met: rituais >= 50 },
+      { label: "Entregas e decisões com evidência registrada (≥ 50)", met: evidencias >= 50 },
+      { label: "Decisões dentro de alçadas definidas (≥ 50)", met: alcadas >= 50 },
+      { label: "Nenhuma dimensão estrutural abaixo de 40", met: weakest >= 40 },
+    ];
+    const metCount = maturityCriteria.filter((c) => c.met).length;
+
+    if (maturityScore >= 85 && metCount === 4) suggestedMaturity = "autonoma";
+    else if (maturityScore >= 70 && metCount >= 3) suggestedMaturity = "escalavel";
+    else if (maturityScore >= 50 && metCount >= 2) suggestedMaturity = "estruturada";
+    else if (maturityScore >= 30) suggestedMaturity = "emergente";
+  } else {
+    // Fallback de compatibilidade para diagnósticos sem o bloco estrutural.
+    const worstPillar = Math.max(...byPillar.map((p) => p.improviso));
+    maturityCriteria = [
+      { label: "Bloco estrutural de Maturidade não respondido — leitura histórica", met: false },
+      { label: "Improviso geral abaixo de 60", met: improvisoGeral < 60 },
+      { label: "Nenhum pilar acima de 70 de Improviso", met: worstPillar <= 70 },
+      { label: "Ao menos dois grupos respondentes", met: groupsPresent.length >= 2 },
+    ];
+    if (improvisoGeral < 20) suggestedMaturity = "estruturada";
+    else if (improvisoGeral < 50) suggestedMaturity = "emergente";
+  }
+
 
   const answeredTotal = responses.reduce(
     (s, r) => s + QUESTIONS.filter((q) => typeof r.answers[q.id] === "number").length,
