@@ -11,6 +11,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Journey from "./pages/Journey";
+import Onboarding from "./pages/Onboarding";
 import Diagnostic from "./pages/Diagnostic";
 import Goals from "./pages/Goals";
 import Bottlenecks from "./pages/Bottlenecks";
