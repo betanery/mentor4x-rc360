@@ -161,16 +161,18 @@ export default function University() {
           <p className="text-sm text-muted-foreground">{active?.description}</p>
           {active?.video_url ? (
             <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-              {isDirectVideo(active.video_url) ? (
+              {!activeVideoUrl ? (
+                <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">Preparando o vídeo...</div>
+              ) : isDirectVideo(active.video_url) ? (
                 <video
-                  src={active.video_url}
+                  src={activeVideoUrl}
                   controls
                   className="w-full h-full"
                   onEnded={() => { if (!progress[active.id]?.completed) toggleComplete(active.id, true); }}
                 />
               ) : (
                 <iframe
-                  src={toEmbedUrl(active.video_url)}
+                  src={toEmbedUrl(activeVideoUrl)}
                   title={active.title}
                   className="w-full h-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
@@ -184,7 +186,14 @@ export default function University() {
             </div>
           )}
           <div className="flex flex-wrap gap-2 justify-end">
-            {active?.pdf_url && <Button variant="outline" asChild><a href={active.pdf_url} target="_blank"><FileText className="h-4 w-4 mr-2" /> Material PDF</a></Button>}
+            {active?.pdf_url && (
+              <Button variant="outline" disabled={!activePdfUrl} asChild={!!activePdfUrl}>
+                {activePdfUrl
+                  ? <a href={activePdfUrl} target="_blank" rel="noreferrer"><FileText className="h-4 w-4 mr-2" /> Material PDF</a>
+                  : <span><FileText className="h-4 w-4 mr-2 inline" /> Material PDF</span>}
+              </Button>
+            )}
+
             {active && (
               <Button
                 onClick={() => toggleComplete(active.id, !progress[active.id]?.completed)}
