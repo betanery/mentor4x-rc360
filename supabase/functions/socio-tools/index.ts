@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
-    const { instruction, company_id, contract_id, confirm } = await req.json();
+    const { instruction, company_id, contract_id, confirm, decision, proposals: rejectedProposals } = await req.json();
     if (!instruction || !company_id) {
       return new Response(JSON.stringify({ error: "instruction and company_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
