@@ -122,8 +122,8 @@ export default function University() {
                   {ls.slice(0, 4).map((l) => {
                     const done = progress[l.id]?.completed;
                     return (
-                      <button key={l.id} onClick={() => setActive(l)} className="w-full text-left flex items-center gap-2 text-sm py-1.5 px-2 rounded hover:bg-muted transition-colors">
-                        {done ? <CheckCircle2 className="h-3.5 w-3.5 text-success" /> : <Play className="h-3 w-3 text-royal" />}
+                      <button key={l.id} onClick={() => { if (locked) { toast.error(accessExpired ? "Prazo de acesso encerrado." : "Conteúdo ainda não liberado nesta contratação."); return; } setActive(l); }} className="w-full text-left flex items-center gap-2 text-sm py-1.5 px-2 rounded hover:bg-muted transition-colors disabled:opacity-60" disabled={locked}>
+                        {locked ? <Lock className="h-3 w-3 text-muted-foreground" /> : done ? <CheckCircle2 className="h-3.5 w-3.5 text-success" /> : <Play className="h-3 w-3 text-royal" />}
                         <span className={`flex-1 truncate ${done ? "line-through text-muted-foreground" : ""}`}>{l.title}</span>
                         <span className="text-[10px] text-muted-foreground"><Clock className="h-3 w-3 inline" /> {l.duration_min}min</span>
                       </button>
