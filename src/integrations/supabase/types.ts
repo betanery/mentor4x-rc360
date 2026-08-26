@@ -2531,6 +2531,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_contract_journey: {
+        Args: { _contract_id: string }
+        Returns: number
+      }
       generate_contract_onboarding: {
         Args: { _contract_id: string }
         Returns: number
