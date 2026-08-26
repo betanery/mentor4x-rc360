@@ -575,10 +575,15 @@ export default function Goals() {
               <div>
                 <Label className="text-xs uppercase tracking-wide">Evidência</Label>
                 {detail.evidence_url ? (
-                  <a href={detail.evidence_url} target="_blank" rel="noreferrer" className="mt-1 flex items-center gap-2 text-sm text-primary hover:underline">
+                  <button
+                    type="button"
+                    onClick={async () => { if (!(await openStorageFile("evidences", detail.evidence_url))) toast.error("Não foi possível abrir a evidência."); }}
+                    className="mt-1 flex items-center gap-2 text-sm text-primary hover:underline"
+                  >
                     <Paperclip className="h-4 w-4" /> Ver evidência atual <ExternalLink className="h-3 w-3" />
-                  </a>
+                  </button>
                 ) : (
+
                   <p className="text-xs text-muted-foreground mt-1">Sem evidência ainda.</p>
                 )}
                 <div className="mt-2 flex items-center gap-2">
