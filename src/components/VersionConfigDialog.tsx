@@ -41,6 +41,24 @@ const RECOMMENDATION = [
   { value: "nenhuma", label: "Não recomendar" },
 ] as const;
 
+const SERVICE_TYPES = ["individual", "grupo", "híbrido"] as const;
+const MODALITIES = ["online", "presencial", "híbrido"] as const;
+const LADDER_LEVELS = ["entrada", "intermediário", "avançado"] as const;
+const GOAL_FIELDS = [
+  { key: "title", label: "Título / tarefa" },
+  { key: "description", label: "Descrição" },
+  { key: "current_situation", label: "Situação atual" },
+  { key: "responsible_user_id", label: "Responsável" },
+  { key: "due_date", label: "Prazo" },
+  { key: "indicator", label: "Indicador" },
+  { key: "expected_result", label: "Resultado esperado" },
+  { key: "evidence_url", label: "Evidência" },
+  { key: "notes", label: "Observação" },
+  { key: "pillar", label: "Pilar" },
+  { key: "blindspot_code", label: "BlindSpot" },
+  { key: "capacity_code", label: "Capacidade Estruturante" },
+] as const;
+
 const emptyConfig = {
   price_cents: "",
   currency: "BRL",
@@ -58,7 +76,17 @@ const emptyConfig = {
   checkout_url: "",
   recommendation_mode: "manual",
   notes: "",
+  promise: "",
+  ladder_level: "",
+  service_type: "",
+  modality: "",
+  diagnostic_required: false,
+  max_critical_goals: "",
+  action_plan_days: "",
+  completion_rules: [] as string[],
+  goal_required_fields: [] as string[],
 };
+
 
 interface Props {
   version: ProductVersion | null;
