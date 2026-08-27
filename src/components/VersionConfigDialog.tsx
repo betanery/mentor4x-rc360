@@ -321,8 +321,31 @@ export function VersionConfigDialog({ version, onOpenChange }: Props) {
                 </div>
                 <div><Label>Link de venda</Label><Input value={form.sales_url} onChange={(e) => setForm({ ...form, sales_url: e.target.value })} disabled={published} /></div>
                 <div><Label>Link de checkout</Label><Input value={form.checkout_url} onChange={(e) => setForm({ ...form, checkout_url: e.target.value })} disabled={published} /></div>
+                <div>
+                  <Label>Nível da esteira</Label>
+                  <Select value={form.ladder_level || "none"} onValueChange={(v) => setForm({ ...form, ladder_level: v === "none" ? "" : v })} disabled={published}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent><SelectItem value="none">Não definido</SelectItem>{LADDER_LEVELS.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Tipo de serviço</Label>
+                  <Select value={form.service_type || "none"} onValueChange={(v) => setForm({ ...form, service_type: v === "none" ? "" : v })} disabled={published}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent><SelectItem value="none">Não definido</SelectItem>{SERVICE_TYPES.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Modalidade</Label>
+                  <Select value={form.modality || "none"} onValueChange={(v) => setForm({ ...form, modality: v === "none" ? "" : v })} disabled={published}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent><SelectItem value="none">Não definido</SelectItem>{MODALITIES.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
               </div>
+              <div><Label>Promessa</Label><Textarea rows={2} value={form.promise} onChange={(e) => setForm({ ...form, promise: e.target.value })} disabled={published} /></div>
               <div className="flex flex-wrap gap-6">
+
                 <div className="flex items-center gap-2"><Switch checked={form.community_included} onCheckedChange={(v) => setForm({ ...form, community_included: v })} disabled={published} /><Label>Comunidade incluída</Label></div>
                 <div className="flex items-center gap-2"><Switch checked={form.ai_enabled} onCheckedChange={(v) => setForm({ ...form, ai_enabled: v })} disabled={published} /><Label>Sócio IA habilitado</Label></div>
               </div>
