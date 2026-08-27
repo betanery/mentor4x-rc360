@@ -179,6 +179,16 @@ export function VersionConfigDialog({ version, onOpenChange }: Props) {
       checkout_url: form.checkout_url || null,
       recommendation_mode: form.recommendation_mode,
       notes: form.notes || null,
+      promise: form.promise || null,
+      ladder_level: form.ladder_level || null,
+      service_type: form.service_type || null,
+      modality: form.modality || null,
+      diagnostic_required: form.diagnostic_required,
+      max_critical_goals: form.max_critical_goals === "" ? null : Number(form.max_critical_goals),
+      action_plan_days: form.action_plan_days === "" ? null : Number(form.action_plan_days),
+      completion_rules: form.completion_rules,
+      goal_required_fields: form.goal_required_fields,
+
     };
     const { error } = configId
       ? await supabase.from("product_version_config").update(payload).eq("id", configId)
