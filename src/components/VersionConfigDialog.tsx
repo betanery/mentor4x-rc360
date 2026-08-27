@@ -41,6 +41,24 @@ const RECOMMENDATION = [
   { value: "nenhuma", label: "Não recomendar" },
 ] as const;
 
+const SERVICE_TYPES = ["individual", "grupo", "híbrido"] as const;
+const MODALITIES = ["online", "presencial", "híbrido"] as const;
+const LADDER_LEVELS = ["entrada", "intermediário", "avançado"] as const;
+const GOAL_FIELDS = [
+  { key: "title", label: "Título / tarefa" },
+  { key: "description", label: "Descrição" },
+  { key: "current_situation", label: "Situação atual" },
+  { key: "responsible_user_id", label: "Responsável" },
+  { key: "due_date", label: "Prazo" },
+  { key: "indicator", label: "Indicador" },
+  { key: "expected_result", label: "Resultado esperado" },
+  { key: "evidence_url", label: "Evidência" },
+  { key: "notes", label: "Observação" },
+  { key: "pillar", label: "Pilar" },
+  { key: "blindspot_code", label: "BlindSpot" },
+  { key: "capacity_code", label: "Capacidade Estruturante" },
+] as const;
+
 const emptyConfig = {
   price_cents: "",
   currency: "BRL",
@@ -58,7 +76,17 @@ const emptyConfig = {
   checkout_url: "",
   recommendation_mode: "manual",
   notes: "",
+  promise: "",
+  ladder_level: "",
+  service_type: "",
+  modality: "",
+  diagnostic_required: false,
+  max_critical_goals: "",
+  action_plan_days: "",
+  completion_rules: [] as string[],
+  goal_required_fields: [] as string[],
 };
+
 
 interface Props {
   version: ProductVersion | null;
@@ -106,6 +134,16 @@ export function VersionConfigDialog({ version, onOpenChange }: Props) {
             checkout_url: c.checkout_url ?? "",
             recommendation_mode: c.recommendation_mode,
             notes: c.notes ?? "",
+            promise: c.promise ?? "",
+            ladder_level: c.ladder_level ?? "",
+            service_type: c.service_type ?? "",
+            modality: c.modality ?? "",
+            diagnostic_required: c.diagnostic_required,
+            max_critical_goals: c.max_critical_goals === null ? "" : String(c.max_critical_goals),
+            action_plan_days: c.action_plan_days === null ? "" : String(c.action_plan_days),
+            completion_rules: Array.isArray(c.completion_rules) ? (c.completion_rules as string[]) : [],
+            goal_required_fields: Array.isArray(c.goal_required_fields) ? (c.goal_required_fields as string[]) : [],
+
           }
         : emptyConfig,
     );
@@ -141,6 +179,16 @@ export function VersionConfigDialog({ version, onOpenChange }: Props) {
       checkout_url: form.checkout_url || null,
       recommendation_mode: form.recommendation_mode,
       notes: form.notes || null,
+      promise: form.promise || null,
+      ladder_level: form.ladder_level || null,
+      service_type: form.service_type || null,
+      modality: form.modality || null,
+      diagnostic_required: form.diagnostic_required,
+      max_critical_goals: form.max_critical_goals === "" ? null : Number(form.max_critical_goals),
+      action_plan_days: form.action_plan_days === "" ? null : Number(form.action_plan_days),
+      completion_rules: form.completion_rules,
+      goal_required_fields: form.goal_required_fields,
+
     };
     const { error } = configId
       ? await supabase.from("product_version_config").update(payload).eq("id", configId)
@@ -237,6 +285,8 @@ export function VersionConfigDialog({ version, onOpenChange }: Props) {
               <TabsTrigger value="encontros">Encontros ({meetings.length})</TabsTrigger>
               <TabsTrigger value="etapas">Etapas ({stages.length})</TabsTrigger>
               <TabsTrigger value="entregaveis">Entregáveis ({deliverables.length})</TabsTrigger>
+              <TabsTrigger value="regras">Regras</TabsTrigger>
+
             </TabsList>
 
             <TabsContent value="comercial" className="space-y-4">
@@ -271,8 +321,31 @@ export function VersionConfigDialog({ version, onOpenChange }: Props) {
                 </div>
                 <div><Label>Link de venda</Label><Input value={form.sales_url} onChange={(e) => setForm({ ...form, sales_url: e.target.value })} disabled={published} /></div>
                 <div><Label>Link de checkout</Label><Input value={form.checkout_url} onChange={(e) => setForm({ ...form, checkout_url: e.target.value })} disabled={published} /></div>
+                <div>
+                  <Label>Nível da esteira</Label>
+                  <Select value={form.ladder_level || "none"} onValueChange={(v) => setForm({ ...form, ladder_level: v === "none" ? "" : v })} disabled={published}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent><SelectItem value="none">Não definido</SelectItem>{LADDER_LEVELS.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Tipo de serviço</Label>
+                  <Select value={form.service_type || "none"} onValueChange={(v) => setForm({ ...form, service_type: v === "none" ? "" : v })} disabled={published}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent><SelectItem value="none">Não definido</SelectItem>{SERVICE_TYPES.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Modalidade</Label>
+                  <Select value={form.modality || "none"} onValueChange={(v) => setForm({ ...form, modality: v === "none" ? "" : v })} disabled={published}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent><SelectItem value="none">Não definido</SelectItem>{MODALITIES.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
               </div>
+              <div><Label>Promessa</Label><Textarea rows={2} value={form.promise} onChange={(e) => setForm({ ...form, promise: e.target.value })} disabled={published} /></div>
               <div className="flex flex-wrap gap-6">
+
                 <div className="flex items-center gap-2"><Switch checked={form.community_included} onCheckedChange={(v) => setForm({ ...form, community_included: v })} disabled={published} /><Label>Comunidade incluída</Label></div>
                 <div className="flex items-center gap-2"><Switch checked={form.ai_enabled} onCheckedChange={(v) => setForm({ ...form, ai_enabled: v })} disabled={published} /><Label>Sócio IA habilitado</Label></div>
               </div>

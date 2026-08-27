@@ -428,7 +428,19 @@ export default function AdminProducts() {
                             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Versões</p>
                             <Button size="sm" variant="outline" onClick={() => openVersion(undefined, product.id)}><Plus className="h-3.5 w-3.5 mr-1" /> Nova versão</Button>
                           </div>
-                          {productVersions.length === 0 ? <p className="text-xs text-muted-foreground">Nenhuma versão cadastrada.</p> : productVersions.map((version) => (
+                          {productVersions.length === 0 ? (
+                            <div className="rounded-lg border border-dashed border-border bg-muted/20 p-4 text-center">
+                              <p className="text-sm font-semibold">Nenhuma versão cadastrada</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Configuração comercial, encontros, etapas, entregáveis, regras e onboarding pertencem a uma versão.
+                                Crie a primeira versão para liberar essas opções.
+                              </p>
+                              <Button size="sm" className="mt-3 bg-gradient-brand" onClick={() => openVersion(undefined, product.id)}>
+                                <Plus className="h-3.5 w-3.5 mr-1" /> Criar primeira versão
+                              </Button>
+                            </div>
+                          ) : productVersions.map((version) => (
+
                             <div key={version.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/30 p-3">
                               <Layers3 className="h-4 w-4 text-primary" />
                               <div className="flex-1 min-w-0">

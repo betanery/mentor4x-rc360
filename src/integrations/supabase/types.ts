@@ -1899,67 +1899,94 @@ export type Database = {
       product_version_config: {
         Row: {
           access_days: number | null
+          action_plan_days: number | null
           ai_enabled: boolean
           audience: string | null
           bonuses: string | null
           catalog_visibility: string
           checkout_url: string | null
           community_included: boolean
+          completion_rules: Json
           created_at: string
           currency: string
+          diagnostic_required: boolean
           duration_amount: number | null
           duration_unit: string
           format: string | null
+          goal_required_fields: Json
           id: string
+          ladder_level: string | null
+          max_critical_goals: number | null
+          modality: string | null
           notes: string | null
           price_cents: number | null
           product_version_id: string
+          promise: string | null
           recommendation_mode: string
           sales_url: string | null
+          service_type: string | null
           support_model: string | null
           updated_at: string
         }
         Insert: {
           access_days?: number | null
+          action_plan_days?: number | null
           ai_enabled?: boolean
           audience?: string | null
           bonuses?: string | null
           catalog_visibility?: string
           checkout_url?: string | null
           community_included?: boolean
+          completion_rules?: Json
           created_at?: string
           currency?: string
+          diagnostic_required?: boolean
           duration_amount?: number | null
           duration_unit?: string
           format?: string | null
+          goal_required_fields?: Json
           id?: string
+          ladder_level?: string | null
+          max_critical_goals?: number | null
+          modality?: string | null
           notes?: string | null
           price_cents?: number | null
           product_version_id: string
+          promise?: string | null
           recommendation_mode?: string
           sales_url?: string | null
+          service_type?: string | null
           support_model?: string | null
           updated_at?: string
         }
         Update: {
           access_days?: number | null
+          action_plan_days?: number | null
           ai_enabled?: boolean
           audience?: string | null
           bonuses?: string | null
           catalog_visibility?: string
           checkout_url?: string | null
           community_included?: boolean
+          completion_rules?: Json
           created_at?: string
           currency?: string
+          diagnostic_required?: boolean
           duration_amount?: number | null
           duration_unit?: string
           format?: string | null
+          goal_required_fields?: Json
           id?: string
+          ladder_level?: string | null
+          max_critical_goals?: number | null
+          modality?: string | null
           notes?: string | null
           price_cents?: number | null
           product_version_id?: string
+          promise?: string | null
           recommendation_mode?: string
           sales_url?: string | null
+          service_type?: string | null
           support_model?: string | null
           updated_at?: string
         }
