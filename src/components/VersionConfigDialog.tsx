@@ -285,6 +285,8 @@ export function VersionConfigDialog({ version, onOpenChange }: Props) {
               <TabsTrigger value="encontros">Encontros ({meetings.length})</TabsTrigger>
               <TabsTrigger value="etapas">Etapas ({stages.length})</TabsTrigger>
               <TabsTrigger value="entregaveis">Entregáveis ({deliverables.length})</TabsTrigger>
+              <TabsTrigger value="regras">Regras</TabsTrigger>
+
             </TabsList>
 
             <TabsContent value="comercial" className="space-y-4">
