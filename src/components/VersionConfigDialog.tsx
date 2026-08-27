@@ -134,6 +134,16 @@ export function VersionConfigDialog({ version, onOpenChange }: Props) {
             checkout_url: c.checkout_url ?? "",
             recommendation_mode: c.recommendation_mode,
             notes: c.notes ?? "",
+            promise: c.promise ?? "",
+            ladder_level: c.ladder_level ?? "",
+            service_type: c.service_type ?? "",
+            modality: c.modality ?? "",
+            diagnostic_required: c.diagnostic_required,
+            max_critical_goals: c.max_critical_goals === null ? "" : String(c.max_critical_goals),
+            action_plan_days: c.action_plan_days === null ? "" : String(c.action_plan_days),
+            completion_rules: Array.isArray(c.completion_rules) ? (c.completion_rules as string[]) : [],
+            goal_required_fields: Array.isArray(c.goal_required_fields) ? (c.goal_required_fields as string[]) : [],
+
           }
         : emptyConfig,
     );
