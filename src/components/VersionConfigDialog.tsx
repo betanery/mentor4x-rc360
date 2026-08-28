@@ -429,6 +429,87 @@ export function VersionConfigDialog({ version, onOpenChange }: Props) {
                 </Card>
               ))}
             </TabsContent>
+
+            <TabsContent value="regras" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="flex items-center gap-2 pt-6">
+                  <Switch checked={form.diagnostic_required} onCheckedChange={(v) => setForm({ ...form, diagnostic_required: v })} disabled={published} />
+                  <Label>Diagnóstico obrigatório</Label>
+                </div>
+                <div><Label>Limite de Metas Críticas</Label><Input type="number" value={form.max_critical_goals} onChange={(e) => setForm({ ...form, max_critical_goals: e.target.value })} disabled={published} /></div>
+                <div><Label>Plano de Ação (dias)</Label><Input type="number" value={form.action_plan_days} onChange={(e) => setForm({ ...form, action_plan_days: e.target.value })} disabled={published} /></div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Regras de conclusão</Label>
+                  <Button size="sm" variant="outline" disabled={published} onClick={() => setForm({ ...form, completion_rules: [...form.completion_rules, ""] })}>
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar regra
+                  </Button>
+                </div>
+                {form.completion_rules.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma regra de conclusão definida.</p>}
+                {form.completion_rules.map((rule, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Badge variant="outline">{i + 1}</Badge>
+                    <Input
+                      value={rule}
+                      disabled={published}
+                      onChange={(e) => setForm({ ...form, completion_rules: form.completion_rules.map((r, j) => (j === i ? e.target.value : r)) })}
+                    />
+                    <Button size="icon" variant="ghost" disabled={published || i === 0}
+                      onClick={() => {
+                        const next = [...form.completion_rules];
+                        [next[i - 1], next[i]] = [next[i], next[i - 1]];
+                        setForm({ ...form, completion_rules: next });
+                      }}
+                    >↑</Button>
+                    <Button size="icon" variant="ghost" disabled={published || i === form.completion_rules.length - 1}
+                      onClick={() => {
+                        const next = [...form.completion_rules];
+                        [next[i + 1], next[i]] = [next[i], next[i + 1]];
+                        setForm({ ...form, completion_rules: next });
+                      }}
+                    >↓</Button>
+                    <Button size="icon" variant="ghost" disabled={published} onClick={() => setForm({ ...form, completion_rules: form.completion_rules.filter((_, j) => j !== i) })}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Campos obrigatórios da meta</Label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  {GOAL_FIELDS.map((f) => {
+                    const checked = form.goal_required_fields.includes(f.key);
+                    return (
+                      <div key={f.key} className="flex items-center gap-2">
+                        <Switch
+                          checked={checked}
+                          disabled={published}
+                          onCheckedChange={(v) =>
+                            setForm({
+                              ...form,
+                              goal_required_fields: v
+                                ? [...form.goal_required_fields, f.key]
+                                : form.goal_required_fields.filter((k) => k !== f.key),
+                            })
+                          }
+                        />
+                        <Label className="text-xs">{f.label}</Label>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button className="bg-gradient-brand" onClick={saveConfig} disabled={published || saving}>
+                  {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Salvar regras
+                </Button>
+              </div>
+            </TabsContent>
+
           </Tabs>
         )}
 
