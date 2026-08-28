@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Lock, Loader2, Plus, Trash2 } from "lucide-react";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
+import { MEETING_TYPE_LABEL, MEETING_TYPE_OPTIONS } from "@/lib/labels";
 
 type ProductVersion = Tables<"product_versions">;
 type Config = Tables<"product_version_config">;
