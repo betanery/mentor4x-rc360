@@ -18,6 +18,7 @@ import { format, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Sparkles, Save, CalendarPlus, Video, MapPin, MessageSquarePlus, Lock, Users, CalendarClock, CheckCircle2, XCircle, Send, Film } from "lucide-react";
 import { toast } from "sonner";
+import { MEETING_TYPE_LABEL, MEETING_TYPE_OPTIONS } from "@/lib/labels";
 
 const BLOCKS = [
   { key: "done", label: "1. O que foi feito", color: "border-success/30 bg-success/5" },
