@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Lock, Loader2, Plus, Trash2 } from "lucide-react";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
+import { MEETING_TYPE_LABEL, MEETING_TYPE_OPTIONS } from "@/lib/labels";
 
 type ProductVersion = Tables<"product_versions">;
 type Config = Tables<"product_version_config">;
@@ -20,15 +21,8 @@ type VMeeting = Tables<"product_version_meetings">;
 type VStage = Tables<"product_version_stages">;
 type VDeliverable = Tables<"product_version_deliverables">;
 
-const MEETING_TYPES = ["kickoff", "sala_guerra", "mentoria", "estrategia", "review", "checkin_semanal"] as const;
-const MEETING_LABEL: Record<string, string> = {
-  kickoff: "Kickoff",
-  sala_guerra: "Sala de Guerra",
-  mentoria: "Encontro de orientação",
-  estrategia: "Encontro estratégico",
-  review: "Review",
-  checkin_semanal: "Check-in semanal",
-};
+const MEETING_TYPES = MEETING_TYPE_OPTIONS;
+const MEETING_LABEL = MEETING_TYPE_LABEL;
 const DURATION_UNITS = ["dias", "semanas", "meses"] as const;
 const VISIBILITY = [
   { value: "interno", label: "Somente interno" },
@@ -202,7 +196,7 @@ export function VersionConfigDialog({ version, onOpenChange }: Props) {
   const addMeeting = async () => {
     const { error } = await supabase.from("product_version_meetings").insert({
       product_version_id: version.id,
-      meeting_type: "mentoria",
+      meeting_type: "checkin_semanal",
       title: "Novo encontro",
       quantity: 1,
       duration_min: 60,

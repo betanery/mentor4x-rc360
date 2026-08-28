@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CYCLE_LABEL, MEETING_TYPE_LABEL } from "@/lib/labels";
+import { CYCLE_LABEL, MEETING_TYPE_LABEL, MEETING_TYPE_OPTIONS } from "@/lib/labels";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 
@@ -25,7 +25,7 @@ export const ITEM_TYPE_LABEL: Record<ItemType, string> = {
   conteudo: "Liberação de conteúdo",
 };
 
-const MEETING_TYPES = ["kickoff", "sala_guerra", "estrategia", "review", "checkin_semanal", "mentoria"] as const;
+const MEETING_TYPES = MEETING_TYPE_OPTIONS;
 const STAGES = ["ciclo_1", "ciclo_2", "ciclo_3", "ciclo_4", "ciclo_5", "ciclo_6", "concluido"] as const;
 
 const emptyForm = {

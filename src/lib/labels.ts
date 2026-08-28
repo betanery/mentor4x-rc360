@@ -57,11 +57,16 @@ export const MOTORES = [
 export const MEETING_TYPE_LABEL: Record<string, string> = {
   checkin_semanal: "Check-in semanal",
   sala_guerra: "Sala de Guerra (quinzenal)",
-  estrategia: "Estratégia",
+  estrategia: "Encontro estratégico",
   kickoff: "Kickoff",
-  review: "Review",
+  review: "Review de ciclo",
+  // legado: registros antigos gravados como "mentoria" seguem legíveis com o rótulo oficial
   mentoria: "Check-in semanal",
 };
+
+// Tipos oferecidos na interface. O valor legado "mentoria" continua aceito no banco,
+// mas não é mais ofertado para evitar duas opções com o mesmo significado.
+export const MEETING_TYPE_OPTIONS = ["checkin_semanal", "sala_guerra", "estrategia", "kickoff", "review"] as const;
 
 export const GOAL_STATUS_LABEL: Record<string, { label: string; color: string }> = {
   nao_iniciado: { label: "Não iniciado", color: "bg-muted text-muted-foreground" },
