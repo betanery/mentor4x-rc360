@@ -196,7 +196,7 @@ export function VersionConfigDialog({ version, onOpenChange }: Props) {
   const addMeeting = async () => {
     const { error } = await supabase.from("product_version_meetings").insert({
       product_version_id: version.id,
-      meeting_type: "mentoria",
+      meeting_type: "checkin_semanal",
       title: "Novo encontro",
       quantity: 1,
       duration_min: 60,

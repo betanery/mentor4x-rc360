@@ -27,13 +27,7 @@ const BLOCKS = [
   { key: "decisions", label: "5. Decisões tomadas", color: "border-primary/30 bg-primary/5" },
 ];
 
-const MEETING_TYPES = [
-  { value: "checkin_semanal", label: "Check-in semanal" },
-  { value: "estrategia", label: "Estratégia" },
-  { value: "sala_guerra", label: "Sala de Guerra (quinzenal)" },
-  { value: "kickoff", label: "Kickoff" },
-  { value: "review", label: "Review de ciclo" },
-];
+const MEETING_TYPES = MEETING_TYPE_OPTIONS.map((value) => ({ value, label: MEETING_TYPE_LABEL[value] }));
 
 const RECURRENCES = [
   { value: "nenhuma", label: "Sem recorrência" },
