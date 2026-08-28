@@ -20,15 +20,8 @@ type VMeeting = Tables<"product_version_meetings">;
 type VStage = Tables<"product_version_stages">;
 type VDeliverable = Tables<"product_version_deliverables">;
 
-const MEETING_TYPES = ["kickoff", "sala_guerra", "mentoria", "estrategia", "review", "checkin_semanal"] as const;
-const MEETING_LABEL: Record<string, string> = {
-  kickoff: "Kickoff",
-  sala_guerra: "Sala de Guerra",
-  mentoria: "Encontro de orientação",
-  estrategia: "Encontro estratégico",
-  review: "Review",
-  checkin_semanal: "Check-in semanal",
-};
+const MEETING_TYPES = MEETING_TYPE_OPTIONS;
+const MEETING_LABEL = MEETING_TYPE_LABEL;
 const DURATION_UNITS = ["dias", "semanas", "meses"] as const;
 const VISIBILITY = [
   { value: "interno", label: "Somente interno" },
