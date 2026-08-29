@@ -38,6 +38,9 @@ import { structuringScore, executionIndex, economicImpact, formatBRL } from "@/l
 import { Progress } from "@/components/ui/progress";
 
 
+const REPORT_SUBTITLE =
+  "Comparativo antes/depois do diagnóstico e Plano de 90 dias, gerado em PDF com identidade RC360.";
+
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   rascunho: { label: "Rascunho", color: "bg-warning/15 text-warning" },
   consolidado: { label: "Consolidado", color: "bg-info/15 text-info" },
@@ -224,7 +227,7 @@ export default function ReportSee4X() {
     <div className="space-y-6">
       <PageHeader
         title="Relatório SEE_4X"
-        subtitle="Comparativo antes/depois do diagnóstico e Plano de 90 dias, gerado em PDF com identidade RC360."
+        subtitle={REPORT_SUBTITLE}
         action={
           <Button
             onClick={() => generate.mutate()}

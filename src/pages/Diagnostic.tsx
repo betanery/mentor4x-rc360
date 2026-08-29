@@ -40,6 +40,9 @@ import {
 
 import { AlertTriangle, CheckCircle2, ClipboardList, Plus, ShieldCheck, Users } from "lucide-react";
 
+const DIAGNOSTIC_SUBTITLE =
+  "Baseline oficial da empresa: Maturidade, Improviso, Pilar e BlindSpot prioritários e IDD — com múltiplos respondentes e validação do Consultor 4X.";
+
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   rascunho: { label: "Rascunho — coletando respostas", color: "bg-warning/15 text-warning" },
   consolidado: { label: "Consolidado — aguardando validação", color: "bg-info/15 text-info" },
