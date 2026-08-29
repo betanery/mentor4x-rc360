@@ -47,7 +47,7 @@ export default function Reports() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Relatórios Premium"
+        title="Relatórios"
         subtitle="PDFs com a evolução completa da empresa, gerados pela IA com identidade RC360 · SEE_4X."
         action={<Button onClick={generate} disabled={generating} className="bg-gradient-brand"><Plus className="h-4 w-4 mr-1" /> {generating ? "Gerando..." : "Gerar relatório mensal"}</Button>}
       />

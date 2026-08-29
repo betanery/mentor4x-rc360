@@ -160,7 +160,7 @@ export default function Playbooks() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Biblioteca de Playbooks"
+        title="Playbooks"
         subtitle="Recursos de apoio do SEE_4X — modelos, checklists e processos prontos por Pilar, BlindSpot e Motor."
         action={isStaff ? (
           <Button className="bg-gradient-brand" onClick={startCreate}><Plus className="h-4 w-4 mr-1" /> Novo playbook</Button>

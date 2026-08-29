@@ -209,7 +209,7 @@ export default function AdminUniversity() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Admin · Universidade 4X"
+        title="Universidade 4X (Admin)"
         subtitle="Cadastre cursos e aulas, faça upload de vídeos, PDFs e capas."
         action={<Button onClick={openNewCourse} className="bg-gradient-brand"><Plus className="h-4 w-4 mr-1" /> Novo curso</Button>}
       />

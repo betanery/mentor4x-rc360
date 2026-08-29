@@ -29,7 +29,7 @@ const NAV = [
   { to: "/socio-ia", label: "Meu Sócio IA", icon: Sparkles, highlight: true },
   { to: "/relatorios", label: "Relatórios", icon: FileText },
   { to: "/relatorio-see4x", label: "Relatório SEE_4X", icon: BarChart3 },
-  { to: "/certificados", label: "Certificação", icon: Award },
+  { to: "/certificados", label: "Certificação SEE_4X", icon: Award },
 ];
 
 const STAFF_NAV = [
@@ -37,7 +37,7 @@ const STAFF_NAV = [
   { to: "/estrategista", label: "Área do Estrategista 4X", icon: Briefcase, role: ["super_admin","mentor","estrategista"] as const },
   { to: "/admin/produtos", label: "Produtos", icon: Boxes, role: ["super_admin","mentor","estrategista"] as const },
   { to: "/empresas", label: "Empresas", icon: Building2, role: ["super_admin","mentor","estrategista"] as const },
-  { to: "/admin/universidade", label: "Admin Universidade", icon: GraduationCap, role: ["super_admin","mentor","estrategista"] as const },
+  { to: "/admin/universidade", label: "Universidade 4X (Admin)", icon: GraduationCap, role: ["super_admin","mentor","estrategista"] as const },
 ];
 
 export function AppLayout() {

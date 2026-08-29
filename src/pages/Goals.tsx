@@ -291,7 +291,7 @@ export default function Goals() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Sistema de Metas"
+        title="Metas"
         subtitle="Até 2 Metas Críticas ativas por empresa — a terceira exige justificativa de capacidade e aprovação do Consultor 4X."
         action={
           <Dialog open={open} onOpenChange={setOpen}>
