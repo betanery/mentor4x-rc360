@@ -214,10 +214,7 @@ export default function ReportSee4X() {
   if (!current) {
     return (
       <div>
-        <PageHeader
-          title="Relatório SEE_4X"
-          subtitle="Comparativo antes/depois e Plano de 90 dias com identidade RC360."
-        />
+        <PageHeader title="Relatório SEE_4X" subtitle={REPORT_SUBTITLE} />
         <Card className="p-10 text-center text-muted-foreground">Selecione uma empresa para começar.</Card>
       </div>
     );

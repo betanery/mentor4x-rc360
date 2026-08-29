@@ -281,7 +281,7 @@ export default function Diagnostic() {
   if (!current) {
     return (
       <div>
-        <PageHeader title="Diagnóstico SEE_4X" subtitle="Baseline oficial da empresa: Maturidade, Improviso, Pilar e BlindSpot prioritários e IDD." />
+        <PageHeader title="Diagnóstico SEE_4X" subtitle={DIAGNOSTIC_SUBTITLE} />
         <Card className="p-10 text-center text-muted-foreground">Selecione uma empresa para começar.</Card>
       </div>
     );
@@ -293,7 +293,7 @@ export default function Diagnostic() {
     <div>
       <PageHeader
         title="Diagnóstico SEE_4X"
-        subtitle="Baseline oficial da empresa: Maturidade, Improviso, Pilar e BlindSpot prioritários e IDD — com múltiplos respondentes e validação do Consultor 4X."
+        subtitle={DIAGNOSTIC_SUBTITLE}
         action={
           isStaff && (
             <Button onClick={() => createDiag.mutate()} disabled={createDiag.isPending}>
