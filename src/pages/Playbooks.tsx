@@ -113,12 +113,12 @@ export default function Playbooks() {
   });
 
   const uploadFile = async (file: File) => {
-    if (file.size > 25 * 1024 * 1024) { toast.error("Máx 25MB"); return; }
+    if (file.size > 25 * 1024 * 1024) { toast.error("Arquivo muito grande", { description: "O limite é 25 MB. Comprima o arquivo e tente novamente." }); return; }
     setUploading(true);
     const ext = file.name.split(".").pop() || "pdf";
     const path = `playbooks/${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from("lessons").upload(path, file, { contentType: file.type });
-    if (error) { setUploading(false); showError("salvar o playbook", e); return; }
+    if (error) { setUploading(false); showError("enviar o material", error); return; }
     
     // Fase 6c — guarda o caminho; link assinado curto é gerado ao abrir.
     setForm((f) => ({ ...f, file_url: path }));

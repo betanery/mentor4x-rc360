@@ -271,17 +271,17 @@ export default function Goals() {
 
   const uploadEvidence = async (goal: Goal, file: File) => {
     if (!current) return;
-    if (file.size > 10 * 1024 * 1024) { toast.error("Máx 10MB"); return; }
+    if (file.size > 10 * 1024 * 1024) { toast.error("Arquivo muito grande", { description: "O limite é 10 MB por evidência." }); return; }
     setUploadingFor(goal.id);
     const ext = file.name.split(".").pop() || "bin";
     const path = `${current.id}/${goal.id}/${crypto.randomUUID()}.${ext}`;
     const { error: upErr } = await supabase.storage.from("evidences").upload(path, file, { contentType: file.type });
-    if (upErr) { setUploadingFor(null); showError("salvar a meta", e); return; }
+    if (upErr) { setUploadingFor(null); showError("enviar a evidência", upErr); return; }
     // Fase 6c — guardamos apenas o caminho; o link assinado é gerado sob demanda (5 min).
     const { error: updErr } = await supabase.from("goals").update({ evidence_url: path }).eq("id", goal.id);
 
     setUploadingFor(null);
-    if (updErr) { showError("salvar a meta", e); return; }
+    if (updErr) { showError("salvar a evidência", updErr); return; }
     toast.success("Evidência anexada");
     invalidate();
   };
