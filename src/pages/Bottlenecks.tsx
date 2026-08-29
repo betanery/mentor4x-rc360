@@ -19,6 +19,7 @@ import { BLINDSPOTS, blindspotByCode } from "@/lib/see4x";
 import { useAuth } from "@/hooks/useAuth";
 import { Plus, CheckCircle2, Trash2, Loader2, Target, History, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
+import { showError } from "@/lib/feedback";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Bottleneck = Tables<"bottlenecks">;
@@ -99,7 +100,7 @@ export default function Bottlenecks() {
       setForm(EMPTY);
       invalidate();
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => showError("salvar o gargalo", e),
   });
 
   const progressMut = useMutation({
@@ -108,7 +109,7 @@ export default function Bottlenecks() {
       if (error) throw error;
     },
     onSuccess: invalidate,
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => showError("salvar o gargalo", e),
   });
 
   const removeMut = useMutation({
@@ -117,7 +118,7 @@ export default function Bottlenecks() {
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Gargalo removido"); invalidate(); },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => showError("salvar o gargalo", e),
   });
 
   const { data: history = [] } = useQuery({
@@ -165,7 +166,7 @@ export default function Bottlenecks() {
       invalidate();
       qc.invalidateQueries({ queryKey: ["bottleneck_rank_history", current?.id, currentContract?.id] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => showError("salvar o gargalo", e),
   });
 
   const pickBlindspot = (code: string) => {

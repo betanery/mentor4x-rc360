@@ -455,8 +455,8 @@ export default function AdminProducts() {
                                 {duplicatingId === version.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Copy className="h-3.5 w-3.5 mr-1" />} Duplicar
                               </Button>
                               {!version.published_at && <Button size="sm" variant="outline" onClick={() => publishVersion(version)}>Publicar</Button>}
-                              <Button size="icon" variant="ghost" onClick={() => openVersion(version)}><Pencil className="h-4 w-4" /></Button>
-                              <Button size="icon" variant="ghost" onClick={() => setDeleting({ table: "product_versions", id: version.id, title: version.version_label })}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              <Button size="icon" variant="ghost" onClick={() => openVersion(version)} aria-label="Configurar versão"><Pencil className="h-4 w-4" /></Button>
+                              <Button size="icon" variant="ghost" onClick={() => setDeleting({ table: "product_versions", id: version.id, title: version.version_label })} aria-label="Excluir versão"><Trash2 className="h-4 w-4 text-destructive" /></Button>
 
                             </div>
                           ))}

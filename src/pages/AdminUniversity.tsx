@@ -209,7 +209,7 @@ export default function AdminUniversity() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Admin · Universidade 4X"
+        title="Universidade 4X (Admin)"
         subtitle="Cadastre cursos e aulas, faça upload de vídeos, PDFs e capas."
         action={<Button onClick={openNewCourse} className="bg-gradient-brand"><Plus className="h-4 w-4 mr-1" /> Novo curso</Button>}
       />
@@ -253,13 +253,13 @@ export default function AdminUniversity() {
                     </div>
                   </AccordionTrigger>
                   <div className="flex items-center gap-1 shrink-0">
-                    <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); moveCourse(c, -1); }}><ChevronUp className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); moveCourse(c, 1); }}><ChevronDown className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); togglePublish(c); }} title={c.published ? "Despublicar" : "Publicar"}>
+                    <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); moveCourse(c, -1); }} aria-label="Mover curso para cima"><ChevronUp className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); moveCourse(c, 1); }} aria-label="Mover curso para baixo"><ChevronDown className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); togglePublish(c); }} aria-label={c.published ? "Despublicar curso" : "Publicar curso"} title={c.published ? "Despublicar" : "Publicar"}>
                       {c.published ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                     </Button>
-                    <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); openEditCourse(c); }}><Pencil className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); setDeleting({ type: "course", id: c.id, title: c.title }); }}>
+                    <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); openEditCourse(c); }} aria-label="Editar curso"><Pencil className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); setDeleting({ type: "course", id: c.id, title: c.title }); }} aria-label="Excluir curso">
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
@@ -288,10 +288,10 @@ export default function AdminUniversity() {
                               {l.pdf_url && <span>· PDF</span>}
                             </div>
                           </div>
-                          <Button size="icon" variant="ghost" onClick={() => moveLesson(l, -1)}><ChevronUp className="h-3.5 w-3.5" /></Button>
-                          <Button size="icon" variant="ghost" onClick={() => moveLesson(l, 1)}><ChevronDown className="h-3.5 w-3.5" /></Button>
-                          <Button size="icon" variant="ghost" onClick={() => openEditLesson(l)}><Pencil className="h-3.5 w-3.5" /></Button>
-                          <Button size="icon" variant="ghost" onClick={() => setDeleting({ type: "lesson", id: l.id, title: l.title })}>
+                          <Button size="icon" variant="ghost" onClick={() => moveLesson(l, -1)} aria-label="Mover aula para cima"><ChevronUp className="h-3.5 w-3.5" /></Button>
+                          <Button size="icon" variant="ghost" onClick={() => moveLesson(l, 1)} aria-label="Mover aula para baixo"><ChevronDown className="h-3.5 w-3.5" /></Button>
+                          <Button size="icon" variant="ghost" onClick={() => openEditLesson(l)} aria-label="Editar aula"><Pencil className="h-3.5 w-3.5" /></Button>
+                          <Button size="icon" variant="ghost" onClick={() => setDeleting({ type: "lesson", id: l.id, title: l.title })} aria-label="Excluir aula">
                             <Trash2 className="h-3.5 w-3.5 text-destructive" />
                           </Button>
                         </div>

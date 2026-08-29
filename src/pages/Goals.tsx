@@ -17,6 +17,7 @@ import { GOAL_STATUS_LABEL, formatBRL, PILLAR_LABEL } from "@/lib/labels";
 import { Plus, Calendar, DollarSign, Trash2, Paperclip, MessageSquare, Loader2, ExternalLink, AlertTriangle, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { showError } from "@/lib/feedback";
 import { BLINDSPOTS, CAPACITIES, blindspotByCode, capacityByCode } from "@/lib/see4x";
 import { openStorageFile } from "@/lib/storage";
 
@@ -89,7 +90,7 @@ export default function Goals() {
       qc.invalidateQueries({ queryKey: ["goal_updates", detailId] });
       toast.success("Atualização registrada");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => showError("salvar a meta", e),
   });
 
 
@@ -209,7 +210,7 @@ export default function Goals() {
 
       invalidate();
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => showError("salvar a meta", e),
   });
 
   // Aprovação/recusa da meta excedente — decisão humana, sempre registrada.
@@ -240,7 +241,7 @@ export default function Goals() {
       toast.success("Decisão registrada");
       invalidate();
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => showError("salvar a meta", e),
   });
 
 
@@ -270,17 +271,17 @@ export default function Goals() {
 
   const uploadEvidence = async (goal: Goal, file: File) => {
     if (!current) return;
-    if (file.size > 10 * 1024 * 1024) { toast.error("Máx 10MB"); return; }
+    if (file.size > 10 * 1024 * 1024) { toast.error("Arquivo muito grande", { description: "O limite é 10 MB por evidência." }); return; }
     setUploadingFor(goal.id);
     const ext = file.name.split(".").pop() || "bin";
     const path = `${current.id}/${goal.id}/${crypto.randomUUID()}.${ext}`;
     const { error: upErr } = await supabase.storage.from("evidences").upload(path, file, { contentType: file.type });
-    if (upErr) { setUploadingFor(null); toast.error(upErr.message); return; }
+    if (upErr) { setUploadingFor(null); showError("enviar a evidência", upErr); return; }
     // Fase 6c — guardamos apenas o caminho; o link assinado é gerado sob demanda (5 min).
     const { error: updErr } = await supabase.from("goals").update({ evidence_url: path }).eq("id", goal.id);
 
     setUploadingFor(null);
-    if (updErr) { toast.error(updErr.message); return; }
+    if (updErr) { showError("salvar a evidência", updErr); return; }
     toast.success("Evidência anexada");
     invalidate();
   };
@@ -291,7 +292,7 @@ export default function Goals() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Sistema de Metas"
+        title="Metas"
         subtitle="Até 2 Metas Críticas ativas por empresa — a terceira exige justificativa de capacidade e aprovação do Consultor 4X."
         action={
           <Dialog open={open} onOpenChange={setOpen}>

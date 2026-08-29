@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { showError } from "@/lib/feedback";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -37,6 +38,9 @@ import { MATURITY_LABEL, improvisoBand } from "@/lib/see4x";
 import { structuringScore, executionIndex, economicImpact, formatBRL } from "@/lib/metrics";
 import { Progress } from "@/components/ui/progress";
 
+
+const REPORT_SUBTITLE =
+  "Comparativo antes/depois do diagnóstico e Plano de 90 dias, gerado em PDF com identidade RC360.";
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   rascunho: { label: "Rascunho", color: "bg-warning/15 text-warning" },
@@ -193,7 +197,7 @@ export default function ReportSee4X() {
       toast.success("Relatório SEE_4X gerado em PDF");
       qc.invalidateQueries({ queryKey: ["reports", current?.id, currentContract?.id] });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => showError("gerar o relatório", e),
   });
 
   const download = async (path: string, title: string) => {
@@ -214,10 +218,7 @@ export default function ReportSee4X() {
   if (!current) {
     return (
       <div>
-        <PageHeader
-          title="Relatório SEE_4X"
-          subtitle="Comparativo antes/depois e Plano de 90 dias com identidade RC360."
-        />
+        <PageHeader title="Relatório SEE_4X" subtitle={REPORT_SUBTITLE} />
         <Card className="p-10 text-center text-muted-foreground">Selecione uma empresa para começar.</Card>
       </div>
     );
@@ -227,7 +228,7 @@ export default function ReportSee4X() {
     <div className="space-y-6">
       <PageHeader
         title="Relatório SEE_4X"
-        subtitle="Comparativo antes/depois do diagnóstico e Plano de 90 dias, gerado em PDF com identidade RC360."
+        subtitle={REPORT_SUBTITLE}
         action={
           <Button
             onClick={() => generate.mutate()}

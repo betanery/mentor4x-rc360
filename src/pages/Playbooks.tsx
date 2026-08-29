@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { BookOpen, Plus, Trash2, Download, Loader2, Pencil, Search } from "lucide-react";
 import { toast } from "sonner";
+import { showError } from "@/lib/feedback";
 import type { Tables } from "@/integrations/supabase/types";
 import { BLINDSPOTS, blindspotByCode } from "@/lib/see4x";
 import { MOTORES, PILLAR_LABEL } from "@/lib/labels";
@@ -99,7 +100,7 @@ export default function Playbooks() {
       setForm(emptyForm);
       invalidate();
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => showError("salvar o playbook", e),
   });
 
   const removeMut = useMutation({
@@ -108,16 +109,16 @@ export default function Playbooks() {
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Playbook removido"); setToDelete(null); invalidate(); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => showError("salvar o playbook", e),
   });
 
   const uploadFile = async (file: File) => {
-    if (file.size > 25 * 1024 * 1024) { toast.error("Máx 25MB"); return; }
+    if (file.size > 25 * 1024 * 1024) { toast.error("Arquivo muito grande", { description: "O limite é 25 MB. Comprima o arquivo e tente novamente." }); return; }
     setUploading(true);
     const ext = file.name.split(".").pop() || "pdf";
     const path = `playbooks/${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from("lessons").upload(path, file, { contentType: file.type });
-    if (error) { setUploading(false); toast.error(error.message); return; }
+    if (error) { setUploading(false); showError("enviar o material", error); return; }
     
     // Fase 6c — guarda o caminho; link assinado curto é gerado ao abrir.
     setForm((f) => ({ ...f, file_url: path }));
@@ -160,7 +161,7 @@ export default function Playbooks() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Biblioteca de Playbooks"
+        title="Playbooks"
         subtitle="Recursos de apoio do SEE_4X — modelos, checklists e processos prontos por Pilar, BlindSpot e Motor."
         action={isStaff ? (
           <Button className="bg-gradient-brand" onClick={startCreate}><Plus className="h-4 w-4 mr-1" /> Novo playbook</Button>

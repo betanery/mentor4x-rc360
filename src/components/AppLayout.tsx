@@ -29,7 +29,7 @@ const NAV = [
   { to: "/socio-ia", label: "Meu Sócio IA", icon: Sparkles, highlight: true },
   { to: "/relatorios", label: "Relatórios", icon: FileText },
   { to: "/relatorio-see4x", label: "Relatório SEE_4X", icon: BarChart3 },
-  { to: "/certificados", label: "Certificação", icon: Award },
+  { to: "/certificados", label: "Certificação SEE_4X", icon: Award },
 ];
 
 const STAFF_NAV = [
@@ -37,7 +37,7 @@ const STAFF_NAV = [
   { to: "/estrategista", label: "Área do Estrategista 4X", icon: Briefcase, role: ["super_admin","mentor","estrategista"] as const },
   { to: "/admin/produtos", label: "Produtos", icon: Boxes, role: ["super_admin","mentor","estrategista"] as const },
   { to: "/empresas", label: "Empresas", icon: Building2, role: ["super_admin","mentor","estrategista"] as const },
-  { to: "/admin/universidade", label: "Admin Universidade", icon: GraduationCap, role: ["super_admin","mentor","estrategista"] as const },
+  { to: "/admin/universidade", label: "Universidade 4X (Admin)", icon: GraduationCap, role: ["super_admin","mentor","estrategista"] as const },
 ];
 
 export function AppLayout() {
@@ -78,7 +78,7 @@ export function AppLayout() {
       )}>
         <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
           <Logo dark />
-          <Button variant="ghost" size="icon" className="lg:hidden text-sidebar-foreground" onClick={() => setOpen(false)}>
+          <Button variant="ghost" size="icon" className="lg:hidden text-sidebar-foreground" aria-label="Fechar menu" onClick={() => setOpen(false)}>
             <X className="h-5 w-5" />
           </Button>
         </div>
@@ -152,7 +152,7 @@ export function AppLayout() {
       <div className="flex-1 min-w-0 flex flex-col">
         <header className="sticky top-0 z-20 glass border-b border-border h-16 flex items-center justify-between px-4 lg:px-8">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(true)}>
+            <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Abrir menu" onClick={() => setOpen(true)}>
               <Menu className="h-5 w-5" />
             </Button>
             {current && (
@@ -163,7 +163,7 @@ export function AppLayout() {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="relative" onClick={() => nav("/notificacoes")}>
+            <Button variant="ghost" size="icon" className="relative" aria-label="Ver notificações" onClick={() => nav("/notificacoes")}>
               <Bell className="h-5 w-5" />
               {unread > 0 && (
                 <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-1 rounded-full bg-gold text-gold-foreground text-[10px] font-bold flex items-center justify-center">

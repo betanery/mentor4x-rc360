@@ -127,7 +127,7 @@ export function OnboardingTemplateDialog({
                   {item.course_id ? ` · curso: ${courses.find((c) => c.id === item.course_id)?.title ?? "vinculado"}` : ""}
                 </p>
               </div>
-              <Button size="icon" variant="ghost" onClick={() => removeItem(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+              <Button size="icon" variant="ghost" onClick={() => removeItem(item.id)} aria-label="Remover item do onboarding"><Trash2 className="h-4 w-4 text-destructive" /></Button>
             </div>
           ))}
         </div>

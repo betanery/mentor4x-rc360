@@ -15,7 +15,12 @@ import { PILLAR_LABEL } from "@/lib/labels";
 import { Plus } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { showError } from "@/lib/feedback";
+import { PageSkeleton } from "@/components/PageSkeleton";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Legend } from "recharts";
+
+const PILLARS_SUBTITLE =
+  "Crescimento, Eficiência, Encantamento e Liderança — os quatro eixos do método.";
 
 export default function Pillars() {
   const { current } = useCompany();
@@ -25,7 +30,7 @@ export default function Pillars() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ pillar: "crescimento", score: 70, blind_spots: "", recommendations: "" });
 
-  const { data: scores = [] } = useQuery({
+  const { data: scores = [], isLoading: loadingScores } = useQuery({
     queryKey: ["pillar_scores", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
@@ -66,7 +71,7 @@ export default function Pillars() {
       setOpen(false);
       setForm({ pillar: "crescimento", score: 70, blind_spots: "", recommendations: "" });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => showError("registrar o score", e),
   });
 
   const latest = (key: string) => scores.find((s: any) => s.pillar === key);
@@ -78,10 +83,19 @@ export default function Pillars() {
     meta: 80,
   }));
 
+  if (loadingScores) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Pilares 4X" subtitle={PILLARS_SUBTITLE} />
+        <PageSkeleton cards={4} rows={2} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <PageHeader title="Pilares 4X" subtitle="Crescimento, Eficiência, Encantamento e Liderança — os quatro eixos do método." />
+        <PageHeader title="Pilares 4X" subtitle={PILLARS_SUBTITLE} />
         {isStaff && current && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>

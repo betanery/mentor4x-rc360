@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { showError } from "@/lib/feedback";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompany } from "@/hooks/useCompany";
 import { useContract } from "@/hooks/useContract";
@@ -61,7 +62,7 @@ export default function Onboarding() {
       qc.invalidateQueries({ queryKey: ["journey_meetings"] });
       void refreshContracts();
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => showError("atualizar o onboarding", e),
   });
 
   const toggle = useMutation({
@@ -73,7 +74,7 @@ export default function Onboarding() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["contract_onboarding_items"] }),
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => showError("atualizar o onboarding", e),
   });
 
   const grouped = useMemo(() => {

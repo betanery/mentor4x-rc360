@@ -8,12 +8,15 @@ import { Button } from "@/components/ui/button";
 import { FileText, Download, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/EmptyState";
+import { PageSkeleton } from "@/components/PageSkeleton";
 
 export default function Reports() {
   const { current } = useCompany();
   const { currentContract } = useContract();
   const [reports, setReports] = useState<any[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const load = async () => {
     if (!current) return;
@@ -21,6 +24,7 @@ export default function Reports() {
     query = currentContract ? query.eq("contract_id", currentContract.id) : query.is("contract_id", null);
     const { data } = await query;
     setReports(data || []);
+    setLoading(false);
   };
   useEffect(() => { load(); }, [current, currentContract]);
 
@@ -47,16 +51,24 @@ export default function Reports() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Relatórios Premium"
+        title="Relatórios"
         subtitle="PDFs com a evolução completa da empresa, gerados pela IA com identidade RC360 · SEE_4X."
         action={<Button onClick={generate} disabled={generating} className="bg-gradient-brand"><Plus className="h-4 w-4 mr-1" /> {generating ? "Gerando..." : "Gerar relatório mensal"}</Button>}
       />
 
-      {reports.length === 0 && (
-        <Card className="p-12 text-center">
-          <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-          <p className="text-muted-foreground">Nenhum relatório gerado ainda. Clique em "Gerar relatório mensal" para começar.</p>
-        </Card>
+      {loading && <PageSkeleton cards={2} rows={2} />}
+
+      {!loading && reports.length === 0 && (
+        <EmptyState
+          icon={FileText}
+          title="Nenhum relatório gerado ainda"
+          description="Gere o primeiro relatório mensal para consolidar diagnóstico, metas e evolução da empresa em PDF."
+          action={
+            <Button onClick={generate} disabled={generating} className="bg-gradient-brand">
+              <Plus className="h-4 w-4 mr-1" /> {generating ? "Gerando..." : "Gerar relatório mensal"}
+            </Button>
+          }
+        />
       )}
 
       <div className="space-y-3">

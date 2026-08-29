@@ -123,7 +123,7 @@ export default function AdminUsers() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Gerenciar usuários"
+        title="Gerenciar Usuários"
         subtitle="Convide usuários por email, atribua papéis, vincule a empresas e acompanhe o status."
         action={
           <Dialog open={open} onOpenChange={setOpen}>
