@@ -17,6 +17,7 @@ import { CheckCircle2, Target, FileCheck, ArrowRight, Lock, Paperclip, CalendarD
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { showError } from "@/lib/feedback";
+import { PageSkeleton } from "@/components/PageSkeleton";
 
 
 const STAGES = [
@@ -85,6 +86,9 @@ const STAGE_STATUS: Record<string, { label: string; cls: string }> = {
 };
 
 
+const JOURNEY_SUBTITLE =
+  "A trilha completa do Sistema de Estruturação Empresarial 4X — do improviso à autonomia.";
+
 export default function Journey() {
   const { current } = useCompany();
   const { currentContract, refreshContracts } = useContract();
@@ -96,7 +100,7 @@ export default function Journey() {
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const { data: checklist = [] } = useQuery({
+  const { data: checklist = [], isLoading: loadingChecklist } = useQuery({
     queryKey: ["journey_checklist", current?.id, currentContract?.id],
     enabled: !!current,
     queryFn: async () => {
@@ -321,9 +325,18 @@ export default function Journey() {
   const cycleMeetings = meetings.filter((m: any) => !cycleStart || new Date(m.scheduled_at) >= new Date(cycleStart));
 
 
+  if (loadingChecklist) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Jornada SEE_4X — 6 Ciclos" subtitle={JOURNEY_SUBTITLE} />
+        <PageSkeleton cards={3} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Jornada SEE_4X — 6 Ciclos" subtitle="A trilha completa do Sistema de Estruturação Empresarial 4X — do improviso à autonomia." />
+      <PageHeader title="Jornada SEE_4X — 6 Ciclos" subtitle={JOURNEY_SUBTITLE} />
 
       <Card className="p-6 shadow-card bg-gradient-brand text-primary-foreground relative overflow-hidden">
         <div className="absolute -top-10 -right-10 h-48 w-48 bg-gold/15 rounded-full blur-3xl" />
