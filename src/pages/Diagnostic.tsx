@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { showError } from "@/lib/feedback";
 import { PILLAR_LABEL } from "@/lib/labels";
 import {
   ANSWER_SCALE,
@@ -138,7 +139,7 @@ export default function Diagnostic() {
       qc.invalidateQueries({ queryKey: ["diagnostics"] });
       toast.success("Novo diagnóstico aberto para coleta de respostas.");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => showError("salvar o diagnóstico", e),
   });
 
   const saveResponse = useMutation({
@@ -164,7 +165,7 @@ export default function Diagnostic() {
       qc.invalidateQueries({ queryKey: ["diagnostic_responses"] });
       toast.success("Resposta registrada. Divergências de percepção são sinalizadas, nunca corrigidas.");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => showError("salvar o diagnóstico", e),
   });
 
   const consolidate = useMutation({
@@ -180,7 +181,7 @@ export default function Diagnostic() {
       qc.invalidateQueries({ queryKey: ["diagnostics"] });
       toast.success("Consolidado. A classificação final depende da validação do Consultor 4X.");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => showError("salvar o diagnóstico", e),
   });
 
   const validate = useMutation({
@@ -215,7 +216,7 @@ export default function Diagnostic() {
       setValidateOpen(false);
       toast.success("Diagnóstico validado — baseline oficial registrado.");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => showError("salvar o diagnóstico", e),
   });
 
   // Motor metodológico: transforma o Top 5 validado em gargalos rastreáveis (sem duplicar BlindSpot).
@@ -259,7 +260,7 @@ export default function Diagnostic() {
       qc.invalidateQueries({ queryKey: ["bottlenecks"] });
       toast.success(`${n} gargalo(s) criado(s) a partir do Top 5.`);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => showError("salvar o diagnóstico", e),
   });
 
   const openValidate = () => {

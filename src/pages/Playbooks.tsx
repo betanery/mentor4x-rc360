@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { BookOpen, Plus, Trash2, Download, Loader2, Pencil, Search } from "lucide-react";
 import { toast } from "sonner";
+import { showError } from "@/lib/feedback";
 import type { Tables } from "@/integrations/supabase/types";
 import { BLINDSPOTS, blindspotByCode } from "@/lib/see4x";
 import { MOTORES, PILLAR_LABEL } from "@/lib/labels";
@@ -99,7 +100,7 @@ export default function Playbooks() {
       setForm(emptyForm);
       invalidate();
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => showError("salvar o playbook", e),
   });
 
   const removeMut = useMutation({
@@ -108,7 +109,7 @@ export default function Playbooks() {
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Playbook removido"); setToDelete(null); invalidate(); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => showError("salvar o playbook", e),
   });
 
   const uploadFile = async (file: File) => {
@@ -117,7 +118,7 @@ export default function Playbooks() {
     const ext = file.name.split(".").pop() || "pdf";
     const path = `playbooks/${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from("lessons").upload(path, file, { contentType: file.type });
-    if (error) { setUploading(false); toast.error(error.message); return; }
+    if (error) { setUploading(false); showError("salvar o playbook", e); return; }
     
     // Fase 6c — guarda o caminho; link assinado curto é gerado ao abrir.
     setForm((f) => ({ ...f, file_url: path }));

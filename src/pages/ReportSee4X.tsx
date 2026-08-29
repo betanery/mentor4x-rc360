@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { showError } from "@/lib/feedback";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -196,7 +197,7 @@ export default function ReportSee4X() {
       toast.success("Relatório SEE_4X gerado em PDF");
       qc.invalidateQueries({ queryKey: ["reports", current?.id, currentContract?.id] });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => showError("gerar o relatório", e),
   });
 
   const download = async (path: string, title: string) => {

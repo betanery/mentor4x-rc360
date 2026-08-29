@@ -18,6 +18,7 @@ import { BLINDSPOTS, blindspotByCode } from "@/lib/see4x";
 import { Plus, Trash2, Loader2, ListChecks, Calendar, Target, Pencil, X } from "lucide-react";
 import { format, isBefore, startOfToday } from "date-fns";
 import { toast } from "sonner";
+import { showError } from "@/lib/feedback";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Task = Tables<"tasks">;
@@ -159,7 +160,7 @@ export default function Tasks() {
       resetForm();
       invalidate();
     },
-    onError: (e: Error) => { toast.error(e.message); invalidate(); },
+    onError: (e: Error) => { showError("salvar a tarefa", e); invalidate(); },
   });
 
   const toggleMut = useMutation({
@@ -174,7 +175,7 @@ export default function Tasks() {
       if (!data || data.length === 0) throw new Error("Tarefa alterada por outra pessoa — lista atualizada.");
     },
     onSuccess: invalidate,
-    onError: (e: Error) => { toast.error(e.message); invalidate(); },
+    onError: (e: Error) => { showError("salvar a tarefa", e); invalidate(); },
   });
 
   const checklistMut = useMutation({
@@ -192,7 +193,7 @@ export default function Tasks() {
       if (!data || data.length === 0) throw new Error("Checklist alterado por outra pessoa — lista atualizada.");
     },
     onSuccess: invalidate,
-    onError: (e: Error) => { toast.error(e.message); invalidate(); },
+    onError: (e: Error) => { showError("salvar a tarefa", e); invalidate(); },
   });
 
   const removeMut = useMutation({
@@ -201,7 +202,7 @@ export default function Tasks() {
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Tarefa removida"); invalidate(); },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => showError("salvar a tarefa", e),
   });
 
   const pending = tasks.filter((t) => !t.done);

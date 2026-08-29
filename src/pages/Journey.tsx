@@ -16,6 +16,7 @@ import { openStorageFile } from "@/lib/storage";
 import { CheckCircle2, Target, FileCheck, ArrowRight, Lock, Paperclip, CalendarDays, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { showError } from "@/lib/feedback";
 
 
 const STAGES = [
@@ -155,7 +156,7 @@ export default function Journey() {
       toast.success(n ? `${n} etapa(s) da jornada geradas` : "Jornada já estava gerada");
       qc.invalidateQueries({ queryKey: ["contract_journey_stages"] });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => showError("atualizar o ciclo", e),
   });
 
   const setStageStatus = useMutation({
@@ -170,7 +171,7 @@ export default function Journey() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["contract_journey_stages"] }),
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => showError("atualizar o ciclo", e),
   });
 
 
@@ -193,7 +194,7 @@ export default function Journey() {
       }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["journey_checklist"] }),
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => showError("atualizar o ciclo", e),
   });
 
   const isChecked = (stage: string, type: string, key: string) =>
@@ -224,7 +225,7 @@ export default function Journey() {
       toast.success("Abertura do ciclo registrada");
       qc.invalidateQueries({ queryKey: ["cycle_records"] });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => showError("atualizar o ciclo", e),
   });
 
   const closeCycle = useMutation({
@@ -302,7 +303,7 @@ export default function Journey() {
       qc.invalidateQueries({ queryKey: ["governance_log"] });
       void refreshContracts();
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => showError("atualizar o ciclo", e),
   });
 
   const overallProgress = useMemo(() => {

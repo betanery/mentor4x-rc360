@@ -15,6 +15,7 @@ import { PILLAR_LABEL } from "@/lib/labels";
 import { Plus } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { showError } from "@/lib/feedback";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Legend } from "recharts";
 
 export default function Pillars() {
@@ -66,7 +67,7 @@ export default function Pillars() {
       setOpen(false);
       setForm({ pillar: "crescimento", score: 70, blind_spots: "", recommendations: "" });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => showError("registrar o score", e),
   });
 
   const latest = (key: string) => scores.find((s: any) => s.pillar === key);
