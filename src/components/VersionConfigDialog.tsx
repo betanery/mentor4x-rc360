@@ -370,7 +370,7 @@ export function VersionConfigDialog({ version, onOpenChange }: Props) {
                     <div><Label className="text-xs">Quantidade</Label><Input type="number" value={m.quantity} onChange={(e) => updateMeeting(m.id, { quantity: Number(e.target.value) })} disabled={published} /></div>
                     <div><Label className="text-xs">Duração (min)</Label><Input type="number" value={m.duration_min} onChange={(e) => updateMeeting(m.id, { duration_min: Number(e.target.value) })} disabled={published} /></div>
                     <div className="flex items-end gap-2"><Switch checked={m.required} onCheckedChange={(v) => updateMeeting(m.id, { required: v })} disabled={published} /><Label className="text-xs">Obrigatório</Label></div>
-                    <div className="flex items-end justify-end"><Button size="icon" variant="ghost" onClick={() => removeRow("product_version_meetings", m.id)} disabled={published}><Trash2 className="h-4 w-4 text-destructive" /></Button></div>
+                    <div className="flex items-end justify-end"><Button size="icon" variant="ghost" onClick={() => removeRow("product_version_meetings", m.id)} disabled={published} aria-label="Remover encontro"><Trash2 className="h-4 w-4 text-destructive" /></Button></div>
                   </div>
                 </Card>
               ))}
@@ -384,7 +384,7 @@ export function VersionConfigDialog({ version, onOpenChange }: Props) {
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">{i + 1}</Badge>
                     <Input value={s.title} onChange={(e) => updateStage(s.id, { title: e.target.value })} disabled={published} />
-                    <Button size="icon" variant="ghost" onClick={() => removeRow("product_version_stages", s.id)} disabled={published}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => removeRow("product_version_stages", s.id)} disabled={published} aria-label="Remover etapa"><Trash2 className="h-4 w-4 text-destructive" /></Button>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                     <div><Label className="text-xs">Ordem</Label><Input type="number" value={s.order_index} onChange={(e) => updateStage(s.id, { order_index: Number(e.target.value) })} disabled={published} /></div>
@@ -403,7 +403,7 @@ export function VersionConfigDialog({ version, onOpenChange }: Props) {
                 <Card key={d.id} className="p-3 space-y-2">
                   <div className="flex items-center gap-2">
                     <Input value={d.title} onChange={(e) => updateDeliverable(d.id, { title: e.target.value })} disabled={published} />
-                    <Button size="icon" variant="ghost" onClick={() => removeRow("product_version_deliverables", d.id)} disabled={published}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => removeRow("product_version_deliverables", d.id)} disabled={published} aria-label="Remover entregável"><Trash2 className="h-4 w-4 text-destructive" /></Button>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                     <div><Label className="text-xs">Formato</Label><Input placeholder="PDF, planilha, painel" value={d.format ?? ""} onChange={(e) => updateDeliverable(d.id, { format: e.target.value })} disabled={published} /></div>
@@ -450,21 +450,21 @@ export function VersionConfigDialog({ version, onOpenChange }: Props) {
                       disabled={published}
                       onChange={(e) => setForm({ ...form, completion_rules: form.completion_rules.map((r, j) => (j === i ? e.target.value : r)) })}
                     />
-                    <Button size="icon" variant="ghost" disabled={published || i === 0}
+                    <Button size="icon" variant="ghost" disabled={published || i === 0} aria-label="Mover regra para cima"
                       onClick={() => {
                         const next = [...form.completion_rules];
                         [next[i - 1], next[i]] = [next[i], next[i - 1]];
                         setForm({ ...form, completion_rules: next });
                       }}
                     >↑</Button>
-                    <Button size="icon" variant="ghost" disabled={published || i === form.completion_rules.length - 1}
+                    <Button size="icon" variant="ghost" disabled={published || i === form.completion_rules.length - 1} aria-label="Mover regra para baixo"
                       onClick={() => {
                         const next = [...form.completion_rules];
                         [next[i + 1], next[i]] = [next[i], next[i + 1]];
                         setForm({ ...form, completion_rules: next });
                       }}
                     >↓</Button>
-                    <Button size="icon" variant="ghost" disabled={published} onClick={() => setForm({ ...form, completion_rules: form.completion_rules.filter((_, j) => j !== i) })}>
+                    <Button size="icon" variant="ghost" disabled={published} aria-label="Remover regra" onClick={() => setForm({ ...form, completion_rules: form.completion_rules.filter((_, j) => j !== i) })}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>

@@ -78,7 +78,7 @@ export function AppLayout() {
       )}>
         <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
           <Logo dark />
-          <Button variant="ghost" size="icon" className="lg:hidden text-sidebar-foreground" onClick={() => setOpen(false)}>
+          <Button variant="ghost" size="icon" className="lg:hidden text-sidebar-foreground" aria-label="Fechar menu" onClick={() => setOpen(false)}>
             <X className="h-5 w-5" />
           </Button>
         </div>
@@ -152,7 +152,7 @@ export function AppLayout() {
       <div className="flex-1 min-w-0 flex flex-col">
         <header className="sticky top-0 z-20 glass border-b border-border h-16 flex items-center justify-between px-4 lg:px-8">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(true)}>
+            <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Abrir menu" onClick={() => setOpen(true)}>
               <Menu className="h-5 w-5" />
             </Button>
             {current && (
@@ -163,7 +163,7 @@ export function AppLayout() {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="relative" onClick={() => nav("/notificacoes")}>
+            <Button variant="ghost" size="icon" className="relative" aria-label="Ver notificações" onClick={() => nav("/notificacoes")}>
               <Bell className="h-5 w-5" />
               {unread > 0 && (
                 <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-1 rounded-full bg-gold text-gold-foreground text-[10px] font-bold flex items-center justify-center">
