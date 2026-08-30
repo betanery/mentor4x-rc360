@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PageSkeleton } from "@/components/PageSkeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useContract } from "@/hooks/useContract";
@@ -18,6 +19,7 @@ export default function University() {
   const { user } = useAuth();
   const { currentContract } = useContract();
   const [courses, setCourses] = useState<any[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(true);
   const [lessons, setLessons] = useState<any[]>([]);
   const [progress, setProgress] = useState<Record<string, { completed: boolean; progress_pct: number }>>({});
   const [active, setActive] = useState<any>(null);
@@ -59,6 +61,7 @@ export default function University() {
   };
 
   useEffect(() => {
+    setLoadingCourses(true);
     const coursesQuery = supabase.from("courses").select("*").eq("published", true).order("order_index");
     if (currentContract) coursesQuery.eq("product_version_id", currentContract.product_version_id);
     Promise.all([coursesQuery, supabase.from("lessons").select("*").order("order_index")])
@@ -67,7 +70,8 @@ export default function University() {
         const allowed = new Set(courseRows.map((course: any) => course.id));
         setCourses(courseRows);
         setLessons((l.data || []).filter((lesson: any) => allowed.has(lesson.course_id)));
-      });
+      })
+      .finally(() => setLoadingCourses(false));
     loadProgress();
     if (currentContract) {
       supabase
@@ -104,9 +108,21 @@ export default function University() {
     loadProgress();
   };
 
+  const universitySubtitle =
+    "Recursos de apoio do SEE_4X — trilhas, aulas e materiais de implementação.";
+
+  if (loadingCourses) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Universidade 4X" subtitle={universitySubtitle} />
+        <PageSkeleton cards={3} rows={3} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Universidade 4X" subtitle="Recursos de apoio do SEE_4X — trilhas, aulas e materiais de implementação." />
+      <PageHeader title="Universidade 4X" subtitle={universitySubtitle} />
 
       {accessExpired && (
         <Card className="p-4 border-destructive/40 bg-destructive/5 text-sm">

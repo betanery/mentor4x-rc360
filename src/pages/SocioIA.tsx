@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
 import { useContract } from "@/hooks/useContract";
 import { PageHeader } from "@/components/PageHeader";
+import { PageSkeleton } from "@/components/PageSkeleton";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -381,8 +382,11 @@ export default function SocioIA() {
                 {logsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Atualizar"}
               </Button>
             </div>
+            {logsLoading && <PageSkeleton cards={0} rows={3} />}
             {logs.length === 0 && !logsLoading && (
-              <p className="text-sm text-muted-foreground">Nenhuma decisão registrada ainda.</p>
+              <p className="text-sm text-muted-foreground">
+                Nenhuma decisão registrada ainda. Proponha ações na aba Ações para começar o histórico.
+              </p>
             )}
             <div className="space-y-2">
               {logs.map((l) => (

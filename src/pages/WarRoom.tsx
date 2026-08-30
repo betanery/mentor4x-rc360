@@ -19,6 +19,7 @@ import { ptBR } from "date-fns/locale";
 import { Sparkles, Save, CalendarPlus, Video, MapPin, MessageSquarePlus, Lock, Users, CalendarClock, CheckCircle2, XCircle, Send, Film } from "lucide-react";
 import { toast } from "sonner";
 import { MEETING_TYPE_LABEL, MEETING_TYPE_OPTIONS } from "@/lib/labels";
+import { PageSkeleton } from "@/components/PageSkeleton";
 
 const BLOCKS = [
   { key: "done", label: "1. O que foi feito", color: "border-success/30 bg-success/5" },
@@ -92,6 +93,7 @@ export default function WarRoom() {
   const [attendanceDraft, setAttendanceDraft] = useState<Record<string, { status: string; note: string }>>({});
   const [recordingOpen, setRecordingOpen] = useState<any | null>(null);
   const [recordingUrl, setRecordingUrl] = useState("");
+  const [loadingPage, setLoadingPage] = useState(true);
 
   const isAtaLocked = review.ata_status === "aprovada" && !isStaff;
 
@@ -144,7 +146,10 @@ export default function WarRoom() {
   };
 
   useEffect(() => { loadReviews(); }, [current, currentContract, weekStart]);
-  useEffect(() => { loadMeetings(); loadMembers(); }, [current, currentContract]);
+  useEffect(() => {
+    setLoadingPage(true);
+    void Promise.all([loadMeetings(), loadMembers()]).finally(() => setLoadingPage(false));
+  }, [current, currentContract]);
 
   const persistReview = async (extra: Record<string, any> = {}, message = "Sala de Guerra salva") => {
     if (!current || !user) return;
@@ -304,12 +309,21 @@ export default function WarRoom() {
 
   const ataBadge = ATA_STATUS[review.ata_status || "rascunho"];
 
+  const warRoomSubtitle =
+    "Check-in semanal e Sala de Guerra quinzenal, com presença, gravação, recorrência e ata aprovada pelo Consultor 4X.";
+
+  if (loadingPage) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Sala de Guerra" subtitle={warRoomSubtitle} />
+        <PageSkeleton cards={2} rows={4} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Sala de Guerra"
-        subtitle="Check-in semanal e Sala de Guerra quinzenal, com presença, gravação, recorrência e ata aprovada pelo Consultor 4X."
-      />
+      <PageHeader title="Sala de Guerra" subtitle={warRoomSubtitle} />
 
       <Tabs defaultValue="semanal">
         <TabsList>
