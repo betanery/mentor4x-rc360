@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
 import { useContract } from "@/hooks/useContract";
 import { PageHeader } from "@/components/PageHeader";
+import { PageSkeleton } from "@/components/PageSkeleton";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { StatCard } from "@/components/StatCard";
 import { IMPROVISO_LABEL, CYCLE_LABEL, CYCLE_ORDER, GOAL_STATUS_LABEL, PILLAR_LABEL, formatBRL } from "@/lib/labels";
@@ -25,9 +26,11 @@ export default function Dashboard() {
   const [meetings, setMeetings] = useState<any[]>([]);
   const [scoreHistory, setScoreHistory] = useState<any[]>([]);
   const [diagnostic, setDiagnostic] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!current) return;
+    setLoading(true);
     (async () => {
       const goalsQuery = supabase.from("goals").select("*").eq("company_id", current.id).order("due_date", { ascending: true });
       const bottlenecksQuery = supabase.from("bottlenecks").select("*").eq("company_id", current.id).eq("resolved", false).order("urgency", { ascending: false }).limit(5);
@@ -85,6 +88,7 @@ export default function Dashboard() {
         return h;
       });
       setScoreHistory(filled);
+      setLoading(false);
     })();
   }, [current, currentContract]);
 
@@ -101,6 +105,14 @@ export default function Dashboard() {
           <Link to="/empresas" className="text-sm font-semibold text-primary underline">Ir para Empresas</Link>
           <Link to="/notificacoes" className="text-sm font-semibold text-royal underline">Ver notificações</Link>
         </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <PageSkeleton cards={4} rows={3} />
       </div>
     );
   }
