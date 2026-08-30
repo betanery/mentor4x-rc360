@@ -9,7 +9,8 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
-import { ANSWER_SCALE, BLINDSPOTS, IDD_DIMENSIONS, QUESTIONS, improvisoBand } from "@/lib/see4x";
+import { BLINDSPOTS, IDD_DIMENSIONS, QUESTIONS, improvisoBand } from "@/lib/see4x";
+import { ScaleLegend, ScaleQuestion } from "@/components/ScaleQuestion";
 import { CheckCircle2, Cloud, Loader2, Lock, ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
 
 type Lead = {
@@ -462,33 +463,20 @@ export default function LeadDiagnostic() {
                   </p>
                 </div>
               ) : (
-                <div className="mt-6 space-y-6">
+                <div className="mt-6 space-y-4">
+                  <ScaleLegend />
                   {stepQuestions.map((q) => (
-                    <div key={q.id} className="pb-5 border-b border-border last:border-0 last:pb-0">
-                      <p className="font-semibold text-sm">{q.statement}</p>
-                      <p className="text-xs text-muted-foreground font-mono mt-0.5">{q.id} · {q.label}</p>
-                      <div className="mt-3 grid grid-cols-2 sm:grid-cols-5 gap-2">
-                        {ANSWER_SCALE.map((s) => (
-                          <button
-                            key={s.value}
-                            type="button"
-                            onClick={() => setAnswer(q.id, s.value)}
-                            aria-pressed={answers[q.id] === s.value}
-                            className={`rounded-lg border px-2 py-2.5 text-xs font-semibold transition-colors ${
-                              answers[q.id] === s.value
-                                ? "border-gold bg-gold/15 text-gold"
-                                : "border-border hover:border-gold/50 text-muted-foreground"
-                            }`}
-                          >
-                            <span className="block text-base font-black">{s.value}</span>
-                            {s.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    <ScaleQuestion
+                      key={q.id}
+                      id={q.id}
+                      statement={q.statement}
+                      value={answers[q.id]}
+                      onChange={(v) => setAnswer(q.id, v)}
+                    />
                   ))}
                 </div>
               )}
+
 
               <div className="mt-8 flex items-center justify-between gap-3">
                 <Button variant="ghost" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}>

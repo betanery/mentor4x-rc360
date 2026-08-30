@@ -159,13 +159,22 @@ export const QUESTIONS: Question[] = [
 ];
 
 
-export const ANSWER_SCALE = [
-  { value: 1, label: "Não existe" },
-  { value: 2, label: "Existe informalmente" },
-  { value: 3, label: "Existe em parte" },
-  { value: 4, label: "Estruturado" },
-  { value: 5, label: "Estruturado e medido" },
+/**
+ * Escala única de resposta. `label` é o rótulo curto exibido no botão e `hint`
+ * explica o critério em linguagem de dono, usado na legenda de cada bloco.
+ */
+export const ANSWER_SCALE: { value: number; label: string; hint: string }[] = [
+  { value: 1, label: "Não existe", hint: "Nunca foi feito na empresa." },
+  { value: 2, label: "Informal", hint: "Acontece na prática, mas sem padrão nem registro." },
+  { value: 3, label: "Em parte", hint: "Está definido em parte e é seguido de forma irregular." },
+  { value: 4, label: "Estruturado", hint: "Está definido, documentado e é seguido pelo time." },
+  { value: 5, label: "Medido", hint: "Estruturado, com indicador acompanhado e melhoria contínua." },
 ];
+
+/** Enunciado padrão exibido antes de qualquer bloco de perguntas. */
+export const SCALE_INSTRUCTION =
+  "Leia cada afirmação e marque o quanto ela já é verdade hoje na empresa — de 1 (não existe) a 5 (estruturado e medido).";
+
 
 export type Answers = Record<string, number>;
 
