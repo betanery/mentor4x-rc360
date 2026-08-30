@@ -17,8 +17,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { showError } from "@/lib/feedback";
 import { PILLAR_LABEL } from "@/lib/labels";
+import { ScaleLegend, ScaleQuestion } from "@/components/ScaleQuestion";
 import {
-  ANSWER_SCALE,
   BLINDSPOTS,
   DIVERGENCE_THRESHOLD,
   GROUP_LABEL,
@@ -584,13 +584,14 @@ export default function Diagnostic() {
                     <Card key={pillar} className="p-5">
                       <h3 className="font-bold">{PILLAR_LABEL[pillar].label}</h3>
                       <p className="text-xs text-muted-foreground mb-4">{PILLAR_LABEL[pillar].description}</p>
-                      <div className="space-y-4">
+                      <div className="space-y-3">
+                        <ScaleLegend />
                         {BLINDSPOTS.filter((b) => b.pillar === pillar).map((bs) => (
-                          <QuestionRow
+                          <ScaleQuestion
                             key={bs.code}
-                            code={bs.code}
-                            title={bs.title}
+                            id={bs.code}
                             statement={bs.statement}
+                            tag={isStaff ? `${bs.code} · ${bs.title}` : undefined}
                             value={answers[bs.code]}
                             onChange={(v) => setAnswers((a) => ({ ...a, [bs.code]: v }))}
                           />
@@ -602,13 +603,14 @@ export default function Diagnostic() {
                   <Card className="p-5">
                     <h3 className="font-bold">IDD · Dependência do dono</h3>
                     <p className="text-xs text-muted-foreground mb-4">Oito dimensões de dependência.</p>
-                    <div className="space-y-4">
+                    <div className="space-y-3">
+                      <ScaleLegend />
                       {IDD_DIMENSIONS.map((d) => (
-                        <QuestionRow
+                        <ScaleQuestion
                           key={d.key}
-                          code={d.label}
-                          title={d.label}
+                          id={`IDD-${d.key}`}
                           statement={d.statement}
+                          tag={d.label}
                           value={answers[`IDD-${d.key}`]}
                           onChange={(v) => setAnswers((a) => ({ ...a, [`IDD-${d.key}`]: v }))}
                         />
@@ -621,13 +623,14 @@ export default function Diagnostic() {
                     <p className="text-xs text-muted-foreground mb-4">
                       Oito dimensões de estrutura instalada. Este bloco define a Maturidade e não influencia o Improviso.
                     </p>
-                    <div className="space-y-4">
-                      {MATURITY_DIMENSIONS.map((d) => (
-                        <QuestionRow
+                    <div className="space-y-3">
+                      <ScaleLegend />
+                      {IDD_DIMENSIONS.map((d) => (
+                        <ScaleQuestion
                           key={d.key}
-                          code={d.label}
-                          title={d.label}
+                          id={`MAT-${d.key}`}
                           statement={d.statement}
+                          tag={d.label}
                           value={answers[`MAT-${d.key}`]}
                           onChange={(v) => setAnswers((a) => ({ ...a, [`MAT-${d.key}`]: v }))}
                         />
@@ -782,42 +785,6 @@ export default function Diagnostic() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-function QuestionRow({
-  code,
-  title,
-  statement,
-  value,
-  onChange,
-}: {
-  code: string;
-  title: string;
-  statement: string;
-  value?: number;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <div className="rounded-lg border p-3">
-      <p className="text-sm font-semibold">{title}</p>
-      <p className="text-xs text-muted-foreground mb-2.5">{statement}</p>
-      <div className="flex flex-wrap gap-1.5">
-        {ANSWER_SCALE.map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            aria-label={`${code}: ${opt.label}`}
-            onClick={() => onChange(opt.value)}
-            className={`rounded-md border px-2.5 py-1.5 text-xs transition-colors ${
-              value === opt.value ? "border-gold bg-gold/15 text-foreground font-semibold" : "text-muted-foreground hover:bg-accent"
-            }`}
-          >
-            {opt.value} · {opt.label}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
