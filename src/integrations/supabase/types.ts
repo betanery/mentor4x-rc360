@@ -809,31 +809,132 @@ export type Database = {
           },
         ]
       }
+      diagnostic_invites: {
+        Row: {
+          company_id: string
+          contract_id: string | null
+          created_at: string
+          diagnostic_id: string
+          email: string | null
+          expires_at: string
+          full_name: string | null
+          id: string
+          invite_kind: string
+          invited_by: string | null
+          responded_at: string | null
+          respondent_group: Database["public"]["Enums"]["respondent_group"]
+          response_id: string | null
+          role_title: string | null
+          sent_at: string | null
+          status: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          contract_id?: string | null
+          created_at?: string
+          diagnostic_id: string
+          email?: string | null
+          expires_at?: string
+          full_name?: string | null
+          id?: string
+          invite_kind?: string
+          invited_by?: string | null
+          responded_at?: string | null
+          respondent_group: Database["public"]["Enums"]["respondent_group"]
+          response_id?: string | null
+          role_title?: string | null
+          sent_at?: string | null
+          status?: string
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          contract_id?: string | null
+          created_at?: string
+          diagnostic_id?: string
+          email?: string | null
+          expires_at?: string
+          full_name?: string | null
+          id?: string
+          invite_kind?: string
+          invited_by?: string | null
+          responded_at?: string | null
+          respondent_group?: Database["public"]["Enums"]["respondent_group"]
+          response_id?: string | null
+          role_title?: string | null
+          sent_at?: string | null
+          status?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagnostic_invites_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diagnostic_invites_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diagnostic_invites_diagnostic_id_fkey"
+            columns: ["diagnostic_id"]
+            isOneToOne: false
+            referencedRelation: "diagnostics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diagnostic_invites_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "diagnostic_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       diagnostic_responses: {
         Row: {
           answers: Json
+          collection_method: string
           diagnostic_id: string
           id: string
+          interviewer_user_id: string | null
           respondent_group: Database["public"]["Enums"]["respondent_group"]
           respondent_name: string | null
+          respondent_role: string | null
           respondent_user_id: string | null
           submitted_at: string
         }
         Insert: {
           answers?: Json
+          collection_method?: string
           diagnostic_id: string
           id?: string
+          interviewer_user_id?: string | null
           respondent_group?: Database["public"]["Enums"]["respondent_group"]
           respondent_name?: string | null
+          respondent_role?: string | null
           respondent_user_id?: string | null
           submitted_at?: string
         }
         Update: {
           answers?: Json
+          collection_method?: string
           diagnostic_id?: string
           id?: string
+          interviewer_user_id?: string | null
           respondent_group?: Database["public"]["Enums"]["respondent_group"]
           respondent_name?: string | null
+          respondent_role?: string | null
           respondent_user_id?: string | null
           submitted_at?: string
         }
