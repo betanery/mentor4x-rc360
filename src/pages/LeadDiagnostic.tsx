@@ -9,7 +9,8 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
-import { ANSWER_SCALE, BLINDSPOTS, IDD_DIMENSIONS, QUESTIONS, improvisoBand } from "@/lib/see4x";
+import { BLINDSPOTS, IDD_DIMENSIONS, QUESTIONS, improvisoBand } from "@/lib/see4x";
+import { ScaleLegend, ScaleQuestion } from "@/components/ScaleQuestion";
 import { CheckCircle2, Cloud, Loader2, Lock, ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
 
 type Lead = {
