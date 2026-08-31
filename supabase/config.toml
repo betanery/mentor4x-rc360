@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.lead-diagnostic]
 verify_jwt = false
+
+[functions.diagnostic-response]
+verify_jwt = false

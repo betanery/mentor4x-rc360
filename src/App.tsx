@@ -33,6 +33,7 @@ import AdminUniversity from "./pages/AdminUniversity";
 import AdminProducts from "./pages/AdminProducts";
 import OAuthConsent from "./pages/OAuthConsent";
 import Verify from "./pages/Verify";
+import DiagnosticRespond from "./pages/DiagnosticRespond";
 import LeadDiagnostic from "./pages/LeadDiagnostic";
 import NotFound from "./pages/NotFound";
 import { ContractProvider } from "./hooks/useContract";
@@ -53,6 +54,7 @@ const App = () => (
                 <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
                 <Route path="/diagnostico-lead" element={<LeadDiagnostic />} />
                 <Route path="/diagnostico-lead/:token" element={<LeadDiagnostic />} />
+                <Route path="/responder/:token" element={<DiagnosticRespond />} />
                 <Route path="/validar" element={<Verify />} />
                 <Route path="/validar/:code" element={<Verify />} />
                 <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
