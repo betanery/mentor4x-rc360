@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { showError } from "@/lib/feedback";
 import { PILLAR_LABEL } from "@/lib/labels";
 import { ScaleLegend, ScaleQuestion } from "@/components/ScaleQuestion";
+import { DiagnosticCollection } from "@/components/DiagnosticCollection";
 import {
   BLINDSPOTS,
   DIVERGENCE_THRESHOLD,
@@ -348,9 +349,23 @@ export default function Diagnostic() {
             <TabsList>
               <TabsTrigger value="resultado">Resultado</TabsTrigger>
               <TabsTrigger value="responder">Responder</TabsTrigger>
+              <TabsTrigger value="coleta">Coleta</TabsTrigger>
               <TabsTrigger value="respondentes">Respondentes</TabsTrigger>
               <TabsTrigger value="historico">Versões</TabsTrigger>
             </TabsList>
+
+            {/* --------------------------------- Coleta -------------------------------- */}
+            <TabsContent value="coleta" className="mt-6">
+              <DiagnosticCollection
+                diagnosticId={activeDiag.id}
+                companyId={activeDiag.company_id}
+                contractId={currentContract?.id ?? null}
+                status={activeDiag.status}
+                isStaff={isStaff}
+                userId={user?.id}
+                responses={responses}
+              />
+            </TabsContent>
 
             {/* ------------------------------- Resultado ------------------------------- */}
             <TabsContent value="resultado" className="space-y-6 mt-6">
