@@ -190,35 +190,10 @@ export default function StrategistArea() {
           })}
         </TabsContent>
 
-        <TabsContent value="leads" className="space-y-2">
-          {(data?.leads.length || 0) === 0 && (
-            <Card className="p-8 text-center text-muted-foreground">Nenhum diagnóstico público registrado ainda.</Card>
-          )}
-          {(data?.leads || []).map((l: any) => (
-            <Card key={l.id} className="p-4 shadow-card flex flex-col md:flex-row md:items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <h4 className="font-semibold truncate">{l.company_name || "Empresa não informada"}</h4>
-                <p className="text-xs text-muted-foreground truncate">
-                  {[l.full_name, l.email].filter(Boolean).join(" · ") || "sem contato"}
-                  {l.utm_source ? ` · origem ${l.utm_source}${l.utm_campaign ? `/${l.utm_campaign}` : ""}` : ""}
-                </p>
-                {l.recommendation?.track && (
-                  <p className="text-xs text-gold font-semibold mt-1">Caminho: {l.recommendation.track}</p>
-                )}
-              </div>
-              {l.status === "concluido" ? (
-                <>
-                  <Badge variant="outline">Improviso {l.improviso_score}</Badge>
-                  <Badge variant="outline">IDD {l.idd_score}</Badge>
-                  <Badge className="bg-success/15 text-success">Concluído</Badge>
-                </>
-              ) : (
-                <Badge variant="secondary">Em andamento · etapa {(l.current_step ?? 0) + 1}/6</Badge>
-              )}
-              <Badge variant="outline">{format(new Date(l.created_at), "dd/MM/yyyy", { locale: ptBR })}</Badge>
-            </Card>
-          ))}
+        <TabsContent value="leads">
+          <LeadCapture leads={(data?.leads || []) as any} />
         </TabsContent>
+
 
         <TabsContent value="mensagens" className="space-y-3">
           {TEMPLATES.map((tpl, i) => (
