@@ -14,6 +14,120 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_audit: {
+        Row: {
+          access_id: string | null
+          action: string
+          actor_id: string | null
+          company_id: string
+          created_at: string
+          id: string
+          justification: string | null
+          new_value: Json | null
+          previous_value: Json | null
+          target_user_id: string | null
+        }
+        Insert: {
+          access_id?: string | null
+          action: string
+          actor_id?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          justification?: string | null
+          new_value?: Json | null
+          previous_value?: Json | null
+          target_user_id?: string | null
+        }
+        Update: {
+          access_id?: string | null
+          action?: string
+          actor_id?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          justification?: string | null
+          new_value?: Json | null
+          previous_value?: Json | null
+          target_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_audit_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      access_grants: {
+        Row: {
+          access_id: string
+          created_at: string
+          grant_key: string
+          id: string
+        }
+        Insert: {
+          access_id: string
+          created_at?: string
+          grant_key: string
+          id?: string
+        }
+        Update: {
+          access_id?: string
+          created_at?: string
+          grant_key?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_grants_access_id_fkey"
+            columns: ["access_id"]
+            isOneToOne: false
+            referencedRelation: "company_access"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      access_scopes: {
+        Row: {
+          access_id: string
+          can_edit: boolean
+          created_at: string
+          id: string
+          scope_label: string | null
+          scope_ref: string | null
+          scope_type: string
+        }
+        Insert: {
+          access_id: string
+          can_edit?: boolean
+          created_at?: string
+          id?: string
+          scope_label?: string | null
+          scope_ref?: string | null
+          scope_type: string
+        }
+        Update: {
+          access_id?: string
+          can_edit?: boolean
+          created_at?: string
+          id?: string
+          scope_label?: string | null
+          scope_ref?: string | null
+          scope_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_scopes_access_id_fkey"
+            columns: ["access_id"]
+            isOneToOne: false
+            referencedRelation: "company_access"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_logs: {
         Row: {
           action: string
@@ -409,6 +523,84 @@ export type Database = {
         }
         Relationships: []
       }
+      company_access: {
+        Row: {
+          access_role: Database["public"]["Enums"]["app_role"]
+          company_id: string
+          contract_id: string | null
+          created_at: string
+          department: string | null
+          diagnostic_group: string | null
+          diagnostic_weight: number | null
+          id: string
+          invited_by: string | null
+          is_primary_responsible: boolean
+          job_title_code: string
+          job_title_other: string | null
+          notes: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          access_role: Database["public"]["Enums"]["app_role"]
+          company_id: string
+          contract_id?: string | null
+          created_at?: string
+          department?: string | null
+          diagnostic_group?: string | null
+          diagnostic_weight?: number | null
+          id?: string
+          invited_by?: string | null
+          is_primary_responsible?: boolean
+          job_title_code?: string
+          job_title_other?: string | null
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Update: {
+          access_role?: Database["public"]["Enums"]["app_role"]
+          company_id?: string
+          contract_id?: string | null
+          created_at?: string
+          department?: string | null
+          diagnostic_group?: string | null
+          diagnostic_weight?: number | null
+          id?: string
+          invited_by?: string | null
+          is_primary_responsible?: boolean
+          job_title_code?: string
+          job_title_other?: string | null
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_access_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_access_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_members: {
         Row: {
           company_id: string
@@ -624,6 +816,7 @@ export type Database = {
           contracted_scope: Json
           created_at: string
           current_cycle: number
+          diagnostic_weights: Json | null
           expected_completion: string | null
           id: string
           journey_stage: Database["public"]["Enums"]["journey_stage"]
@@ -642,6 +835,7 @@ export type Database = {
           contracted_scope?: Json
           created_at?: string
           current_cycle?: number
+          diagnostic_weights?: Json | null
           expected_completion?: string | null
           id?: string
           journey_stage?: Database["public"]["Enums"]["journey_stage"]
@@ -660,6 +854,7 @@ export type Database = {
           contracted_scope?: Json
           created_at?: string
           current_cycle?: number
+          diagnostic_weights?: Json | null
           expected_completion?: string | null
           id?: string
           journey_stage?: Database["public"]["Enums"]["journey_stage"]
@@ -2011,6 +2206,7 @@ export type Database = {
           created_at: string
           currency: string
           diagnostic_required: boolean
+          diagnostic_weights: Json
           duration_amount: number | null
           duration_unit: string
           format: string | null
@@ -2042,6 +2238,7 @@ export type Database = {
           created_at?: string
           currency?: string
           diagnostic_required?: boolean
+          diagnostic_weights?: Json
           duration_amount?: number | null
           duration_unit?: string
           format?: string | null
@@ -2073,6 +2270,7 @@ export type Database = {
           created_at?: string
           currency?: string
           diagnostic_required?: boolean
+          diagnostic_weights?: Json
           duration_amount?: number | null
           duration_unit?: string
           format?: string | null
@@ -2701,6 +2899,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_view_commercial: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
+      company_access_role: {
+        Args: { _company_id: string; _contract_id?: string; _user_id: string }
+        Returns: string
+      }
       generate_contract_journey: {
         Args: { _contract_id: string }
         Returns: number
@@ -2709,6 +2915,10 @@ export type Database = {
         Args: { _contract_id: string }
         Returns: number
       }
+      has_grant: {
+        Args: { _company_id: string; _grant: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2716,7 +2926,24 @@ export type Database = {
         }
         Returns: boolean
       }
+      in_scope: {
+        Args: {
+          _company_id: string
+          _department?: string
+          _pillar?: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_company_leader: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_company_member: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_company_responsible: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
@@ -2771,7 +2998,11 @@ export type Database = {
         | "checkin_semanal"
       onboarding_item_type: "etapa" | "encontro" | "entregavel" | "conteudo"
       pillar: "crescimento" | "eficiencia" | "encantamento" | "lideranca"
-      respondent_group: "dono_socio" | "gestor" | "equipe"
+      respondent_group:
+        | "dono_socio"
+        | "gestor"
+        | "equipe"
+        | "responsavel_principal"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2950,7 +3181,12 @@ export const Constants = {
       ],
       onboarding_item_type: ["etapa", "encontro", "entregavel", "conteudo"],
       pillar: ["crescimento", "eficiencia", "encantamento", "lideranca"],
-      respondent_group: ["dono_socio", "gestor", "equipe"],
+      respondent_group: [
+        "dono_socio",
+        "gestor",
+        "equipe",
+        "responsavel_principal",
+      ],
     },
   },
 } as const
