@@ -14,6 +14,7 @@ import { useCompany } from "@/hooks/useCompany";
 import { format, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { LeadCapture } from "@/components/LeadCapture";
 
 const TEMPLATES = [
   { title: "Cobrança gentil de meta atrasada", text: "Oi! Vi aqui no painel que a meta '{{meta}}' está marcada como atrasada. Bora destravar? Me conta o que está pegando — agendo um call rápido se ajudar." },
@@ -35,7 +36,7 @@ export default function StrategistArea() {
         supabase.from("bottlenecks").select("id, company_id, name, urgency, resolved").eq("resolved", false),
         supabase
           .from("lead_diagnostics")
-          .select("id, full_name, email, company_name, status, improviso_score, idd_score, priority_pillar, recommendation, utm_source, utm_campaign, current_step, created_at, completed_at")
+          .select("id, full_name, email, company_name, segment, converted_company_id, status, improviso_score, idd_score, priority_pillar, recommendation, utm_source, utm_campaign, current_step, created_at, completed_at")
           .order("created_at", { ascending: false })
           .limit(50),
       ]);
@@ -113,7 +114,7 @@ export default function StrategistArea() {
           <TabsTrigger value="carteira">Carteira</TabsTrigger>
           <TabsTrigger value="risco">Metas em risco</TabsTrigger>
           <TabsTrigger value="tarefas">Ações abertas</TabsTrigger>
-          <TabsTrigger value="leads">Leads do diagnóstico</TabsTrigger>
+          <TabsTrigger value="leads">Captação</TabsTrigger>
           <TabsTrigger value="mensagens">Mensagens prontas</TabsTrigger>
         </TabsList>
 
