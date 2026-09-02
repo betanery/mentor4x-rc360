@@ -2732,6 +2732,8 @@ export type Database = {
         | "cliente_dono"
         | "gestor_cliente"
         | "colaborador_cliente"
+        | "company_responsible"
+        | "company_leader"
       bottleneck_urgency: "baixa" | "media" | "alta" | "critica"
       chaos_level: "total" | "severo" | "moderado" | "leve" | "escala"
       diagnostic_mode: "lead" | "cliente"
@@ -2904,6 +2906,8 @@ export const Constants = {
         "cliente_dono",
         "gestor_cliente",
         "colaborador_cliente",
+        "company_responsible",
+        "company_leader",
       ],
       bottleneck_urgency: ["baixa", "media", "alta", "critica"],
       chaos_level: ["total", "severo", "moderado", "leve", "escala"],
