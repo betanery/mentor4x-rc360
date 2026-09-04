@@ -116,7 +116,7 @@ const slugify = (value: string) => value
   .replace(/^-+|-+$/g, "");
 
 export default function AdminProducts() {
-  const { isStaff } = useAuth();
+  const { hasRole } = useAuth();
   const { refreshContracts } = useContract();
   const [products, setProducts] = useState<Product[]>([]);
   const [versions, setVersions] = useState<ProductVersion[]>([]);
@@ -184,7 +184,21 @@ export default function AdminProducts() {
     return map;
   }, [versions]);
 
-  if (!isStaff) return <Navigate to="/" replace />;
+  const publishedVersionsByProduct = useMemo(() => {
+    const map: Record<string, ProductVersion[]> = {};
+    versions.filter((version) => version.is_active && !!version.published_at).forEach((version) => {
+      map[version.product_id] = map[version.product_id] || [];
+      map[version.product_id].push(version);
+    });
+    return map;
+  }, [versions]);
+
+  const availableProductsForNewContract = useMemo(
+    () => products.filter((product) => product.is_active && (publishedVersionsByProduct[product.id]?.length || 0) > 0),
+    [products, publishedVersionsByProduct],
+  );
+
+  if (!hasRole("super_admin")) return <Navigate to="/" replace />;
 
   const openProduct = (product?: Product) => {
     setEditingProduct(product || null);
@@ -227,7 +241,11 @@ export default function AdminProducts() {
       completed_at: contract.completed_at || "",
       contracted_scope: JSON.stringify(contract.contracted_scope ?? {}, null, 2),
       notes: contract.notes || "",
-    } : { ...emptyContract, company_id: companies[0]?.id || "", product_id: products[0]?.id || "", product_version_id: versionsByProduct[products[0]?.id || ""]?.[0]?.id || "" });
+    } : (() => {
+      const firstProduct = availableProductsForNewContract[0];
+      const firstVersion = firstProduct ? publishedVersionsByProduct[firstProduct.id]?.[0] : undefined;
+      return { ...emptyContract, company_id: companies[0]?.id || "", product_id: firstProduct?.id || "", product_version_id: firstVersion?.id || "" };
+    })());
     setContractDialog(true);
   };
 
@@ -290,11 +308,24 @@ export default function AdminProducts() {
       notes: parsed.data.notes || null,
       contracted_scope: scope,
     };
-    const { error } = editingContract
-      ? await supabase.from("contracts").update(payload).eq("id", editingContract.id)
-      : await supabase.from("contracts").insert(payload as TablesInsert<"contracts">);
-    if (error) { toast.error(error.message); return; }
-    toast.success(editingContract ? "Contratação atualizada" : "Contratação criada");
+    if (editingContract) {
+      const { error } = await supabase.from("contracts").update(payload).eq("id", editingContract.id);
+      if (error) { toast.error(error.message); return; }
+      toast.success("Contratação atualizada");
+    } else {
+      const selectedVersion = versions.find((version) => version.id === parsed.data.product_version_id);
+      const selectedProduct = products.find((product) => product.id === parsed.data.product_id);
+      if (!selectedProduct?.is_active || !selectedVersion?.is_active || !selectedVersion.published_at) {
+        toast.error("Novas contratações exigem produto ativo e versão ativa/publicada.");
+        return;
+      }
+      const { data: created, error } = await supabase.from("contracts").insert(payload as TablesInsert<"contracts">).select("id").single();
+      if (error || !created) { toast.error(error?.message || "Falha ao criar contratação"); return; }
+      const { data: generatedCount, error: onboardingError } = await supabase.rpc("generate_contract_onboarding", { _contract_id: created.id });
+      if (onboardingError) toast.warning("Contratação criada, mas o onboarding não pôde ser gerado automaticamente.");
+      else if (Number(generatedCount || 0) > 0) toast.success(`Contratação criada e ${Number(generatedCount)} item(ns) de onboarding gerados.`);
+      else toast.warning("Contratação criada. Esta versão ainda não possui modelo de onboarding configurado.");
+    }
     setContractDialog(false);
     await load();
     await refreshContracts();
@@ -311,7 +342,7 @@ export default function AdminProducts() {
   };
 
   const selectProductForContract = (productId: string) => {
-    const firstVersion = versionsByProduct[productId]?.[0];
+    const firstVersion = (editingContract ? versionsByProduct[productId] : publishedVersionsByProduct[productId])?.[0];
     setContractForm({ ...contractForm, product_id: productId, product_version_id: firstVersion?.id || "" });
   };
 
@@ -429,7 +460,7 @@ export default function AdminProducts() {
 
         <TabsContent value="contratacoes" className="space-y-4">
           <div className="flex justify-end">
-            <Button className="bg-gradient-brand" onClick={() => openContract()} disabled={products.length === 0 || companies.length === 0}><Plus className="h-4 w-4 mr-1" /> Nova contratação</Button>
+            <Button className="bg-gradient-brand" onClick={() => openContract()} disabled={availableProductsForNewContract.length === 0 || companies.length === 0}><Plus className="h-4 w-4 mr-1" /> Nova contratação</Button>
           </div>
           <div className="space-y-3">
             {contracts.length === 0 && <Card className="p-12 text-center text-muted-foreground"><Boxes className="h-10 w-10 mx-auto mb-3 opacity-40" /> Nenhuma contratação cadastrada.</Card>}
@@ -498,7 +529,7 @@ export default function AdminProducts() {
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{editingVersion ? "Editar versão" : "Nova versão"}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div><Label>Produto</Label><Select value={versionForm.product_id} onValueChange={(v) => setVersionForm({ ...versionForm, product_id: v })}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label>Produto</Label><Select value={versionForm.product_id} onValueChange={(v) => setVersionForm({ ...versionForm, product_id: v })}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{(editingContract ? products : availableProductsForNewContract).map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Nome da versão</Label><Input value={versionForm.version_label} onChange={(e) => setVersionForm({ ...versionForm, version_label: e.target.value })} placeholder="SEE_4X 2026" /></div>
             <div className="grid grid-cols-3 gap-3">
               <div><Label>Código</Label><Input value={versionForm.methodology_code} onChange={(e) => setVersionForm({ ...versionForm, methodology_code: e.target.value })} /></div>
@@ -521,8 +552,8 @@ export default function AdminProducts() {
           <div className="grid sm:grid-cols-2 gap-3">
             <div><Label>Empresa</Label><Select value={contractForm.company_id} onValueChange={(v) => setContractForm({ ...contractForm, company_id: v })}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{companies.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Status</Label><Select value={contractForm.status} onValueChange={(v) => setContractForm({ ...contractForm, status: v as typeof CONTRACT_STATUS[number] })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CONTRACT_STATUS.map((s) => <SelectItem key={s} value={s}>{statusLabel[s]}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label>Produto</Label><Select value={contractForm.product_id} onValueChange={selectProductForContract}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label>Versão</Label><Select value={contractForm.product_version_id} onValueChange={(v) => setContractForm({ ...contractForm, product_version_id: v })} disabled={!contractForm.product_id}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{(versionsByProduct[contractForm.product_id] || []).map((v) => <SelectItem key={v.id} value={v.id}>{v.version_label}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label>Produto</Label><Select value={contractForm.product_id} onValueChange={selectProductForContract}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{(editingContract ? products : availableProductsForNewContract).map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label>Versão</Label><Select value={contractForm.product_version_id} onValueChange={(v) => setContractForm({ ...contractForm, product_version_id: v })} disabled={!contractForm.product_id}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{(editingContract ? (versionsByProduct[contractForm.product_id] || []) : (publishedVersionsByProduct[contractForm.product_id] || [])).map((v) => <SelectItem key={v.id} value={v.id}>{v.version_label}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Jornada</Label><Select value={contractForm.journey_stage} onValueChange={(v) => setContractForm({ ...contractForm, journey_stage: v as typeof STAGES[number] })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{STAGES.map((s) => <SelectItem key={s} value={s}>{CYCLE_LABEL[s].label} · {CYCLE_LABEL[s].subtitle}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Ciclo operacional</Label><Input type="number" min={1} max={24} value={contractForm.current_cycle} onChange={(e) => setContractForm({ ...contractForm, current_cycle: Number(e.target.value) })} /></div>
             <div><Label>Início</Label><Input type="date" value={contractForm.started_at} onChange={(e) => setContractForm({ ...contractForm, started_at: e.target.value })} /></div>

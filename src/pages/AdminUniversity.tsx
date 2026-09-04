@@ -38,7 +38,7 @@ const emptyLesson = (course_id = ""): Partial<Lesson> => ({
 });
 
 export default function AdminUniversity() {
-  const { isStaff } = useAuth();
+  const { hasRole } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +69,7 @@ export default function AdminUniversity() {
   };
   useEffect(() => { load(); }, []);
 
-  if (!isStaff) return <Navigate to="/" replace />;
+  if (!hasRole("super_admin")) return <Navigate to="/" replace />;
 
   const lessonsOf = (cid: string) => lessons.filter((l) => l.course_id === cid);
 

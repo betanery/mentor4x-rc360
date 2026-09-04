@@ -85,7 +85,7 @@ export default function AdminUsers() {
     return true;
   }), [users, filterRole, filterCompany, filterStatus]);
 
-  if (!isStaff) return <Navigate to="/" replace />;
+  if (!hasRole("super_admin")) return <Navigate to="/" replace />;
 
   const isClientRole = CLIENT_ROLES.includes(form.role);
   const canSubmit = form.full_name.trim().length >= 2 && /\S+@\S+\.\S+/.test(form.email) && (!isClientRole || !!form.company_id);

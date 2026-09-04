@@ -13,8 +13,19 @@ const labels: Record<Role, string> = {
   colaborador_cliente: "Colaborador",
 };
 
-const staffRoutes = ["/estrategista", "/admin/usuarios", "/admin/produtos", "/empresas", "/admin/universidade"];
+const reservedRoutes = ["/estrategista", "/admin/usuarios", "/admin/produtos", "/empresas", "/admin/universidade"] as const;
 const commonRoutes = ["/", "/diagnostico", "/jornada", "/onboarding", "/metas", "/plano-acao", "/gargalos", "/pilares", "/sala-guerra", "/universidade", "/playbooks", "/socio-ia", "/relatorios", "/relatorio-see4x", "/certificados", "/notificacoes"];
+
+const allowedReservedRoutes: Record<Role, readonly string[]> = {
+  super_admin: reservedRoutes,
+  mentor: ["/estrategista", "/empresas"],
+  estrategista: ["/estrategista"],
+  company_responsible: [],
+  company_leader: [],
+  cliente_dono: [],
+  gestor_cliente: [],
+  colaborador_cliente: [],
+};
 
 async function isolateNetwork(page: Page) {
   const forbidden: string[] = [];
@@ -62,16 +73,18 @@ for (const role of Object.keys(labels) as Role[]) {
     test("respeita as áreas reservadas por perfil", async ({ page }) => {
       const forbidden = await isolateNetwork(page);
       await loginAs(page, role);
-      const isStaff = ["super_admin", "mentor", "estrategista"].includes(role);
-      const isConsultor = ["super_admin", "mentor"].includes(role);
 
-      for (const route of staffRoutes) {
+      for (const route of reservedRoutes) {
         await page.goto(route);
-        if (isStaff) await expect(page).toHaveURL(new RegExp(`${route.replace("/", "\\/")}$`));
-        else await expect(page).toHaveURL(/\/$/);
+        if (allowedReservedRoutes[role].includes(route)) {
+          await expect(page).toHaveURL(new RegExp(`${route.replace("/", "\\/")}$`));
+        } else {
+          await expect(page).toHaveURL(/\/$/);
+        }
       }
+
       await page.goto("/mentor");
-      if (isConsultor) await expect(page).toHaveURL(/\/mentor$/);
+      if (["super_admin", "mentor"].includes(role)) await expect(page).toHaveURL(/\/mentor$/);
       else await expect(page).toHaveURL(/\/$/);
       expect(forbidden).toEqual([]);
     });
