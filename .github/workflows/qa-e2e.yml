@@ -28,5 +28,21 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Lint
-        run: npm run lint
+      - name: Type safety
+        run: npx tsc --noEmit -p tsconfig.app.json
+
+      - name: Install isolated browser
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end by user profile
+        run: npm run test:e2e
+
+      - name: Upload E2E evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mentor4x-e2e-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 14

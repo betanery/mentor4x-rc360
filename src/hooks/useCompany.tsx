@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { E2E_COMPANY, E2E_ENABLED } from "@/test/e2eFixtures";
 
 type Company = { id: string; name: string; segment: string | null; logo_url: string | null; journey_stage: string; chaos_level: string; overall_score: number; owner_dependency: number; projected_revenue: number | null; };
 
@@ -28,6 +29,12 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       setCompanies([]);
       setCurrent(null);
       localStorage.removeItem(STORAGE_KEY);
+      setLoading(false);
+      return;
+    }
+    if (E2E_ENABLED) {
+      setCompanies([E2E_COMPANY]);
+      setCurrent(E2E_COMPANY);
       setLoading(false);
       return;
     }
