@@ -2899,13 +2899,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      clone_product_version: {
-        Args: { _source_id: string; _label?: string | null }
-        Returns: string
-      }
       can_view_commercial: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
+      }
+      can_view_product_version: {
+        Args: { _version_id: string }
+        Returns: boolean
+      }
+      clone_product_version: {
+        Args: { _label?: string; _source_id: string }
+        Returns: string
       }
       company_access_role: {
         Args: { _company_id: string; _contract_id?: string; _user_id: string }
