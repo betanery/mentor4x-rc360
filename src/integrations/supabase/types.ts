@@ -2903,6 +2903,14 @@ export type Database = {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
+      can_view_product_version: {
+        Args: { _version_id: string }
+        Returns: boolean
+      }
+      clone_product_version: {
+        Args: { _label?: string; _source_id: string }
+        Returns: string
+      }
       company_access_role: {
         Args: { _company_id: string; _contract_id?: string; _user_id: string }
         Returns: string
@@ -2949,6 +2957,10 @@ export type Database = {
       }
       is_consultor: { Args: { _user_id: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      publish_product_version: {
+        Args: { _version_id: string }
+        Returns: boolean
+      }
       user_companies: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {
