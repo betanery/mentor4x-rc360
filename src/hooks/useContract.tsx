@@ -33,6 +33,7 @@ interface ContractCtx {
   setCurrentContractId: (id: string) => void;
   refreshContracts: () => Promise<void>;
   loading: boolean;
+  error: string | null;
 }
 
 const STORAGE_PREFIX = "m4x.currentContract";
@@ -44,6 +45,7 @@ export function ContractProvider({ children }: { children: ReactNode }) {
   const [contracts, setContracts] = useState<ActiveContract[]>([]);
   const [currentContract, setCurrentContract] = useState<ActiveContract | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const storageKey = useMemo(() => current ? `${STORAGE_PREFIX}.${current.id}` : STORAGE_PREFIX, [current]);
 
@@ -69,23 +71,38 @@ export function ContractProvider({ children }: { children: ReactNode }) {
     if (!user || !current) {
       setContracts([]);
       setCurrentContract(null);
+      setError(null);
       setLoading(false);
       return;
     }
     if (E2E_ENABLED) {
       setContracts([E2E_CONTRACT]);
       setCurrentContract(E2E_CONTRACT);
+      setError(null);
       setLoading(false);
       return;
     }
+
     setLoading(true);
-    const { data } = await supabase
+    setError(null);
+
+    const { data, error: queryError } = await supabase
       .from("contracts")
       .select("id, company_id, product_id, product_version_id, status, journey_stage, current_cycle, started_at, expected_completion, completed_at, notes, access_expires_at, onboarding_generated_at, products(name), product_versions(version_label)")
       .eq("company_id", current.id)
       .in("status", ["ativo", "pausado"])
       .order("started_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false });
+
+    if (queryError) {
+      console.error("Failed to load contracts", queryError);
+      setContracts([]);
+      setCurrentContract(null);
+      setError("Não foi possível carregar as contratações desta empresa.");
+      setLoading(false);
+      return;
+    }
+
     const list = normalize((data || []) as ContractRow[]);
     setContracts(list);
     const stored = localStorage.getItem(storageKey);
@@ -106,7 +123,7 @@ export function ContractProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(storageKey, id);
   };
 
-  return <Ctx.Provider value={{ contracts, currentContract, setCurrentContractId, refreshContracts, loading }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ contracts, currentContract, setCurrentContractId, refreshContracts, loading, error }}>{children}</Ctx.Provider>;
 }
 
 export const useContract = () => {
