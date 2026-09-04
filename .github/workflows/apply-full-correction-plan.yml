@@ -14,7 +14,7 @@ jobs:
   apply:
     if: ${{ github.actor != 'github-actions[bot]' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout hardening branch
         uses: actions/checkout@v4
@@ -22,16 +22,230 @@ jobs:
           ref: hardening/full-correction-plan
           fetch-depth: 0
 
-      - name: Apply validated correction patch
+      - name: Apply correction plan
         shell: bash
         run: |
           set -euo pipefail
-          base64 -d .hardening/full-correction-valid.patch.gz.b64 > /tmp/full-correction.patch.gz
-          gunzip -c /tmp/full-correction.patch.gz > /tmp/full-correction.patch
-          git apply --check /tmp/full-correction.patch
-          git apply /tmp/full-correction.patch
-          rm -rf .hardening/full-correction
-          rm -f .hardening/full-correction-valid.patch.gz.b64
+          python <<'PY'
+          from pathlib import Path
+          import re
+          root = Path('.')
+
+          def replace(path, old, new):
+              p = root / path
+              s = p.read_text()
+              if old not in s:
+                  raise SystemExit(f'pattern not found in {path}: {old[:80]!r}')
+              p.write_text(s.replace(old, new))
+
+          # 1) Authorization: global roles stay global; company_access is scoped to the active company.
+          (root/'src/hooks/useAuth.tsx').write_text('''import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react";
+          import { supabase } from "@/integrations/supabase/client";
+          import type { Session, User } from "@supabase/supabase-js";
+          import { E2E_ENABLED, e2eRole, e2eUser } from "@/test/e2eFixtures";
+
+          type AppRole = "super_admin" | "mentor" | "estrategista" | "cliente_dono" | "gestor_cliente" | "colaborador_cliente" | "company_responsible" | "company_leader";
+
+          interface AuthCtx {
+            user: User | null;
+            session: Session | null;
+            roles: AppRole[];
+            globalRoles: AppRole[];
+            currentCompanyRole: AppRole | null;
+            loading: boolean;
+            isStaff: boolean;
+            isConsultor: boolean;
+            hasRole: (r: AppRole) => boolean;
+            setActiveCompanyId: (companyId: string | null) => Promise<void>;
+            signOut: () => Promise<void>;
+            refreshRoles: () => Promise<void>;
+          }
+
+          const Ctx = createContext<AuthCtx | undefined>(undefined);
+
+          export function AuthProvider({ children }: { children: ReactNode }) {
+            const [user, setUser] = useState<User | null>(null);
+            const [session, setSession] = useState<Session | null>(null);
+            const [globalRoles, setGlobalRoles] = useState<AppRole[]>([]);
+            const [currentCompanyRole, setCurrentCompanyRole] = useState<AppRole | null>(null);
+            const [activeCompanyId, setActiveCompanyIdState] = useState<string | null>(null);
+            const [loading, setLoading] = useState(true);
+
+            const loadGlobalRoles = async (uid: string) => {
+              const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+              if (error) throw error;
+              setGlobalRoles([...new Set((data || []).map((r) => r.role as AppRole))]);
+            };
+
+            const loadCompanyRole = async (uid: string, companyId: string | null) => {
+              if (!companyId) { setCurrentCompanyRole(null); return; }
+              const { data, error } = await supabase
+                .from("company_access")
+                .select("access_role, is_primary_responsible")
+                .eq("user_id", uid)
+                .eq("company_id", companyId)
+                .eq("status", "ativo")
+                .order("is_primary_responsible", { ascending: false })
+                .limit(1)
+                .maybeSingle();
+              if (error) {
+                console.error("Failed to load company-scoped role", error);
+                setCurrentCompanyRole(null);
+                return;
+              }
+              setCurrentCompanyRole((data?.access_role as AppRole | undefined) ?? null);
+            };
+
+            const setActiveCompanyId = async (companyId: string | null) => {
+              setActiveCompanyIdState(companyId);
+              if (!user || E2E_ENABLED) return;
+              await loadCompanyRole(user.id, companyId);
+            };
+
+            useEffect(() => {
+              if (E2E_ENABLED) {
+                const role = e2eRole();
+                setUser(role ? e2eUser(role) : null);
+                setSession(null);
+                setGlobalRoles(role ? [role] : []);
+                setCurrentCompanyRole(null);
+                setLoading(false);
+                return;
+              }
+              const { data: sub } = supabase.auth.onAuthStateChange((_e, sess) => {
+                setSession(sess);
+                setUser(sess?.user ?? null);
+                if (sess?.user) {
+                  setTimeout(async () => {
+                    try {
+                      await loadGlobalRoles(sess.user.id);
+                      if (activeCompanyId) await loadCompanyRole(sess.user.id, activeCompanyId);
+                    } catch (error) { console.error("Failed to load roles", error); }
+                  }, 0);
+                } else {
+                  setGlobalRoles([]);
+                  setCurrentCompanyRole(null);
+                }
+              });
+              supabase.auth.getSession().then(async ({ data: { session } }) => {
+                setSession(session);
+                setUser(session?.user ?? null);
+                try { if (session?.user) await loadGlobalRoles(session.user.id); }
+                catch (error) { console.error("Failed to load roles", error); }
+                finally { setLoading(false); }
+              });
+              return () => sub.subscription.unsubscribe();
+            }, []);
+
+            const signOut = async () => {
+              await supabase.auth.signOut();
+              setGlobalRoles([]);
+              setCurrentCompanyRole(null);
+              setActiveCompanyIdState(null);
+            };
+
+            const refreshRoles = async () => {
+              if (!user) return;
+              await loadGlobalRoles(user.id);
+              await loadCompanyRole(user.id, activeCompanyId);
+            };
+
+            const roles = useMemo(() => [...new Set(currentCompanyRole ? [...globalRoles, currentCompanyRole] : globalRoles)] as AppRole[], [globalRoles, currentCompanyRole]);
+            const isStaff = globalRoles.some((r) => ["super_admin", "mentor", "estrategista"].includes(r));
+            const isConsultor = globalRoles.some((r) => ["super_admin", "mentor"].includes(r));
+            const hasRole = (r: AppRole) => roles.includes(r);
+
+            return <Ctx.Provider value={{ user, session, roles, globalRoles, currentCompanyRole, loading, isStaff, isConsultor, hasRole, setActiveCompanyId, signOut, refreshRoles }}>{children}</Ctx.Provider>;
+          }
+
+          export const useAuth = () => {
+            const v = useContext(Ctx);
+            if (!v) throw new Error("useAuth must be inside AuthProvider");
+            return v;
+          };
+          '''.replace('\n          ', '\n').lstrip())
+
+          # 2) Company provider surfaces errors and drives auth company context.
+          p = root/'src/hooks/useCompany.tsx'; s = p.read_text()
+          s = s.replace('  loading: boolean;\n}', '  loading: boolean;\n  error: string | null;\n}')
+          s = s.replace('const { user, loading: authLoading } = useAuth();', 'const { user, loading: authLoading, setActiveCompanyId } = useAuth();')
+          s = s.replace('const [loading, setLoading] = useState(true);', 'const [loading, setLoading] = useState(true);\n  const [error, setError] = useState<string | null>(null);')
+          s = s.replace('setCurrent(null);\n      localStorage.removeItem(STORAGE_KEY);', 'setCurrent(null);\n      setError(null);\n      void setActiveCompanyId(null);\n      localStorage.removeItem(STORAGE_KEY);')
+          s = s.replace('setCurrent(E2E_COMPANY);\n      setLoading(false);', 'setCurrent(E2E_COMPANY);\n      setError(null);\n      setLoading(false);')
+          s = s.replace('setLoading(true);\n    const { data } = await supabase.from("companies").select("*").order("name");\n    const list = (data || []) as Company[];', 'setLoading(true);\n    setError(null);\n    const { data, error: queryError } = await supabase.from("companies").select("*").order("name");\n    if (queryError) {\n      console.error("Failed to load companies", queryError);\n      setCompanies([]);\n      setCurrent(null);\n      void setActiveCompanyId(null);\n      setError("Não foi possível carregar as empresas disponíveis para este usuário.");\n      setLoading(false);\n      return;\n    }\n    const list = (data || []) as Company[];')
+          s = s.replace('setCurrent(found);\n    setLoading(false);', 'setCurrent(found);\n    void setActiveCompanyId(found?.id ?? null);\n    setLoading(false);')
+          s = s.replace('localStorage.setItem(STORAGE_KEY, id);\n    qc.clear();', 'localStorage.setItem(STORAGE_KEY, id);\n    void setActiveCompanyId(id);\n    qc.clear();')
+          s = s.replace('value={{ companies, current, setCurrentId, refresh: fetch, loading }}', 'value={{ companies, current, setCurrentId, refresh: fetch, loading, error }}')
+          p.write_text(s)
+
+          # 3) Admin route governance.
+          replace('src/App.tsx', '<Route path="/admin/usuarios" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><AdminUsers /></ProtectedRoute>} />', '<Route path="/admin/usuarios" element={<ProtectedRoute allow={["super_admin"]}><AdminUsers /></ProtectedRoute>} />')
+          replace('src/App.tsx', '<Route path="/admin/produtos" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><AdminProducts /></ProtectedRoute>} />', '<Route path="/admin/produtos" element={<ProtectedRoute allow={["super_admin"]}><AdminProducts /></ProtectedRoute>} />')
+          replace('src/App.tsx', '<Route path="/empresas" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><AdminCompanies /></ProtectedRoute>} />', '<Route path="/empresas" element={<ProtectedRoute allow={["super_admin","mentor"]}><AdminCompanies /></ProtectedRoute>} />')
+          replace('src/App.tsx', '<Route path="/admin/universidade" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><AdminUniversity /></ProtectedRoute>} />', '<Route path="/admin/universidade" element={<ProtectedRoute allow={["super_admin"]}><AdminUniversity /></ProtectedRoute>} />')
+
+          replace('src/components/AppLayout.tsx', '{ to: "/admin/produtos", label: "Produtos", icon: Boxes, role: ["super_admin","mentor","estrategista"] as const },', '{ to: "/admin/produtos", label: "Produtos", icon: Boxes, role: ["super_admin"] as const },')
+          replace('src/components/AppLayout.tsx', '{ to: "/empresas", label: "Empresas", icon: Building2, role: ["super_admin","mentor","estrategista"] as const },', '{ to: "/empresas", label: "Empresas", icon: Building2, role: ["super_admin","mentor"] as const },')
+          replace('src/components/AppLayout.tsx', '{ to: "/admin/universidade", label: "Universidade 4X (Admin)", icon: GraduationCap, role: ["super_admin","mentor","estrategista"] as const },', '{ to: "/admin/universidade", label: "Universidade 4X (Admin)", icon: GraduationCap, role: ["super_admin"] as const },')
+          replace('src/components/AppLayout.tsx', '{isStaff && <DropdownMenuItem onClick={() => nav("/admin/usuarios")}>Gerenciar usuários</DropdownMenuItem>}', '{roles.includes("super_admin") && <DropdownMenuItem onClick={() => nav("/admin/usuarios")}>Gerenciar usuários</DropdownMenuItem>}')
+
+          replace('src/pages/AdminUsers.tsx', 'if (!isStaff) return <Navigate to="/" replace />;', 'if (!hasRole("super_admin")) return <Navigate to="/" replace />;')
+          replace('src/pages/AdminProducts.tsx', 'const { isStaff } = useAuth();', 'const { hasRole } = useAuth();')
+          replace('src/pages/AdminProducts.tsx', 'if (!isStaff) return <Navigate to="/" replace />;', 'if (!hasRole("super_admin")) return <Navigate to="/" replace />;')
+          replace('src/pages/AdminUniversity.tsx', 'const { isStaff } = useAuth();', 'const { hasRole } = useAuth();')
+          replace('src/pages/AdminUniversity.tsx', 'if (!isStaff) return <Navigate to="/" replace />;', 'if (!hasRole("super_admin")) return <Navigate to="/" replace />;')
+          replace('src/pages/AdminCompanies.tsx', 'const { isStaff, user } = useAuth();', 'const { isConsultor, user } = useAuth();')
+          replace('src/pages/AdminCompanies.tsx', 'if (!isStaff) return <Navigate to="/" replace />;', 'if (!isConsultor) return <Navigate to="/" replace />;')
+
+          # 4) Contract rules in AdminProducts: active/published only for new contracts + automatic onboarding.
+          p = root/'src/pages/AdminProducts.tsx'; s = p.read_text()
+          anchor = '''  const versionsByProduct = useMemo(() => {\n    const map: Record<string, ProductVersion[]> = {};\n    versions.forEach((version) => {\n      map[version.product_id] = map[version.product_id] || [];\n      map[version.product_id].push(version);\n    });\n    return map;\n  }, [versions]);\n'''
+          if anchor not in s: raise SystemExit('versionsByProduct anchor missing')
+          s = s.replace(anchor, anchor + '''\n  const publishedVersionsByProduct = useMemo(() => {\n    const map: Record<string, ProductVersion[]> = {};\n    versions.filter((version) => version.is_active && !!version.published_at).forEach((version) => {\n      map[version.product_id] = map[version.product_id] || [];\n      map[version.product_id].push(version);\n    });\n    return map;\n  }, [versions]);\n\n  const availableProductsForNewContract = useMemo(\n    () => products.filter((product) => product.is_active && (publishedVersionsByProduct[product.id]?.length || 0) > 0),\n    [products, publishedVersionsByProduct],\n  );\n''')
+          s = s.replace('''} : { ...emptyContract, company_id: companies[0]?.id || "", product_id: products[0]?.id || "", product_version_id: versionsByProduct[products[0]?.id || ""]?.[0]?.id || "" });''', '''} : (() => {\n      const firstProduct = availableProductsForNewContract[0];\n      const firstVersion = firstProduct ? publishedVersionsByProduct[firstProduct.id]?.[0] : undefined;\n      return { ...emptyContract, company_id: companies[0]?.id || "", product_id: firstProduct?.id || "", product_version_id: firstVersion?.id || "" };\n    })());''')
+          old = '''    const { error } = editingContract\n      ? await supabase.from("contracts").update(payload).eq("id", editingContract.id)\n      : await supabase.from("contracts").insert(payload as TablesInsert<"contracts">);\n    if (error) { toast.error(error.message); return; }\n    toast.success(editingContract ? "Contratação atualizada" : "Contratação criada");'''
+          new = '''    if (editingContract) {\n      const { error } = await supabase.from("contracts").update(payload).eq("id", editingContract.id);\n      if (error) { toast.error(error.message); return; }\n      toast.success("Contratação atualizada");\n    } else {\n      const selectedVersion = versions.find((version) => version.id === parsed.data.product_version_id);\n      const selectedProduct = products.find((product) => product.id === parsed.data.product_id);\n      if (!selectedProduct?.is_active || !selectedVersion?.is_active || !selectedVersion.published_at) {\n        toast.error("Novas contratações exigem produto ativo e versão ativa/publicada.");\n        return;\n      }\n      const { data: created, error } = await supabase.from("contracts").insert(payload as TablesInsert<"contracts">).select("id").single();\n      if (error || !created) { toast.error(error?.message || "Falha ao criar contratação"); return; }\n      const { data: generatedCount, error: onboardingError } = await supabase.rpc("generate_contract_onboarding", { _contract_id: created.id });\n      if (onboardingError) toast.warning("Contratação criada, mas o onboarding não pôde ser gerado automaticamente.");\n      else if (Number(generatedCount || 0) > 0) toast.success(`Contratação criada e ${Number(generatedCount)} item(ns) de onboarding gerados.`);\n      else toast.warning("Contratação criada. Esta versão ainda não possui modelo de onboarding configurado.");\n    }'''
+          if old not in s: raise SystemExit('saveContract anchor missing')
+          s = s.replace(old, new)
+          s = s.replace('''const firstVersion = versionsByProduct[productId]?.[0];''', '''const firstVersion = (editingContract ? versionsByProduct[productId] : publishedVersionsByProduct[productId])?.[0];''')
+          s = s.replace('disabled={products.length === 0 || companies.length === 0}', 'disabled={availableProductsForNewContract.length === 0 || companies.length === 0}')
+          s = s.replace('{products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}', '{(editingContract ? products : availableProductsForNewContract).map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}')
+          s = s.replace('{(versionsByProduct[contractForm.product_id] || []).map((v) => <SelectItem key={v.id} value={v.id}>{v.version_label}</SelectItem>)}', '{(editingContract ? (versionsByProduct[contractForm.product_id] || []) : (publishedVersionsByProduct[contractForm.product_id] || [])).map((v) => <SelectItem key={v.id} value={v.id}>{v.version_label}</SelectItem>)}')
+          p.write_text(s)
+
+          # 5) Published version integrity: onboarding template joins the immutable version tree.
+          (root/'supabase/migrations/20260904230000_product_onboarding_version_integrity.sql').write_text('''-- Complete published-version immutability and publication checklist.\nDROP TRIGGER IF EXISTS trg_pv_onboarding_items_immutable ON public.product_version_onboarding_items;\nCREATE TRIGGER trg_pv_onboarding_items_immutable\nBEFORE INSERT OR UPDATE OR DELETE ON public.product_version_onboarding_items\nFOR EACH ROW EXECUTE FUNCTION public.enforce_published_version_immutable();\n\nCREATE OR REPLACE FUNCTION public.publish_product_version(_version_id uuid)\nRETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$\nBEGIN\n  IF NOT public.has_role(auth.uid(), 'super_admin'::public.app_role) THEN\n    RAISE EXCEPTION 'Apenas Super Admin pode publicar versões de produto.';\n  END IF;\n  IF NOT EXISTS (SELECT 1 FROM public.product_version_config c WHERE c.product_version_id = _version_id) THEN\n    RAISE EXCEPTION 'Configure os dados gerais da versão antes de publicar.';\n  END IF;\n  IF NOT EXISTS (SELECT 1 FROM public.product_version_onboarding_items o WHERE o.product_version_id = _version_id) THEN\n    RAISE EXCEPTION 'Configure ao menos um item de onboarding antes de publicar.';\n  END IF;\n  UPDATE public.product_versions SET published_at = now(), is_active = true WHERE id = _version_id AND published_at IS NULL;\n  RETURN FOUND;\nEND $$;\nREVOKE ALL ON FUNCTION public.publish_product_version(uuid) FROM PUBLIC, anon;\nGRANT EXECUTE ON FUNCTION public.publish_product_version(uuid) TO authenticated, service_role;\n''')
+
+          # 6) Strict CORS for sensitive authenticated functions.
+          (root/'supabase/functions/_shared/cors.ts').write_text('''const normalize = (value: string) => value.trim().replace(/\\/$/, "");\nfunction allowedOrigins(): string[] {\n  const configured = (Deno.env.get("APP_ALLOWED_ORIGINS") || "").split(",").map(normalize).filter(Boolean);\n  const appUrl = normalize(Deno.env.get("APP_URL") || "");\n  if (appUrl && !configured.includes(appUrl)) configured.push(appUrl);\n  return configured;\n}\nexport function corsHeadersFor(req: Request): Record<string, string> {\n  const origin = normalize(req.headers.get("origin") || "");\n  const allowed = allowedOrigins();\n  const selected = origin && allowed.includes(origin) ? origin : (allowed[0] || "");\n  return { ...(selected ? { "Access-Control-Allow-Origin": selected, "Vary": "Origin" } : {}), "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS" };\n}\nexport function originAllowed(req: Request): boolean {\n  const origin = normalize(req.headers.get("origin") || "");\n  if (!origin) return true;\n  return allowedOrigins().includes(origin);\n}\n''')
+
+          for name in ['admin-invite','admin-list-users','ai-action','chat','socio-tools']:
+              p = root/f'supabase/functions/{name}/index.ts'; s = p.read_text()
+              if 'corsHeadersFor' not in s:
+                  lines=s.splitlines(); i=0
+                  while i < len(lines) and lines[i].startswith('import '): i += 1
+                  lines.insert(i, 'import { corsHeadersFor, originAllowed } from "../_shared/cors.ts";')
+                  s='\n'.join(lines)+'\n'
+              s = re.sub(r'\nconst corsHeaders = \{\n  "Access-Control-Allow-Origin": "\\\*",\n  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",\n\};\n', '\n', s)
+              s = s.replace('Deno.serve(async (req) => {\n  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });', 'Deno.serve(async (req) => {\n  const corsHeaders = corsHeadersFor(req);\n  if (req.method === "OPTIONS") return new Response(null, { status: originAllowed(req) ? 204 : 403, headers: corsHeaders });\n  if (!originAllowed(req)) return new Response(JSON.stringify({ error: "origin_not_allowed" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });')
+              p.write_text(s)
+
+          # 7) Do not hide chart typing problems globally.
+          p = root/'src/components/ui/chart.tsx'; p.write_text(p.read_text().replace('// @ts-nocheck\n',''))
+
+          # Remove temporary patch transport files from the branch.
+          import shutil
+          shutil.rmtree(root/'.hardening', ignore_errors=True)
+          PY
+
+      - name: Validate source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          npm ci
+          npm run build
+          npm test -- --run
 
       - name: Commit applied corrections
         shell: bash
@@ -42,5 +256,3 @@ jobs:
           git add -A
           git commit -m "fix: apply full authorization and contract hardening plan"
           git push origin HEAD:hardening/full-correction-plan
-
-# trigger: validated patch application
