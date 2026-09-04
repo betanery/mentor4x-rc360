@@ -1,0 +1,168 @@
+     return new Response(JSON.stringify({ error: String((e as any)?.message ?? e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+   }
+-});
+\ No newline at end of file
++});
+diff --git a/supabase/functions/chat/index.ts b/supabase/functions/chat/index.ts
+index 1b43461..6c4e68a 100644
+--- a/supabase/functions/chat/index.ts
++++ b/supabase/functions/chat/index.ts
+@@ -1,10 +1,7 @@
+ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+ import { getCompanyAuthorization, redactCommercial, rowInScope } from "../_shared/company-authorization.ts";
++import { corsHeadersFor, rejectDisallowedOrigin } from "../_shared/cors.ts";
+ 
+-const corsHeaders = {
+-  "Access-Control-Allow-Origin": "*",
+-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+-};
+ 
+ function scopedQuery(query: any, contractId: string | null) {
+   return contractId ? query.eq("contract_id", contractId) : query.is("contract_id", null);
+@@ -24,6 +21,8 @@ async function resolveContract(admin: any, companyId: string, contractId?: strin
+ }
+ 
+ Deno.serve(async (req) => {
++  const corsHeaders = corsHeadersFor(req);
++  if (!corsHeaders) return rejectDisallowedOrigin();
+   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+   try {
+     const authHeader = req.headers.get("Authorization");
+@@ -144,4 +143,4 @@ Responda em português brasileiro, direto, executivo, com bullets quando útil.
+   } catch (e) {
+     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+   }
+-});
+\ No newline at end of file
++});
+diff --git a/supabase/functions/socio-tools/index.ts b/supabase/functions/socio-tools/index.ts
+index 1768cb7..27703dc 100644
+--- a/supabase/functions/socio-tools/index.ts
++++ b/supabase/functions/socio-tools/index.ts
+@@ -1,10 +1,7 @@
+ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+ import { getCompanyAuthorization } from "../_shared/company-authorization.ts";
++import { corsHeadersFor, rejectDisallowedOrigin } from "../_shared/cors.ts";
+ 
+-const corsHeaders = {
+-  "Access-Control-Allow-Origin": "*",
+-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+-};
+ 
+ const json = (body: unknown, status = 200) =>
+   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+@@ -115,6 +112,8 @@ const tools = [
+ ];
+ 
+ Deno.serve(async (req) => {
++  const corsHeaders = corsHeadersFor(req);
++  if (!corsHeaders) return rejectDisallowedOrigin();
+   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+   try {
+     const authHeader = req.headers.get("Authorization");
+diff --git a/supabase/migrations/20260904180000_full_correction_plan.sql b/supabase/migrations/20260904180000_full_correction_plan.sql
+new file mode 100644
+index 0000000..7c3af5e
+--- /dev/null
++++ b/supabase/migrations/20260904180000_full_correction_plan.sql
+@@ -0,0 +1,128 @@
++-- Full correction plan: product governance, publication integrity and onboarding immutability.
++
++-- 1) Only Super Admin may mutate the global product catalog.
++DROP POLICY IF EXISTS "products_staff_modify" ON public.products;
++CREATE POLICY "products_super_admin_modify" ON public.products
++FOR ALL TO authenticated
++USING (public.has_role(auth.uid(), 'super_admin'))
++WITH CHECK (public.has_role(auth.uid(), 'super_admin'));
++
++DROP POLICY IF EXISTS "product_versions_staff_modify" ON public.product_versions;
++CREATE POLICY "product_versions_super_admin_modify" ON public.product_versions
++FOR ALL TO authenticated
++USING (public.has_role(auth.uid(), 'super_admin'))
++WITH CHECK (public.has_role(auth.uid(), 'super_admin'));
++
++DROP POLICY IF EXISTS "config gerenciada por staff" ON public.product_version_config;
++CREATE POLICY "config gerenciada por super admin" ON public.product_version_config
++FOR ALL TO authenticated
++USING (public.has_role(auth.uid(), 'super_admin'))
++WITH CHECK (public.has_role(auth.uid(), 'super_admin'));
++
++DROP POLICY IF EXISTS "encontros versao gerenciados por staff" ON public.product_version_meetings;
++CREATE POLICY "encontros versao gerenciados por super admin" ON public.product_version_meetings
++FOR ALL TO authenticated
++USING (public.has_role(auth.uid(), 'super_admin'))
++WITH CHECK (public.has_role(auth.uid(), 'super_admin'));
++
++DROP POLICY IF EXISTS "etapas versao gerenciadas por staff" ON public.product_version_stages;
++CREATE POLICY "etapas versao gerenciadas por super admin" ON public.product_version_stages
++FOR ALL TO authenticated
++USING (public.has_role(auth.uid(), 'super_admin'))
++WITH CHECK (public.has_role(auth.uid(), 'super_admin'));
++
++DROP POLICY IF EXISTS "entregaveis versao gerenciados por staff" ON public.product_version_deliverables;
++CREATE POLICY "entregaveis versao gerenciados por super admin" ON public.product_version_deliverables
++FOR ALL TO authenticated
++USING (public.has_role(auth.uid(), 'super_admin'))
++WITH CHECK (public.has_role(auth.uid(), 'super_admin'));
++
++DROP POLICY IF EXISTS "Staff gerencia modelos de onboarding" ON public.product_version_onboarding_items;
++CREATE POLICY "Super Admin gerencia modelos de onboarding" ON public.product_version_onboarding_items
++FOR ALL TO authenticated
++USING (public.has_role(auth.uid(), 'super_admin'))
++WITH CHECK (public.has_role(auth.uid(), 'super_admin'));
++
++-- 2) Published onboarding templates become immutable, matching config/stages/meetings/deliverables.
++DROP TRIGGER IF EXISTS trg_pv_onboarding_items_immutable ON public.product_version_onboarding_items;
++CREATE TRIGGER trg_pv_onboarding_items_immutable
++BEFORE INSERT OR UPDATE OR DELETE ON public.product_version_onboarding_items
++FOR EACH ROW EXECUTE FUNCTION public.enforce_published_version_immutable();
++
++-- 3) Publication is a Super Admin action and requires a minimally complete version.
++CREATE OR REPLACE FUNCTION public.publish_product_version(_version_id uuid)
++RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
++DECLARE
++  target public.product_versions%ROWTYPE;
++BEGIN
++  IF NOT public.has_role(auth.uid(), 'super_admin') THEN
++    RAISE EXCEPTION 'Apenas o Super Admin pode publicar versoes de produto.';
++  END IF;
++
++  SELECT * INTO target FROM public.product_versions WHERE id = _version_id;
++  IF NOT FOUND THEN RAISE EXCEPTION 'Versao nao encontrada.'; END IF;
++  IF target.published_at IS NOT NULL THEN RETURN false; END IF;
++
++  IF NOT EXISTS (SELECT 1 FROM public.product_version_config c WHERE c.product_version_id = _version_id) THEN
++    RAISE EXCEPTION 'Configure os dados gerais da versao antes de publicar.';
++  END IF;
++  IF NOT EXISTS (SELECT 1 FROM public.product_version_onboarding_items i WHERE i.product_version_id = _version_id) THEN
++    RAISE EXCEPTION 'Configure ao menos um item de onboarding antes de publicar.';
++  END IF;
++  IF target.cycle_count < 1 OR target.duration_days IS NULL OR target.duration_days <= 0 THEN
++    RAISE EXCEPTION 'Defina ciclos e duracao valida antes de publicar.';
++  END IF;
++
++  UPDATE public.product_versions
++  SET published_at = now(), is_active = true
++  WHERE id = _version_id AND published_at IS NULL;
++  RETURN FOUND;
++END $$;
++REVOKE ALL ON FUNCTION public.publish_product_version(uuid) FROM PUBLIC, anon;
++GRANT EXECUTE ON FUNCTION public.publish_product_version(uuid) TO authenticated, service_role;
++
++-- 4) Clone all version-owned artifacts, including onboarding templates.
++CREATE OR REPLACE FUNCTION public.clone_product_version(_source_id uuid, _label text DEFAULT NULL)
++RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
++DECLARE src public.product_versions%ROWTYPE; new_id uuid; s record; new_stage uuid;
++BEGIN
++  IF NOT public.has_role(auth.uid(), 'super_admin') THEN
++    RAISE EXCEPTION 'Apenas o Super Admin pode duplicar versoes de produto.';
++  END IF;
++  SELECT * INTO src FROM public.product_versions WHERE id = _source_id;
++  IF NOT FOUND THEN RAISE EXCEPTION 'Versao de origem nao encontrada.'; END IF;
++
++  INSERT INTO public.product_versions(product_id,version_label,methodology_code,description,cycle_count,duration_days,is_active,published_at)
++  VALUES(src.product_id,COALESCE(NULLIF(BTRIM(_label),''),src.version_label || ' (copia)'),src.methodology_code,src.description,src.cycle_count,src.duration_days,false,NULL)
++  RETURNING id INTO new_id;
++
++  INSERT INTO public.product_version_config(product_version_id,price_cents,currency,format,audience,duration_amount,duration_unit,access_days,support_model,community_included,bonuses,ai_enabled,catalog_visibility,sales_url,checkout_url,recommendation_mode,notes,diagnostic_weights)
++  SELECT new_id,price_cents,currency,format,audience,duration_amount,duration_unit,access_days,support_model,community_included,bonuses,ai_enabled,catalog_visibility,sales_url,checkout_url,recommendation_mode,notes,diagnostic_weights
