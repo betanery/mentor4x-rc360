@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getCompanyAuthorization } from "../_shared/company-authorization.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -97,7 +98,7 @@ const tools = [
     type: "function",
     function: {
       name: "schedule_meeting",
-      description: "Agenda uma reunião (apenas staff).",
+      description: "Agenda uma reunião (apenas staff atribuído à empresa).",
       parameters: {
         type: "object",
         properties: {
@@ -133,12 +134,11 @@ Deno.serve(async (req) => {
     if (!company_id) return json({ error: "company_id required" }, 400);
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const [{ data: isStaff }, { data: isMember }, { data: isConsultor }] = await Promise.all([
-      admin.rpc("is_staff", { _user_id: userId }),
-      admin.rpc("is_company_member", { _user_id: userId, _company_id: company_id }),
-      admin.rpc("is_consultor", { _user_id: userId }),
-    ]);
-    if (!isStaff && !isMember) return json({ error: "Forbidden" }, 403);
+    const authorization = await getCompanyAuthorization(admin, userId, company_id);
+    if (!authorization.allowed) return json({ error: "Forbidden" }, 403);
+
+    const isStaff = authorization.is_staff;
+    const isConsultor = authorization.is_consultor;
 
     const contractScope = await resolveContract(admin, company_id, contract_id);
     if (contractScope.forbidden) return json({ error: "Forbidden" }, 403);
@@ -203,13 +203,13 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Alçadas.
+        // Alçadas contextuais.
         if (scope === "consultor" && !isConsultor) {
-          results.push({ id: p.id, name: p.tool_name, ok: false, error: "Somente o Consultor 4X pode aprovar esta ação." });
+          results.push({ id: p.id, name: p.tool_name, ok: false, error: "Somente o Consultor 4X atribuído à empresa pode aprovar esta ação." });
           continue;
         }
         if (scope === "estrategista" && !isStaff) {
-          results.push({ id: p.id, name: p.tool_name, ok: false, error: "Somente a equipe interna pode aprovar esta ação." });
+          results.push({ id: p.id, name: p.tool_name, ok: false, error: "Somente a equipe interna atribuída à empresa pode aprovar esta ação." });
           continue;
         }
 

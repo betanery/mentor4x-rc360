@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getCompanyAuthorization, redactCommercial, rowInScope } from "../_shared/company-authorization.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,33 +52,38 @@ Deno.serve(async (req) => {
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    // Membership check
     let context = "";
     if (company_id) {
-      const [{ data: isStaff }, { data: isMember }] = await Promise.all([
-        admin.rpc("is_staff", { _user_id: userId }),
-        admin.rpc("is_company_member", { _user_id: userId, _company_id: company_id }),
-      ]);
-      if (!isStaff && !isMember) {
+      const authorization = await getCompanyAuthorization(admin, userId, company_id);
+      if (!authorization.allowed) {
         return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
+
       const scope = await resolveContract(admin, company_id, contract_id);
       if (scope.forbidden) {
         return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
+
       const [{ data: c }, { data: g }, { data: b }, { data: p }] = await Promise.all([
-        admin.from("companies").select("*").eq("id", company_id).single(),
-        scopedQuery(admin.from("goals").select("title,status,financial_impact,pillar").eq("company_id", company_id), scope.contractId).limit(20),
-        scopedQuery(admin.from("bottlenecks").select("name,urgency,estimated_value,resolved").eq("company_id", company_id), scope.contractId).limit(10),
-        scopedQuery(admin.from("pillar_scores").select("pillar,score").eq("company_id", company_id).order("measured_at", { ascending: false }), scope.contractId).limit(8),
+        admin.from("companies").select("id,name,journey_stage,chaos_level,overall_score,owner_dependency,projected_revenue").eq("id", company_id).single(),
+        scopedQuery(admin.from("goals").select("title,status,financial_impact,pillar,blindspot_code").eq("company_id", company_id), scope.contractId).limit(50),
+        scopedQuery(admin.from("bottlenecks").select("name,urgency,estimated_value,resolved,blindspot_code,area").eq("company_id", company_id), scope.contractId).limit(50),
+        scopedQuery(admin.from("pillar_scores").select("pillar,score").eq("company_id", company_id).order("measured_at", { ascending: false }), scope.contractId).limit(20),
       ]);
-      const activeStage = scope.contract?.journey_stage ?? c?.journey_stage;
-      context = `\n\nCONTEXTO DA EMPRESA:\nNome: ${c?.name}\nContratação: ${scope.contract?.id ?? "legado/sem contratação"}\nCiclo atual: ${activeStage}\nImproviso: ${c?.chaos_level}\nScore geral: ${c?.overall_score}\nDependência do dono: ${c?.owner_dependency}%\nReceita projetada: R$ ${c?.projected_revenue}\n\nMETAS (${g?.length || 0}): ${JSON.stringify(g)}\nGARGALOS: ${JSON.stringify(b)}\nSCORES PILARES: ${JSON.stringify(p)}`;
+
+      const visibleGoals = (g || []).filter((row: any) => rowInScope(authorization, row)).map((row: any) => redactCommercial(authorization, row, ["financial_impact"]));
+      const visibleBottlenecks = (b || []).filter((row: any) => rowInScope(authorization, row)).map((row: any) => redactCommercial(authorization, row, ["estimated_value"]));
+      const visiblePillars = (p || []).filter((row: any) => rowInScope(authorization, row));
+      const company = c ? redactCommercial(authorization, c, ["projected_revenue"]) : c;
+
+      const activeStage = scope.contract?.journey_stage ?? company?.journey_stage;
+      const revenueLine = authorization.can_view_commercial ? `\nReceita projetada: R$ ${company?.projected_revenue}` : "";
+      context = `\n\nCONTEXTO DA EMPRESA:\nNome: ${company?.name}\nContratação: ${scope.contract?.id ?? "legado/sem contratação"}\nCiclo atual: ${activeStage}\nImproviso: ${company?.chaos_level}\nScore geral: ${company?.overall_score}\nDependência do dono: ${company?.owner_dependency}%${revenueLine}\n\nMETAS VISÍVEIS (${visibleGoals.length}): ${JSON.stringify(visibleGoals)}\nGARGALOS VISÍVEIS: ${JSON.stringify(visibleBottlenecks)}\nSCORES VISÍVEIS: ${JSON.stringify(visiblePillars)}`;
     }
 
     const systemPrompt = `Você é "Meu Sócio IA", o conselheiro estratégico do método SEE_4X (Sistema de Estruturação Empresarial 4X, RC360).
 Método: 4 pilares (Crescimento, Eficiência, Encantamento, Liderança), execução com 2 Metas Críticas por ciclo, jornada de 6 ciclos e cinco Motores (Clareza, Prioridade, Execução, Governança, Autonomia). Improviso indica por onde começar; Maturidade indica até onde levar. Você nunca decide sozinho: recomendações dependem de aprovação do Estrategista 4X e/ou Consultor 4X.
-Responda em português brasileiro, direto, executivo, com bullets quando útil. Use markdown.${context}`;
+Responda em português brasileiro, direto, executivo, com bullets quando útil. Use markdown. Nunca tente inferir, reconstruir ou solicitar dados ocultados por regras de acesso.${context}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -96,7 +102,6 @@ Responda em português brasileiro, direto, executivo, com bullets quando útil. 
       return new Response(JSON.stringify({ error: t }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Tee the stream: stream to client AND capture full response to log server-side
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content ?? "";
     const [clientStream, logStream] = response.body!.tee();
 

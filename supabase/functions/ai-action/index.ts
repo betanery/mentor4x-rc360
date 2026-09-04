@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { jsPDF } from "https://esm.sh/jspdf@2.5.2";
+import { getCompanyAuthorization, type CompanyAuthorization } from "../_shared/company-authorization.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -502,15 +503,11 @@ Deno.serve(async (req) => {
     }
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    let isStaff = false;
+    let authorization: CompanyAuthorization | null = null;
     let contractScope: { contractId: string | null; contract: any; forbidden?: boolean } = { contractId: null, contract: null };
     if (company_id) {
-      const [{ data: s }, { data: m }] = await Promise.all([
-        admin.rpc("is_staff", { _user_id: userId }),
-        admin.rpc("is_company_member", { _user_id: userId, _company_id: company_id }),
-      ]);
-      isStaff = !!s;
-      if (!s && !m) {
+      authorization = await getCompanyAuthorization(admin, userId, company_id);
+      if (!authorization.allowed) {
         return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       contractScope = await resolveContract(admin, company_id, contract_id);
@@ -530,6 +527,7 @@ Deno.serve(async (req) => {
 
     if (action === "monthly_report") {
       if (!company_id) return new Response(JSON.stringify({ error: "company_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (!authorization?.can_view_full_reports) return new Response(JSON.stringify({ error: "Sem permissão para relatório executivo completo" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const { data: c } = await admin.from("companies").select("*").eq("id", company_id).single();
       const { data: g } = await scopedQuery(admin.from("goals").select("*").eq("company_id", company_id), contractScope.contractId);
       const { data: b } = await scopedQuery(admin.from("bottlenecks").select("*").eq("company_id", company_id), contractScope.contractId);
@@ -554,7 +552,7 @@ Deno.serve(async (req) => {
 
     if (action === "issue_certificate") {
       if (!company_id) return new Response(JSON.stringify({ error: "company_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (!isStaff) return new Response(JSON.stringify({ error: "Apenas staff pode emitir certificado" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (!authorization?.is_consultor) return new Response(JSON.stringify({ error: "Apenas Super Admin ou Consultor 4X atribuído à empresa pode emitir certificado" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const { data: c } = await admin.from("companies").select("*").eq("id", company_id).single();
       if (!c) return new Response(JSON.stringify({ error: "Empresa não encontrada" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const stage = contractScope.contract?.journey_stage ?? c.journey_stage;
@@ -573,6 +571,7 @@ Deno.serve(async (req) => {
 
     if (action === "generate-report") {
       if (!company_id) return new Response(JSON.stringify({ error: "company_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (!authorization?.can_view_full_reports) return new Response(JSON.stringify({ error: "Sem permissão para relatório SEE_4X completo" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const { baseline_diagnostic_id, follow_up_diagnostic_id } = payload || {};
       if (!baseline_diagnostic_id || !follow_up_diagnostic_id) {
         return new Response(JSON.stringify({ error: "baseline_diagnostic_id and follow_up_diagnostic_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -635,6 +634,6 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({ error: "unknown action" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e?.message ?? e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: String((e as any)?.message ?? e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

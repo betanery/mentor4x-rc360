@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { E2E_ENABLED } from "@/test/e2eFixtures";
 import { useCompany } from "@/hooks/useCompany";
 import { Logo } from "./Logo";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,11 @@ export function AppLayout() {
   const visibleStaff = STAFF_NAV.filter(n => n.role.some(r => roles.includes(r as any)));
 
   useEffect(() => {
+    if (E2E_ENABLED) {
+      setUnread(0);
+      return;
+    }
+
     if (!user) { setUnread(0); return; }
     const loadUnread = async () => {
       const { count } = await supabase
