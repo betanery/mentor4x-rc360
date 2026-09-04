@@ -12,22 +12,26 @@ interface CompanyCtx {
   setCurrentId: (id: string) => void;
   refresh: () => Promise<void>;
   loading: boolean;
+  error: string | null;
 }
 
 const STORAGE_KEY = "m4x.currentCompany";
 const Ctx = createContext<CompanyCtx | undefined>(undefined);
 
 export function CompanyProvider({ children }: { children: ReactNode }) {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, setActiveCompanyId } = useAuth();
   const qc = useQueryClient();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [current, setCurrent] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetch = async () => {
     if (!user) {
       setCompanies([]);
       setCurrent(null);
+      setError(null);
+      void setActiveCompanyId(null);
       localStorage.removeItem(STORAGE_KEY);
       setLoading(false);
       return;
@@ -35,11 +39,22 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     if (E2E_ENABLED) {
       setCompanies([E2E_COMPANY]);
       setCurrent(E2E_COMPANY);
+      setError(null);
       setLoading(false);
       return;
     }
     setLoading(true);
-    const { data } = await supabase.from("companies").select("*").order("name");
+    setError(null);
+    const { data, error: queryError } = await supabase.from("companies").select("*").order("name");
+    if (queryError) {
+      console.error("Failed to load companies", queryError);
+      setCompanies([]);
+      setCurrent(null);
+      void setActiveCompanyId(null);
+      setError("Não foi possível carregar as empresas disponíveis para este usuário.");
+      setLoading(false);
+      return;
+    }
     const list = (data || []) as Company[];
     setCompanies(list);
 
@@ -50,6 +65,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     const found = storedCompany || list[0] || null;
     if (found && found.id !== stored) localStorage.setItem(STORAGE_KEY, found.id);
     setCurrent(found);
+    void setActiveCompanyId(found?.id ?? null);
     setLoading(false);
   };
 
@@ -60,10 +76,11 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     if (!found || found.id === current?.id) return;
     setCurrent(found);
     localStorage.setItem(STORAGE_KEY, id);
+    void setActiveCompanyId(id);
     qc.clear();
   };
 
-  return <Ctx.Provider value={{ companies, current, setCurrentId, refresh: fetch, loading }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ companies, current, setCurrentId, refresh: fetch, loading, error }}>{children}</Ctx.Provider>;
 }
 
 export const useCompany = () => {

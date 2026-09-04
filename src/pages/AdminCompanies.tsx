@@ -104,7 +104,7 @@ const statusLabel: Record<string, string> = {
 };
 
 export default function AdminCompanies() {
-  const { isStaff, user } = useAuth();
+  const { isConsultor, user } = useAuth();
   const { setCurrentId, refresh, current } = useCompany();
   const nav = useNavigate();
   const [rows, setRows] = useState<CompanyRow[]>([]);
@@ -169,7 +169,7 @@ export default function AdminCompanies() {
     return map;
   }, [contracts]);
 
-  if (!isStaff) return <Navigate to="/" replace />;
+  if (!isConsultor) return <Navigate to="/" replace />;
 
   const openNew = () => {
     setEditingId(null);

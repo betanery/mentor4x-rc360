@@ -36,9 +36,9 @@ const NAV = [
 const STAFF_NAV = [
   { to: "/mentor", label: "Área do Consultor 4X", icon: Users, role: ["super_admin","mentor"] as const },
   { to: "/estrategista", label: "Área do Estrategista 4X", icon: Briefcase, role: ["super_admin","mentor","estrategista"] as const },
-  { to: "/admin/produtos", label: "Produtos", icon: Boxes, role: ["super_admin","mentor","estrategista"] as const },
-  { to: "/empresas", label: "Empresas", icon: Building2, role: ["super_admin","mentor","estrategista"] as const },
-  { to: "/admin/universidade", label: "Universidade 4X (Admin)", icon: GraduationCap, role: ["super_admin","mentor","estrategista"] as const },
+  { to: "/admin/produtos", label: "Produtos", icon: Boxes, role: ["super_admin"] as const },
+  { to: "/empresas", label: "Empresas", icon: Building2, role: ["super_admin","mentor"] as const },
+  { to: "/admin/universidade", label: "Universidade 4X (Admin)", icon: GraduationCap, role: ["super_admin"] as const },
 ];
 
 export function AppLayout() {
@@ -190,7 +190,7 @@ export function AppLayout() {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>{user?.email}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {isStaff && <DropdownMenuItem onClick={() => nav("/admin/usuarios")}>Gerenciar usuários</DropdownMenuItem>}
+                {roles.includes("super_admin") && <DropdownMenuItem onClick={() => nav("/admin/usuarios")}>Gerenciar usuários</DropdownMenuItem>}
                 <DropdownMenuItem onClick={signOut} className="text-destructive">
                   <LogOut className="h-4 w-4 mr-2" />Sair
                 </DropdownMenuItem>

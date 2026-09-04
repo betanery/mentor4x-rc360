@@ -76,10 +76,10 @@ const App = () => (
                   <Route path="/notificacoes" element={<Notifications />} />
                   <Route path="/mentor" element={<ProtectedRoute allow={["super_admin","mentor"]}><MentorArea /></ProtectedRoute>} />
                   <Route path="/estrategista" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><StrategistArea /></ProtectedRoute>} />
-                  <Route path="/admin/usuarios" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><AdminUsers /></ProtectedRoute>} />
-                  <Route path="/admin/produtos" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><AdminProducts /></ProtectedRoute>} />
-                  <Route path="/empresas" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><AdminCompanies /></ProtectedRoute>} />
-                  <Route path="/admin/universidade" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><AdminUniversity /></ProtectedRoute>} />
+                  <Route path="/admin/usuarios" element={<ProtectedRoute allow={["super_admin"]}><AdminUsers /></ProtectedRoute>} />
+                  <Route path="/admin/produtos" element={<ProtectedRoute allow={["super_admin"]}><AdminProducts /></ProtectedRoute>} />
+                  <Route path="/empresas" element={<ProtectedRoute allow={["super_admin","mentor"]}><AdminCompanies /></ProtectedRoute>} />
+                  <Route path="/admin/universidade" element={<ProtectedRoute allow={["super_admin"]}><AdminUniversity /></ProtectedRoute>} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
