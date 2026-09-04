@@ -14,7 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { CYCLE_LABEL } from "@/lib/labels";
 import { ITEM_TYPE_LABEL } from "@/components/OnboardingTemplateDialog";
-import { CalendarClock, GraduationCap, ListChecks, Loader2, Rocket, Users } from "lucide-react";
+import { AlertCircle, Building2, CalendarClock, GraduationCap, ListChecks, Loader2, RefreshCw, Rocket, Users } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Item = Tables<"contract_onboarding_items">;
@@ -30,7 +30,7 @@ const fmt = (value: string | null) => (value ? new Date(`${value}T12:00:00`).toL
 
 export default function Onboarding() {
   const { current } = useCompany();
-  const { currentContract, refreshContracts } = useContract();
+  const { currentContract, refreshContracts, loading: contractLoading, error: contractError } = useContract();
   const { isStaff, user } = useAuth();
   const qc = useQueryClient();
 
@@ -100,9 +100,43 @@ export default function Onboarding() {
         subtitle="Etapas, encontros, entregáveis e liberação de conteúdo gerados a partir da versão contratada."
       />
 
-      {!current || !currentContract ? (
-        <Card className="p-12 text-center text-muted-foreground">
-          Selecione uma empresa e uma contratação ativa para acompanhar o onboarding.
+      {!current ? (
+        <Card className="p-10 text-center">
+          <Building2 className="mx-auto h-9 w-9 text-muted-foreground/60" />
+          <p className="mt-3 font-semibold">Nenhuma empresa selecionada</p>
+          <p className="mt-1 text-sm text-muted-foreground">Selecione uma empresa no menu lateral para visualizar o onboarding.</p>
+        </Card>
+      ) : contractLoading ? (
+        <Card className="p-10 text-center text-muted-foreground">
+          <Loader2 className="mr-2 inline h-5 w-5 animate-spin" />
+          Carregando contratação de {current.name}...
+        </Card>
+      ) : contractError ? (
+        <Card className="p-8 text-center">
+          <AlertCircle className="mx-auto h-9 w-9 text-destructive" />
+          <p className="mt-3 font-semibold">Não foi possível carregar a contratação</p>
+          <p className="mt-1 text-sm text-muted-foreground">{contractError}</p>
+          <Button variant="outline" className="mt-4" onClick={() => void refreshContracts()}>
+            <RefreshCw className="mr-2 h-4 w-4" /> Tentar novamente
+          </Button>
+        </Card>
+      ) : !currentContract ? (
+        <Card className="p-8">
+          <div className="mx-auto max-w-xl text-center">
+            <Building2 className="mx-auto h-9 w-9 text-primary/70" />
+            <p className="mt-3 text-lg font-semibold">Empresa selecionada: {current.name}</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Esta empresa ainda não possui uma contratação ativa ou pausada vinculada. O onboarding só é gerado depois que uma contratação com produto e versão é criada.
+            </p>
+            {isStaff && (
+              <div className="mt-5 rounded-lg border border-border bg-muted/30 p-4 text-left text-sm">
+                <p className="font-semibold">Próximo passo</p>
+                <p className="mt-1 text-muted-foreground">
+                  Cadastre ou ative uma contratação para esta empresa. Depois volte a esta tela para gerar o plano de onboarding.
+                </p>
+              </div>
+            )}
+          </div>
         </Card>
       ) : (
         <>
