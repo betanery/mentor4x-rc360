@@ -43,11 +43,12 @@ Deno.serve(async (req) => {
     }
 
     // Single consolidated fetch — paralelo
-    const [authList, profiles, roles, members, companies, audit] = await Promise.all([
+    const [authList, profiles, roles, members, accesses, companies, audit] = await Promise.all([
       supabase.auth.admin.listUsers({ page, perPage }),
       supabase.from("profiles").select("user_id, full_name, avatar_url, job_title, phone"),
       supabase.from("user_roles").select("user_id, role"),
       supabase.from("company_members").select("user_id, company_id, member_role, is_primary"),
+      supabase.from("company_access").select("user_id, company_id, access_role, is_primary_responsible, status").eq("status", "ativo"),
       companiesQuery,
       auditQuery,
     ]);
@@ -71,6 +72,17 @@ Deno.serve(async (req) => {
       const arr = membersMap.get(m.user_id) || [];
       arr.push({ ...m, company: companyMap.get(m.company_id) });
       membersMap.set(m.user_id, arr);
+    });
+    (accesses.data || []).forEach((a: any) => {
+      if (scopedCompanyIds && !scopedCompanyIds.includes(a.company_id)) return;
+      const arr = membersMap.get(a.user_id) || [];
+      if (!arr.some((m) => m.company_id === a.company_id && m.member_role === a.access_role)) {
+        arr.push({ company_id: a.company_id, member_role: a.access_role, is_primary: a.is_primary_responsible, company: companyMap.get(a.company_id) });
+      }
+      membersMap.set(a.user_id, arr);
+      const userRoles = rolesMap.get(a.user_id) || [];
+      if (!userRoles.includes(a.access_role)) userRoles.push(a.access_role);
+      rolesMap.set(a.user_id, userRoles);
     });
 
 

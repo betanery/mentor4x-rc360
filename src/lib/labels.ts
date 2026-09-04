@@ -7,6 +7,8 @@ export const ROLE_LABEL: Record<string, string> = {
   cliente_dono: "Cliente 4X (Dono)",
   gestor_cliente: "Gestor",
   colaborador_cliente: "Colaborador",
+  company_responsible: "Responsável da empresa (Dono/Gestor)",
+  company_leader: "Líder da empresa (Gerente/Coordenador)",
 };
 
 // Improviso substitui a antiga linguagem de "caos". Variável independente da Maturidade.
