@@ -48,7 +48,7 @@ export function pillarFromBlindspot(code?: string | null): string | null {
 export function rowInScope(auth: CompanyAuthorization, row: any): boolean {
   if (auth.full_scope || !auth.is_leader) return true;
   const pillar = row?.pillar ?? pillarFromBlindspot(row?.blindspot_code);
-  const department = row?.department ?? row?.area_code ?? null;
+  const department = row?.department ?? row?.area_code ?? row?.area ?? null;
   if (pillar && auth.pillar_scopes.includes(String(pillar))) return true;
   if (department && auth.department_scopes.includes(String(department))) return true;
   return false;
