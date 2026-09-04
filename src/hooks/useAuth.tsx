@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import type { Session, User } from "@supabase/supabase-js";
 
-type AppRole = "super_admin" | "mentor" | "estrategista" | "cliente_dono" | "gestor_cliente" | "colaborador_cliente";
+type AppRole = "super_admin" | "mentor" | "estrategista" | "cliente_dono" | "gestor_cliente" | "colaborador_cliente" | "company_responsible" | "company_leader";
 
 interface AuthCtx {
   user: User | null;
@@ -26,8 +26,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const loadRoles = async (uid: string) => {
-    const { data } = await supabase.from("user_roles").select("role").eq("user_id", uid);
-    setRoles(((data || []).map((r: any) => r.role)) as AppRole[]);
+    const [globalRoles, companyRoles] = await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", uid),
+      supabase.from("company_access").select("access_role").eq("user_id", uid).eq("status", "ativo"),
+    ]);
+    const merged = [...(globalRoles.data || []).map((r: any) => r.role), ...(companyRoles.data || []).map((r: any) => r.access_role)];
+    setRoles([...new Set(merged)] as AppRole[]);
   };
 
   useEffect(() => {

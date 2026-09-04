@@ -6,17 +6,19 @@
 // a Maturidade sugerida pelo sistema só vale após validação do Consultor 4X.
 
 export type Pillar = "crescimento" | "eficiencia" | "encantamento" | "lideranca";
-export type RespondentGroup = "dono_socio" | "gestor" | "equipe";
+export type RespondentGroup = "responsavel_principal" | "dono_socio" | "gestor" | "equipe";
 export type MaturityLevel = "inicial" | "emergente" | "estruturada" | "escalavel" | "autonoma";
 
 /** Pesos oficiais por grupo de respondentes. A mudança começa no CPF do dono. */
 export const GROUP_WEIGHTS: Record<RespondentGroup, number> = {
-  dono_socio: 0.4,
-  gestor: 0.35,
-  equipe: 0.25,
+  responsavel_principal: 0.4,
+  dono_socio: 0.3,
+  gestor: 0.2,
+  equipe: 0.1,
 };
 
 export const GROUP_LABEL: Record<RespondentGroup, string> = {
+  responsavel_principal: "Responsável principal",
   dono_socio: "Dono e sócios",
   gestor: "Gestores",
   equipe: "Equipe",
@@ -386,4 +388,3 @@ export function urgencyForImproviso(score: number): "baixa" | "media" | "alta" |
   if (score >= 40) return "media";
   return "baixa";
 }
-

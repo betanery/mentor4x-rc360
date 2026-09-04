@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -200,11 +200,11 @@ export default function AdminUniversity() {
     load();
   };
 
-  const stats = useMemo(() => ({
+  const stats = ({
     courses: courses.length,
     published: courses.filter((c) => c.published).length,
     lessons: lessons.length,
-  }), [courses, lessons]);
+  });
 
   return (
     <div className="space-y-6">

@@ -6,9 +6,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const ROLES = ["super_admin","mentor","estrategista","cliente_dono","gestor_cliente","colaborador_cliente"] as const;
+const ROLES = ["super_admin","mentor","estrategista","company_responsible","company_leader","cliente_dono","gestor_cliente","colaborador_cliente"] as const;
 const STAFF_ROLES = ["super_admin","mentor","estrategista"];
-const CLIENT_ROLES = ["cliente_dono","gestor_cliente","colaborador_cliente"];
+const CLIENT_ROLES = ["company_responsible","company_leader","cliente_dono","gestor_cliente","colaborador_cliente"];
 
 const BodySchema = z.object({
   email: z.string().trim().toLowerCase().email().max(255),
@@ -59,14 +59,14 @@ Deno.serve(async (req) => {
 
     // ====== Validações de segurança ======
 
-    // 1. Apenas super_admin pode criar outro super_admin
-    if (role === "super_admin" && !isSuperAdmin) {
-      await writeAudit("falhou", { error_message: "Apenas Super Admin pode criar Super Admin" });
-      return json({ error: "Apenas Super Admin pode criar outro Super Admin" }, 403);
+    // Funções internas são globais e só podem ser administradas pelo Super Admin.
+    if (STAFF_ROLES.includes(role) && !isSuperAdmin) {
+      await writeAudit("falhou", { error_message: "Apenas Super Admin pode atribuir funções internas" });
+      return json({ error: "Apenas o Super Admin pode convidar Consultores, Estrategistas ou outros administradores" }, 403);
     }
 
     // 2. Roles de cliente DEVEM ter empresa
-    if (CLIENT_ROLES.includes(role) && !company_id) {
+    if (CLIENT_ROLES.includes(role) && !company_id && !resend) {
       await writeAudit("falhou", { error_message: "Cliente sem empresa" });
       return json({ error: "Clientes precisam estar vinculados a uma empresa" }, 400);
     }
@@ -148,11 +148,11 @@ Deno.serve(async (req) => {
 
     await supabase.from("profiles").upsert({ user_id: newUserId, full_name }, { onConflict: "user_id" });
 
-    // Atribui role (idempotente)
-    const { data: existingRole } = await supabase.from("user_roles")
-      .select("id").eq("user_id", newUserId).eq("role", role).maybeSingle();
-    if (!existingRole) {
-      await supabase.from("user_roles").insert({ user_id: newUserId, role });
+    // Responsável e Líder são vínculos contextuais, não funções globais.
+    if (!['company_responsible', 'company_leader'].includes(role)) {
+      const { data: existingRole } = await supabase.from("user_roles")
+        .select("id").eq("user_id", newUserId).eq("role", role).maybeSingle();
+      if (!existingRole) await supabase.from("user_roles").insert({ user_id: newUserId, role });
     }
 
     // Vincula à empresa (idempotente — uma única vez por empresa)
@@ -161,6 +161,28 @@ Deno.serve(async (req) => {
         .select("id").eq("user_id", newUserId).eq("company_id", company_id).maybeSingle();
       if (!existingMember) {
         await supabase.from("company_members").insert({ company_id, user_id: newUserId, member_role: role });
+      }
+      if (['company_responsible', 'company_leader'].includes(role)) {
+        const isResponsible = role === 'company_responsible';
+        const { data: currentPrimary } = isResponsible
+          ? await supabase.from("company_access").select("id").eq("company_id", company_id)
+              .eq("is_primary_responsible", true).eq("status", "ativo").limit(1).maybeSingle()
+          : { data: null };
+        const isPrimary = isResponsible && !currentPrimary;
+        const accessPayload = {
+          company_id, user_id: newUserId, access_role: role,
+          job_title_code: isResponsible ? 'dono' : 'gerente',
+          is_primary_responsible: isPrimary,
+          diagnostic_group: isPrimary ? 'responsavel_principal' : isResponsible ? 'dono_socio' : 'gestor',
+          diagnostic_weight: isPrimary ? 0.40 : isResponsible ? 0.30 : 0.20,
+          status: 'ativo', invited_by: user.id,
+        };
+        const { data: existingAccess } = await supabase.from("company_access").select("id")
+          .eq("user_id", newUserId).eq("company_id", company_id).is("contract_id", null).maybeSingle();
+        const { error: accessErr } = existingAccess
+          ? await supabase.from("company_access").update(accessPayload).eq("id", existingAccess.id)
+          : await supabase.from("company_access").insert(accessPayload);
+        if (accessErr) throw accessErr;
       }
     }
 

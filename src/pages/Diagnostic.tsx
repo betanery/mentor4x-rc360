@@ -61,7 +61,10 @@ export default function Diagnostic() {
 
   const [answers, setAnswers] = useState<Answers>({});
   const [group, setGroup] = useState<RespondentGroup>(
-    roles.includes("cliente_dono") ? "dono_socio" : roles.includes("gestor_cliente") ? "gestor" : "equipe",
+    roles.includes("company_responsible") ? "responsavel_principal"
+      : roles.includes("cliente_dono") ? "dono_socio"
+      : roles.includes("company_leader") || roles.includes("gestor_cliente") ? "gestor"
+      : "equipe",
   );
   const [validateOpen, setValidateOpen] = useState(false);
   const [validation, setValidation] = useState<{ maturity: MaturityLevel; pillar: Pillar | ""; blindspot: string; notes: string }>({

@@ -213,6 +213,15 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Reserva atômica: impede dupla execução em confirmações concorrentes.
+        const { data: claimed, error: claimErr } = await admin.from("ai_proposals")
+          .update({ status: "executando", decided_by: userId, decided_at: nowIso })
+          .eq("id", p.id).eq("status", "pendente").select("id").maybeSingle();
+        if (claimErr || !claimed) {
+          results.push({ id: p.id, name: p.tool_name, ok: false, error: "Proposta já processada ou reservada por outra confirmação." });
+          continue;
+        }
+
         const args = p.payload ?? {};
         try {
           let row: any = null;

@@ -16,8 +16,8 @@ import { Mail, UserPlus, Send, Loader2, RotateCw, CheckCircle2, Clock, AlertTria
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 
-const ROLES = ["super_admin","mentor","estrategista","cliente_dono","gestor_cliente","colaborador_cliente"] as const;
-const CLIENT_ROLES = ["cliente_dono","gestor_cliente","colaborador_cliente"];
+const ROLES = ["super_admin","mentor","estrategista","company_responsible","company_leader","cliente_dono","gestor_cliente","colaborador_cliente"] as const;
+const CLIENT_ROLES = ["company_responsible","company_leader","cliente_dono","gestor_cliente","colaborador_cliente"];
 
 type AuthStatus = "confirmado" | "pendente" | "expirado";
 type AdminUser = {
@@ -150,7 +150,7 @@ export default function AdminUsers() {
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {ROLES.map((r) => (
-                        <SelectItem key={r} value={r} disabled={r === "super_admin" && !hasRole("super_admin")}>
+                        <SelectItem key={r} value={r} disabled={["super_admin", "mentor", "estrategista"].includes(r) && !hasRole("super_admin")}>
                           {ROLE_LABEL[r]}
                         </SelectItem>
                       ))}

@@ -2899,6 +2899,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      clone_product_version: {
+        Args: { _source_id: string; _label?: string | null }
+        Returns: string
+      }
       can_view_commercial: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
@@ -2949,6 +2953,10 @@ export type Database = {
       }
       is_consultor: { Args: { _user_id: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      publish_product_version: {
+        Args: { _version_id: string }
+        Returns: boolean
+      }
       user_companies: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {

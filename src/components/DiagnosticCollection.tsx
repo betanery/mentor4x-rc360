@@ -230,7 +230,7 @@ export function DiagnosticCollection({
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-4">
-        {(["dono_socio", "gestor", "equipe"] as RespondentGroup[]).map((g) => (
+        {(["responsavel_principal", "dono_socio", "gestor", "equipe"] as RespondentGroup[]).map((g) => (
           <Card key={g} className="p-5">
             <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground">{GROUP_LABEL[g]}</p>
             <p className="text-3xl font-black mt-1">{coverage[g]}</p>
