@@ -23,13 +23,20 @@ Deno.serve(async (req) => {
     const roleList = (callerRoles || []).map((r: any) => r.role);
     const isStaff = roleList.some((r: string) => STAFF_ROLES.includes(r));
     if (!isStaff) return json({ error: "forbidden" }, 403);
-    // Fase 6c — Estrategista vê apenas as empresas em que atua; Super Admin e Consultor veem tudo.
-    const isFullScope = roleList.includes("super_admin") || roleList.includes("mentor");
+
+    // Somente Super Admin tem visão global. Mentor e Estrategista ficam limitados à carteira atribuída.
+    const isFullScope = roleList.includes("super_admin");
 
     let scopedCompanyIds: string[] | null = null;
     if (!isFullScope) {
-      const { data: own } = await supabase.from("company_members").select("company_id").eq("user_id", user.id);
-      scopedCompanyIds = [...new Set((own || []).map((m: any) => m.company_id))];
+      const [{ data: memberships }, { data: accesses }] = await Promise.all([
+        supabase.from("company_members").select("company_id").eq("user_id", user.id),
+        supabase.from("company_access").select("company_id").eq("user_id", user.id).eq("status", "ativo"),
+      ]);
+      scopedCompanyIds = [...new Set([
+        ...(memberships || []).map((m: any) => m.company_id),
+        ...(accesses || []).map((a: any) => a.company_id),
+      ])];
     }
 
     const page = Math.max(1, Number(new URL(req.url).searchParams.get("page") ?? "1"));
@@ -38,11 +45,11 @@ Deno.serve(async (req) => {
     const companiesQuery = supabase.from("companies").select("id, name");
     const auditQuery = supabase.from("invite_audit").select("*").order("created_at", { ascending: false }).limit(200);
     if (scopedCompanyIds) {
-      companiesQuery.in("id", scopedCompanyIds.length ? scopedCompanyIds : ["00000000-0000-0000-0000-000000000000"]);
-      auditQuery.in("company_id", scopedCompanyIds.length ? scopedCompanyIds : ["00000000-0000-0000-0000-000000000000"]);
+      const ids = scopedCompanyIds.length ? scopedCompanyIds : ["00000000-0000-0000-0000-000000000000"];
+      companiesQuery.in("id", ids);
+      auditQuery.in("company_id", ids);
     }
 
-    // Single consolidated fetch — paralelo
     const [authList, profiles, roles, members, accesses, companies, audit] = await Promise.all([
       supabase.auth.admin.listUsers({ page, perPage }),
       supabase.from("profiles").select("user_id, full_name, avatar_url, job_title, phone"),
@@ -52,7 +59,6 @@ Deno.serve(async (req) => {
       companiesQuery,
       auditQuery,
     ]);
-
 
     if (authList.error) return json({ error: authList.error.message }, 500);
 
@@ -65,9 +71,9 @@ Deno.serve(async (req) => {
       arr.push(r.role);
       rolesMap.set(r.user_id, arr);
     });
+
     const membersMap = new Map<string, any[]>();
     (members.data || []).forEach((m: any) => {
-      // fora do escopo do Estrategista, o vínculo não é exposto
       if (scopedCompanyIds && !scopedCompanyIds.includes(m.company_id)) return;
       const arr = membersMap.get(m.user_id) || [];
       arr.push({ ...m, company: companyMap.get(m.company_id) });
@@ -84,7 +90,6 @@ Deno.serve(async (req) => {
       if (!userRoles.includes(a.access_role)) userRoles.push(a.access_role);
       rolesMap.set(a.user_id, userRoles);
     });
-
 
     const users = (authList.data?.users || []).map((u: any) => {
       const confirmed = !!u.email_confirmed_at;
@@ -108,7 +113,6 @@ Deno.serve(async (req) => {
       };
     });
 
-    // Estrategista: apenas usuários das empresas em que atua (e ele mesmo).
     const scopedUsers = scopedCompanyIds
       ? users.filter((u: any) =>
           u.id === user.id ||
@@ -124,7 +128,6 @@ Deno.serve(async (req) => {
       per_page: perPage,
       has_more: (authList.data?.users || []).length === perPage,
     });
-
   } catch (e) {
     return json({ error: String(e) }, 500);
   }
