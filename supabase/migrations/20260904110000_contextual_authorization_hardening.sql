@@ -55,16 +55,21 @@ BEGIN
     SELECT 1 FROM public.company_access ca
     WHERE ca.user_id = _user_id AND ca.company_id = _company_id
       AND ca.status = 'ativo'
-      AND ca.access_role IN ('company_responsible')
+      AND ca.access_role = 'company_responsible'
       AND (ca.valid_until IS NULL OR ca.valid_until >= CURRENT_DATE)
   ) INTO responsible;
 
+  -- Compatibilidade: cliente_dono pode existir no modelo contextual novo ou no vínculo legado company_members.
   SELECT EXISTS (
     SELECT 1 FROM public.company_access ca
     WHERE ca.user_id = _user_id AND ca.company_id = _company_id
       AND ca.status = 'ativo'
       AND ca.access_role = 'cliente_dono'
       AND (ca.valid_until IS NULL OR ca.valid_until >= CURRENT_DATE)
+  ) OR EXISTS (
+    SELECT 1 FROM public.company_members cm
+    WHERE cm.user_id = _user_id AND cm.company_id = _company_id
+      AND cm.member_role::text = 'cliente_dono'
   ) INTO client_owner;
 
   SELECT EXISTS (
