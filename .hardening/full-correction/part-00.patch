@@ -1,0 +1,171 @@
+diff --git a/e2e/access-by-role.spec.ts b/e2e/access-by-role.spec.ts
+index e71ceca..3668e19 100644
+--- a/e2e/access-by-role.spec.ts
++++ b/e2e/access-by-role.spec.ts
+@@ -13,7 +13,13 @@ const labels: Record<Role, string> = {
+   colaborador_cliente: "Colaborador",
+ };
+ 
+-const staffRoutes = ["/estrategista", "/admin/usuarios", "/admin/produtos", "/empresas", "/admin/universidade"];
++const routeRoles: Record<string, Role[]> = {
++  "/estrategista": ["super_admin", "mentor", "estrategista"],
++  "/admin/usuarios": ["super_admin"],
++  "/admin/produtos": ["super_admin"],
++  "/empresas": ["super_admin", "mentor"],
++  "/admin/universidade": ["super_admin"],
++};
+ const commonRoutes = ["/", "/diagnostico", "/jornada", "/onboarding", "/metas", "/plano-acao", "/gargalos", "/pilares", "/sala-guerra", "/universidade", "/playbooks", "/socio-ia", "/relatorios", "/relatorio-see4x", "/certificados", "/notificacoes"];
+ 
+ async function isolateNetwork(page: Page) {
+diff --git a/src/App.tsx b/src/App.tsx
+index b24b366..a33266a 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -76,10 +76,10 @@ const App = () => (
+                   <Route path="/notificacoes" element={<Notifications />} />
+                   <Route path="/mentor" element={<ProtectedRoute allow={["super_admin","mentor"]}><MentorArea /></ProtectedRoute>} />
+                   <Route path="/estrategista" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><StrategistArea /></ProtectedRoute>} />
+-                  <Route path="/admin/usuarios" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><AdminUsers /></ProtectedRoute>} />
+-                  <Route path="/admin/produtos" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><AdminProducts /></ProtectedRoute>} />
+-                  <Route path="/empresas" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><AdminCompanies /></ProtectedRoute>} />
+-                  <Route path="/admin/universidade" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><AdminUniversity /></ProtectedRoute>} />
++                  <Route path="/admin/usuarios" element={<ProtectedRoute allow={["super_admin"]}><AdminUsers /></ProtectedRoute>} />
++                  <Route path="/admin/produtos" element={<ProtectedRoute allow={["super_admin"]}><AdminProducts /></ProtectedRoute>} />
++                  <Route path="/empresas" element={<ProtectedRoute allow={["super_admin","mentor"]}><AdminCompanies /></ProtectedRoute>} />
++                  <Route path="/admin/universidade" element={<ProtectedRoute allow={["super_admin"]}><AdminUniversity /></ProtectedRoute>} />
+                 </Route>
+                 <Route path="*" element={<NotFound />} />
+               </Routes>
+diff --git a/src/components/AppLayout.tsx b/src/components/AppLayout.tsx
+index d7ad41e..22f551a 100644
+--- a/src/components/AppLayout.tsx
++++ b/src/components/AppLayout.tsx
+@@ -36,13 +36,13 @@ const NAV = [
+ const STAFF_NAV = [
+   { to: "/mentor", label: "Área do Consultor 4X", icon: Users, role: ["super_admin","mentor"] as const },
+   { to: "/estrategista", label: "Área do Estrategista 4X", icon: Briefcase, role: ["super_admin","mentor","estrategista"] as const },
+-  { to: "/admin/produtos", label: "Produtos", icon: Boxes, role: ["super_admin","mentor","estrategista"] as const },
+-  { to: "/empresas", label: "Empresas", icon: Building2, role: ["super_admin","mentor","estrategista"] as const },
+-  { to: "/admin/universidade", label: "Universidade 4X (Admin)", icon: GraduationCap, role: ["super_admin","mentor","estrategista"] as const },
++  { to: "/admin/produtos", label: "Produtos", icon: Boxes, role: ["super_admin"] as const },
++  { to: "/empresas", label: "Empresas", icon: Building2, role: ["super_admin","mentor"] as const },
++  { to: "/admin/universidade", label: "Universidade 4X (Admin)", icon: GraduationCap, role: ["super_admin"] as const },
+ ];
+ 
+ export function AppLayout() {
+-  const { user, signOut, roles, isStaff } = useAuth();
++  const { user, signOut, roles, isStaff, hasRole, getCompanyAccess } = useAuth();
+   const { companies, current, setCurrentId } = useCompany();
+   const { contracts, currentContract, setCurrentContractId } = useContract();
+   const nav = useNavigate();
+@@ -183,14 +183,14 @@ export function AppLayout() {
+                   <Avatar className="h-8 w-8"><AvatarFallback className="bg-gradient-brand text-primary-foreground font-semibold">{initial}</AvatarFallback></Avatar>
+                   <div className="text-left hidden sm:block">
+                     <div className="text-sm font-semibold leading-tight">{user?.email?.split("@")[0]}</div>
+-                    <div className="text-[10px] text-muted-foreground leading-tight">{roles.map(r => ROLE_LABEL[r]).join(" · ") || "Sem role"}</div>
++                    <div className="text-[10px] text-muted-foreground leading-tight">{[...roles.map(r => ROLE_LABEL[r]), ...(current ? [ROLE_LABEL[getCompanyAccess(current.id)?.access_role ?? ""]].filter(Boolean) : [])].join(" · ") || "Sem role"}</div>
+                   </div>
+                 </Button>
+               </DropdownMenuTrigger>
+               <DropdownMenuContent align="end" className="w-56">
+                 <DropdownMenuLabel>{user?.email}</DropdownMenuLabel>
+                 <DropdownMenuSeparator />
+-                {isStaff && <DropdownMenuItem onClick={() => nav("/admin/usuarios")}>Gerenciar usuários</DropdownMenuItem>}
++                {hasRole("super_admin") && <DropdownMenuItem onClick={() => nav("/admin/usuarios")}>Gerenciar usuários</DropdownMenuItem>}
+                 <DropdownMenuItem onClick={signOut} className="text-destructive">
+                   <LogOut className="h-4 w-4 mr-2" />Sair
+                 </DropdownMenuItem>
+diff --git a/src/components/ui/chart.tsx b/src/components/ui/chart.tsx
+index 570c053..81553c5 100644
+--- a/src/components/ui/chart.tsx
++++ b/src/components/ui/chart.tsx
+@@ -1,4 +1,3 @@
+-// @ts-nocheck
+ import * as React from "react";
+ import * as RechartsPrimitive from "recharts";
+ 
+@@ -15,6 +14,39 @@ export type ChartConfig = {
+ 
+ type ChartContextProps = { config: ChartConfig };
+ 
++type TooltipItem = {
++  dataKey?: string | number;
++  color?: string;
++  name?: React.ReactNode;
++  value?: React.ReactNode;
++};
++
++type TooltipContentProps = React.ComponentProps<"div"> & {
++  active?: boolean;
++  payload?: Array<TooltipItem | null | undefined>;
++  indicator?: "dot" | "line" | "dashed";
++  hideLabel?: boolean;
++  hideIndicator?: boolean;
++  label?: React.ReactNode;
++  labelFormatter?: (label: React.ReactNode, payload: TooltipItem[]) => React.ReactNode;
++  labelClassName?: string;
++  color?: string;
++  nameKey?: string;
++  labelKey?: string;
++};
++
++type LegendItem = {
++  value?: React.ReactNode;
++  color?: string;
++};
++
++type LegendContentProps = React.ComponentProps<"div"> & {
++  hideIcon?: boolean;
++  payload?: Array<LegendItem | null | undefined>;
++  verticalAlign?: "top" | "middle" | "bottom";
++  nameKey?: string;
++};
++
+ const ChartContext = React.createContext<ChartContextProps | null>(null);
+ 
+ function useChart() {
+@@ -72,37 +104,33 @@ ${colorConfig
+ };
+ 
+ const ChartTooltip = RechartsPrimitive.Tooltip;
+-const ChartTooltipContent = React.forwardRef<HTMLDivElement, any>((props, ref) => {
++const ChartTooltipContent = React.forwardRef<HTMLDivElement, TooltipContentProps>((props, ref) => {
+   const {
+     active,
+     payload,
+     className,
+-    indicator = "dot",
+     hideLabel = false,
+     hideIndicator = false,
+     label,
+     labelFormatter,
+     labelClassName,
+-    formatter,
+     color,
+-    nameKey,
+-    labelKey,
+   } = props;
+   useChart();
+   if (!active || !payload?.length) return null;
+ 
+-  const safePayload = payload.filter(Boolean);
++  const safePayload = payload.filter((item): item is TooltipItem => Boolean(item));
+   if (!safePayload.length) return null;
+ 
+   return (
+     <div ref={ref} className={cn("grid min-w-[8rem] items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl", className)}>
+       {!hideLabel && label && <div className={cn("font-medium", labelClassName)}>{labelFormatter ? labelFormatter(label, safePayload) : label}</div>}
+       <div className="grid gap-1.5">
+-        {safePayload.map((item: any, index: number) => (
+-          <div key={item?.dataKey ?? index} className="flex w-full items-center gap-2">
+-            {!hideIndicator && <div className="h-2.5 w-2.5 rounded-[2px]" style={{ background: color || item?.color || "transparent" }} />}
+-            <span className="text-muted-foreground">{item?.name ?? ""}</span>
+-            <span className="ml-auto font-mono font-medium tabular-nums text-foreground">{item?.value ?? ""}</span>
++        {safePayload.map((item, index) => (
++          <div key={item.dataKey ?? index} className="flex w-full items-center gap-2">
++            {!hideIndicator && <div className="h-2.5 w-2.5 rounded-[2px]" style={{ background: color || item.color || "transparent" }} />}
++            <span className="text-muted-foreground">{item.name ?? ""}</span>
++            <span className="ml-auto font-mono font-medium tabular-nums text-foreground">{item.value ?? ""}</span>
+           </div>
+         ))}
+       </div>
