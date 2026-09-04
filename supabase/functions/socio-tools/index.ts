@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getCompanyAuthorization } from "../_shared/company-authorization.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,7 +22,6 @@ const ENTITY_BY_TOOL: Record<string, string> = {
   schedule_meeting: "meetings",
 };
 
-/** Ordena chaves para que o hash seja estável independentemente da ordem do JSON. */
 function canonical(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonical);
   if (value && typeof value === "object") {
@@ -97,7 +97,7 @@ const tools = [
     type: "function",
     function: {
       name: "schedule_meeting",
-      description: "Agenda uma reunião (apenas staff).",
+      description: "Agenda uma reunião (apenas staff atribuído à empresa).",
       parameters: {
         type: "object",
         properties: {
@@ -133,12 +133,11 @@ Deno.serve(async (req) => {
     if (!company_id) return json({ error: "company_id required" }, 400);
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const [{ data: isStaff }, { data: isMember }, { data: isConsultor }] = await Promise.all([
-      admin.rpc("is_staff", { _user_id: userId }),
-      admin.rpc("is_company_member", { _user_id: userId, _company_id: company_id }),
-      admin.rpc("is_consultor", { _user_id: userId }),
-    ]);
-    if (!isStaff && !isMember) return json({ error: "Forbidden" }, 403);
+    const authorization = await getCompanyAuthorization(admin, userId, company_id);
+    if (!authorization.allowed) return json({ error: "Forbidden" }, 403);
+
+    const isStaff = authorization.is_staff;
+    const isConsultor = authorization.is_consultor;
 
     const contractScope = await resolveContract(admin, company_id, contract_id);
     if (contractScope.forbidden) return json({ error: "Forbidden" }, 403);
@@ -147,7 +146,6 @@ Deno.serve(async (req) => {
       if (rows.length) await admin.from("ai_logs").insert(rows);
     };
 
-    // ---------- Recusa explícita de propostas persistidas ----------
     if (decision === "reject") {
       const ids: string[] = Array.isArray(proposal_ids) ? proposal_ids : [];
       if (!ids.length) return json({ error: "proposal_ids required" }, 400);
@@ -156,6 +154,7 @@ Deno.serve(async (req) => {
         .update({ status: "rejeitada", decided_by: userId, decided_at: new Date().toISOString() })
         .in("id", ids)
         .eq("company_id", company_id)
+        .eq("created_by", userId)
         .eq("status", "pendente")
         .select("id, tool_name, payload, payload_hash, instruction");
       if (error) return json({ error: error.message }, 500);
@@ -170,7 +169,6 @@ Deno.serve(async (req) => {
       return json({ rejected: true, count: (rows || []).length });
     }
 
-    // ---------- Execução fiel: usa exatamente o payload persistido ----------
     if (confirm) {
       const ids: string[] = Array.isArray(proposal_ids) ? proposal_ids : [];
       if (!ids.length) return json({ error: "proposal_ids required" }, 400);
@@ -188,14 +186,12 @@ Deno.serve(async (req) => {
         const scope = (p.required_scope ?? "membro") as "membro" | "estrategista" | "consultor";
         const nowIso = new Date().toISOString();
 
-        // Proposta expirada exige nova proposta.
         if (p.expires_at && new Date(p.expires_at) < new Date()) {
           await admin.from("ai_proposals").update({ status: "expirada", decided_by: userId, decided_at: nowIso }).eq("id", p.id);
           results.push({ id: p.id, name: p.tool_name, ok: false, error: "Proposta expirada. Gere uma nova proposta." });
           continue;
         }
 
-        // Integridade: o payload gravado precisa casar com o hash registrado.
         const recomputed = await payloadHash(p.tool_name, p.payload);
         if (recomputed !== p.payload_hash) {
           await admin.from("ai_proposals").update({ status: "falhou", decided_by: userId, decided_at: nowIso, error_message: "Hash divergente" }).eq("id", p.id);
@@ -203,22 +199,12 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Alçadas.
         if (scope === "consultor" && !isConsultor) {
-          results.push({ id: p.id, name: p.tool_name, ok: false, error: "Somente o Consultor 4X pode aprovar esta ação." });
+          results.push({ id: p.id, name: p.tool_name, ok: false, error: "Somente o Consultor 4X atribuído à empresa pode aprovar esta ação." });
           continue;
         }
         if (scope === "estrategista" && !isStaff) {
-          results.push({ id: p.id, name: p.tool_name, ok: false, error: "Somente a equipe interna pode aprovar esta ação." });
-          continue;
-        }
-
-        // Reserva atômica: impede dupla execução em confirmações concorrentes.
-        const { data: claimed, error: claimErr } = await admin.from("ai_proposals")
-          .update({ status: "executando", decided_by: userId, decided_at: nowIso })
-          .eq("id", p.id).eq("status", "pendente").select("id").maybeSingle();
-        if (claimErr || !claimed) {
-          results.push({ id: p.id, name: p.tool_name, ok: false, error: "Proposta já processada ou reservada por outra confirmação." });
+          results.push({ id: p.id, name: p.tool_name, ok: false, error: "Somente a equipe interna atribuída à empresa pode aprovar esta ação." });
           continue;
         }
 
@@ -286,7 +272,6 @@ Deno.serve(async (req) => {
       return json({ executed: true, results });
     }
 
-    // ---------- Proposta (dry-run): chama a IA e persiste o payload exato ----------
     if (!instruction) return json({ error: "instruction required" }, 400);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
