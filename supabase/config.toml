@@ -4,11 +4,11 @@ project_id = "fjgdcmtwstmslmbxlsga"
   [functions.admin-invite]
     verify_jwt = true
   [functions.ai-action]
-    verify_jwt = false
+    verify_jwt = true
   [functions.auth-email-hook]
     verify_jwt = false
   [functions.chat]
-    verify_jwt = false
+    verify_jwt = true
   [functions.daily-alerts]
     verify_jwt = false
   [functions.diagnostic-response]
@@ -16,6 +16,6 @@ project_id = "fjgdcmtwstmslmbxlsga"
   [functions.lead-diagnostic]
     verify_jwt = false
   [functions.socio-tools]
-    verify_jwt = false
+    verify_jwt = true
   [functions.verify-certificate]
     verify_jwt = false
