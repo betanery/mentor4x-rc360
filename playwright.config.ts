@@ -13,10 +13,16 @@ export default defineConfig({
     video: "retain-on-failure",
   },
   webServer: {
-    command: "VITE_E2E_MODE=true npm run dev -- --host 127.0.0.1 --port 4173",
+    command: "npm run dev -- --host 127.0.0.1 --port 4173",
     url: "http://127.0.0.1:4173",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    env: {
+      ...process.env,
+      VITE_E2E_MODE: "true",
+      VITE_SUPABASE_URL: "http://127.0.0.1:54321",
+      VITE_SUPABASE_PUBLISHABLE_KEY: "mentor4x-e2e-anon-key",
+    },
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 });
