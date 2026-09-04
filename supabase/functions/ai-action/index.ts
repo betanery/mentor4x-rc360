@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { jsPDF } from "https://esm.sh/jspdf@2.5.2";
+import { getCompanyAuthorization, type CompanyAuthorization } from "../_shared/company-authorization.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,7 +38,6 @@ function buildReportPdf(title: string, companyName: string, body: string): Uint8
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
-  // Header band
   doc.setFillColor(20, 20, 50);
   doc.rect(0, 0, pageW, 90, "F");
   doc.setTextColor(255, 215, 130);
@@ -51,7 +51,6 @@ function buildReportPdf(title: string, companyName: string, body: string): Uint8
   doc.setFont("helvetica", "normal");
   doc.text(companyName, 40, 78);
 
-  // Body
   doc.setTextColor(30, 30, 30);
   doc.setFontSize(11);
   const margin = 40;
@@ -92,10 +91,6 @@ function buildCertificatePdf(companyName: string, code: string): Uint8Array {
   doc.text(`Emitido em ${new Date().toLocaleDateString("pt-BR")}`, w / 2, h - 60, { align: "center" });
   return new Uint8Array(doc.output("arraybuffer"));
 }
-
-// ---------------------------------------------------------------------------
-// SEE_4X report helpers
-// ---------------------------------------------------------------------------
 
 const GROUP_WEIGHTS: Record<string, number> = {
   dono_socio: 0.4,
@@ -154,7 +149,6 @@ function toImproviso(avg: number): number {
 function computeDiagnosticSummary(responses: any[]) {
   if (!responses.length) return null;
   const groupsPresent = Array.from(new Set(responses.map((r: any) => r.respondent_group)));
-  const weightTotal = groupsPresent.reduce((s: number, g: string) => s + GROUP_WEIGHTS[g], 0);
 
   const weightedAvg = (ids: string[]): number | null => {
     let sum = 0;
@@ -164,8 +158,9 @@ function computeDiagnosticSummary(responses: any[]) {
       const vals = rs.flatMap((r: any) => ids.map((id) => r.answers?.[id]).filter((v) => typeof v === "number"));
       const avg = average(vals);
       if (avg === null) continue;
-      sum += avg * GROUP_WEIGHTS[g];
-      usedWeight += GROUP_WEIGHTS[g];
+      const weight = GROUP_WEIGHTS[g] ?? 0;
+      sum += avg * weight;
+      usedWeight += weight;
     }
     if (!usedWeight) return null;
     return sum / usedWeight;
@@ -222,20 +217,14 @@ function motorForPillar(pillar: string): string {
   }
 }
 
-function buildSee4xReportPdf(
-  companyName: string,
-  baseline: any,
-  followUp: any,
-  goals: any[],
-  code: string,
-): Uint8Array {
+function buildSee4xReportPdf(companyName: string, baseline: any, followUp: any, goals: any[], code: string): Uint8Array {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 40;
-  const navy = [17, 33, 69]; // #112145
-  const royal = [18, 67, 120]; // #124378
-  const gold = [193, 138, 9]; // #C18A09
+  const navy = [17, 33, 69];
+  const royal = [18, 67, 120];
+  const gold = [193, 138, 9];
 
   const addFooter = () => {
     doc.setFontSize(8);
@@ -244,7 +233,6 @@ function buildSee4xReportPdf(
     doc.text(`Gerado em ${new Date().toLocaleDateString("pt-BR")}`, pageW - margin, pageH - 30, { align: "right" });
   };
 
-  // Cover
   doc.setFillColor(...navy);
   doc.rect(0, 0, pageW, pageH, "F");
   doc.setDrawColor(...gold);
@@ -263,11 +251,8 @@ function buildSee4xReportPdf(
   doc.setFontSize(14);
   doc.setTextColor(200, 200, 220);
   doc.text(companyName, pageW / 2, 280, { align: "center" });
-  doc.setFontSize(11);
-  doc.text(`Baseline: ${baseline.title} · Follow-up: ${followUp.title}`, pageW / 2, 320, { align: "center" });
   addFooter();
 
-  // Methodology
   doc.addPage();
   doc.setFillColor(...royal);
   doc.rect(0, 0, pageW, 70, "F");
@@ -289,29 +274,8 @@ function buildSee4xReportPdf(
     doc.text(lines, margin, y);
     y += lines.length * 16 + 10;
   }
-  y += 10;
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...gold);
-  doc.text("Seis ciclos da jornada", margin, y);
-  y += 22;
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(30, 30, 30);
-  const cycles = [
-    "1. Clareza e Prioridade — Diagnóstico validado, baseline, Top 5 e Plano de Execução.",
-    "2. Organização e Execução — Responsáveis, controles mínimos, primeiras metas e revisão quinzenal.",
-    "3. Estruturação — Padrões prioritários em uso, indicadores e evidências.",
-    "4. Fortalecimento — Correções aplicadas e estruturas ganhando consistência.",
-    "5. Performance — Resultados comparados à linha de base e decisões de performance.",
-    "6. Autonomia — Reavaliação, antes/depois e Plano de Continuidade de 90 dias.",
-  ];
-  for (const line of cycles) {
-    const lines = doc.splitTextToSize(line, pageW - margin * 2);
-    doc.text(lines, margin, y);
-    y += lines.length * 14 + 4;
-  }
   addFooter();
 
-  // Comparison
   doc.addPage();
   doc.setFillColor(...royal);
   doc.rect(0, 0, pageW, 70, "F");
@@ -319,95 +283,19 @@ function buildSee4xReportPdf(
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
   doc.text("Comparativo Antes / Depois", margin, 45);
-
-  const colW = (pageW - margin * 2) / 3;
-  const startY = 100;
-  const rowH = 28;
-
-  const drawHeader = (y: number) => {
-    doc.setFillColor(240, 240, 245);
-    doc.rect(margin, y - rowH + 8, pageW - margin * 2, rowH, "F");
-    doc.setTextColor(30, 30, 30);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text("Indicador", margin + 5, y);
-    doc.text("Baseline", margin + colW + 5, y);
-    doc.text("Follow-up", margin + colW * 2 + 5, y);
-  };
-
-  drawHeader(startY);
-  y = startY + rowH;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-
-  const rows = [
-    ["Improviso geral", `${baseline.improvisoGeral}`, `${followUp.improvisoGeral}`],
-    ["Dependência do dono (IDD)", `${baseline.iddScore}%`, `${followUp.iddScore}%`],
-    ["Maturidade", `${baseline.maturity ?? "—"}`, `${followUp.maturity ?? "—"}`],
-  ];
-  for (const [label, b, f] of rows) {
-    doc.text(label, margin + 5, y);
-    doc.text(b, margin + colW + 5, y);
-    doc.text(f, margin + colW * 2 + 5, y);
-    y += rowH;
-  }
-
-  y += 16;
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...gold);
-  doc.text("Improviso por pilar", margin, y);
-  y += 18;
-  doc.setFont("helvetica", "normal");
+  y = 105;
   doc.setTextColor(30, 30, 30);
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Improviso geral: ${baseline.improvisoGeral} → ${followUp.improvisoGeral}`, margin, y); y += 24;
+  doc.text(`Dependência do dono (IDD): ${baseline.iddScore}% → ${followUp.iddScore}%`, margin, y); y += 30;
   for (const p of ["crescimento", "eficiencia", "encantamento", "lideranca"]) {
-    const b = baseline.byPillar.find((x: any) => x.pillar === p)?.improviso ?? 0;
-    const f = followUp.byPillar.find((x: any) => x.pillar === p)?.improviso ?? 0;
-    const delta = f - b;
-    const deltaStr = delta > 0 ? `+${delta}` : `${delta}`;
-    doc.text(PILLAR_LABEL[p], margin + 5, y);
-    doc.text(`${b}`, margin + colW + 5, y);
-    doc.text(`${f} (${deltaStr})`, margin + colW * 2 + 5, y);
-    y += rowH;
-  }
-
-  y += 16;
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...gold);
-  doc.text("Top 5 evoluções", margin, y);
-  y += 18;
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(30, 30, 30);
-  const deltas = baseline.blindspots.map((b: any) => {
-    const after = followUp.blindspots.find((x: any) => x.code === b.code);
-    return { ...b, delta: (after?.improviso ?? b.improviso) - b.improviso };
-  }).sort((a: any, b: any) => a.delta - b.delta).slice(0, 5);
-  for (const item of deltas) {
-    const line = `${item.code} — ${item.title}: ${item.delta > 0 ? "+" : ""}${item.delta}`;
-    const lines = doc.splitTextToSize(line, pageW - margin * 2);
-    doc.text(lines, margin + 5, y);
-    y += lines.length * 14 + 4;
-  }
-
-  y += 10;
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...gold);
-  doc.text("Pontos de atenção (regressão)", margin, y);
-  y += 18;
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(30, 30, 30);
-  const regressions = baseline.blindspots.map((b: any) => {
-    const after = followUp.blindspots.find((x: any) => x.code === b.code);
-    return { ...b, delta: (after?.improviso ?? b.improviso) - b.improviso };
-  }).sort((a: any, b: any) => b.delta - a.delta).slice(0, 5);
-  for (const item of regressions) {
-    const line = `${item.code} — ${item.title}: +${item.delta}`;
-    const lines = doc.splitTextToSize(line, pageW - margin * 2);
-    doc.text(lines, margin + 5, y);
-    y += lines.length * 14 + 4;
+    const before = baseline.byPillar.find((x: any) => x.pillar === p)?.improviso ?? 0;
+    const after = followUp.byPillar.find((x: any) => x.pillar === p)?.improviso ?? 0;
+    doc.text(`${PILLAR_LABEL[p]}: ${before} → ${after}`, margin, y); y += 20;
   }
   addFooter();
 
-  // 90-day plan
   doc.addPage();
   doc.setFillColor(...royal);
   doc.rect(0, 0, pageW, 70, "F");
@@ -415,45 +303,30 @@ function buildSee4xReportPdf(
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
   doc.text("Plano de 90 dias", margin, 45);
-
   y = 100;
   doc.setTextColor(30, 30, 30);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  const intro = "Metas ativas aprovadas da empresa, organizadas pelos cinco Motores do SEE_4X. Cada meta traz responsável, prazo, indicador e impacto financeiro estimado.";
-  const introLines = doc.splitTextToSize(intro, pageW - margin * 2);
-  doc.text(introLines, margin, y);
-  y += introLines.length * 16 + 14;
-
+  doc.setFontSize(10);
   const motorOrder = ["clareza", "prioridade", "execucao", "governanca", "autonomia"];
   for (const motor of motorOrder) {
-    const motorGoals = goals.filter((g: any) => (g.motor || motorForPillar(g.pillar)) === motor);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...gold);
-    doc.setFontSize(12);
-    doc.text(MOTOR_LABEL[motor], margin, y);
-    y += 18;
+    doc.text(MOTOR_LABEL[motor], margin, y); y += 18;
     doc.setFont("helvetica", "normal");
     doc.setTextColor(30, 30, 30);
-    doc.setFontSize(10);
-    if (!motorGoals.length) {
-      doc.text("Nenhuma meta ativa neste motor no momento.", margin + 5, y);
-      y += 18;
-    } else {
-      for (const g of motorGoals) {
-        const line = `• ${g.title}${g.indicator ? ` — Indicador: ${g.indicator}` : ""}${g.due_date ? ` — Prazo: ${new Date(g.due_date).toLocaleDateString("pt-BR")}` : ""}${g.financial_impact ? ` — Impacto: R$ ${Number(g.financial_impact).toLocaleString("pt-BR")}` : ""}`;
-        const lines = doc.splitTextToSize(line, pageW - margin * 2 - 10);
-        doc.text(lines, margin + 5, y);
-        y += lines.length * 13 + 6;
-        if (y > pageH - 80) { doc.addPage(); y = 60; }
-      }
+    const motorGoals = goals.filter((g: any) => (g.motor || motorForPillar(g.pillar)) === motor);
+    if (!motorGoals.length) { doc.text("Nenhuma meta ativa.", margin + 5, y); y += 18; }
+    for (const g of motorGoals) {
+      const line = `• ${g.title}${g.indicator ? ` — ${g.indicator}` : ""}${g.due_date ? ` — ${new Date(g.due_date).toLocaleDateString("pt-BR")}` : ""}`;
+      const lines = doc.splitTextToSize(line, pageW - margin * 2 - 10);
+      doc.text(lines, margin + 5, y);
+      y += lines.length * 13 + 6;
+      if (y > pageH - 80) { doc.addPage(); y = 60; }
     }
-    y += 12;
-    if (y > pageH - 80) { doc.addPage(); y = 60; }
+    y += 8;
   }
   addFooter();
 
-  // Validation
   doc.addPage();
   doc.setFillColor(...navy);
   doc.rect(0, 0, pageW, pageH, "F");
@@ -469,11 +342,7 @@ function buildSee4xReportPdf(
   doc.setFont("helvetica", "normal");
   doc.text(`Código: ${code}`, pageW / 2, 170, { align: "center" });
   doc.text("Consulte a autenticidade deste documento na plataforma Mentor 4X.", pageW / 2, 200, { align: "center" });
-  doc.setTextColor(200, 200, 220);
-  doc.setFontSize(10);
-  doc.text("RC360 / Roberta Cardoso · Mentor 4X · SEE_4X", pageW / 2, pageH - 80, { align: "center" });
   addFooter();
-
   return new Uint8Array(doc.output("arraybuffer"));
 }
 
@@ -500,17 +369,14 @@ Deno.serve(async (req) => {
     if (!action) {
       return new Response(JSON.stringify({ error: "action required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    let isStaff = false;
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    let authorization: CompanyAuthorization | null = null;
     let contractScope: { contractId: string | null; contract: any; forbidden?: boolean } = { contractId: null, contract: null };
+
     if (company_id) {
-      const [{ data: s }, { data: m }] = await Promise.all([
-        admin.rpc("is_staff", { _user_id: userId }),
-        admin.rpc("is_company_member", { _user_id: userId, _company_id: company_id }),
-      ]);
-      isStaff = !!s;
-      if (!s && !m) {
+      authorization = await getCompanyAuthorization(admin, userId, company_id);
+      if (!authorization.allowed) {
         return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       contractScope = await resolveContract(admin, company_id, contract_id);
@@ -520,6 +386,9 @@ Deno.serve(async (req) => {
     }
 
     if (action === "weekly_summary") {
+      if (company_id && !authorization?.allowed) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
       const text = await callAI(
         `Gere uma ata executiva da reunião semanal em markdown:\n\nFEITO:\n${payload?.done ?? ""}\n\nTRAVOU:\n${payload?.blocked ?? ""}\n\nINDICADORES:\n${payload?.indicators ?? ""}\n\nPRÓXIMOS PASSOS:\n${payload?.next_steps ?? ""}\n\nDECISÕES:\n${payload?.decisions ?? ""}`,
         "Você gera atas executivas concisas e claras do método SEE_4X. A ata é um rascunho até revisão humana."
@@ -530,6 +399,7 @@ Deno.serve(async (req) => {
 
     if (action === "monthly_report") {
       if (!company_id) return new Response(JSON.stringify({ error: "company_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (!authorization?.can_view_full_reports) return new Response(JSON.stringify({ error: "Sem permissão para relatório executivo completo" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const { data: c } = await admin.from("companies").select("*").eq("id", company_id).single();
       const { data: g } = await scopedQuery(admin.from("goals").select("*").eq("company_id", company_id), contractScope.contractId);
       const { data: b } = await scopedQuery(admin.from("bottlenecks").select("*").eq("company_id", company_id), contractScope.contractId);
@@ -554,7 +424,7 @@ Deno.serve(async (req) => {
 
     if (action === "issue_certificate") {
       if (!company_id) return new Response(JSON.stringify({ error: "company_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (!isStaff) return new Response(JSON.stringify({ error: "Apenas staff pode emitir certificado" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (!authorization?.is_consultor) return new Response(JSON.stringify({ error: "Apenas Super Admin ou Consultor 4X atribuído à empresa pode emitir certificado" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const { data: c } = await admin.from("companies").select("*").eq("id", company_id).single();
       if (!c) return new Response(JSON.stringify({ error: "Empresa não encontrada" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const stage = contractScope.contract?.journey_stage ?? c.journey_stage;
@@ -573,6 +443,7 @@ Deno.serve(async (req) => {
 
     if (action === "generate-report") {
       if (!company_id) return new Response(JSON.stringify({ error: "company_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (!authorization?.can_view_full_reports) return new Response(JSON.stringify({ error: "Sem permissão para relatório SEE_4X completo" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const { baseline_diagnostic_id, follow_up_diagnostic_id } = payload || {};
       if (!baseline_diagnostic_id || !follow_up_diagnostic_id) {
         return new Response(JSON.stringify({ error: "baseline_diagnostic_id and follow_up_diagnostic_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -635,6 +506,6 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({ error: "unknown action" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e?.message ?? e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: String((e as any)?.message ?? e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
