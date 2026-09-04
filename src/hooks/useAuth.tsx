@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session, User } from "@supabase/supabase-js";
+import { E2E_ENABLED, e2eRole, e2eUser } from "@/test/e2eFixtures";
 
 type AppRole = "super_admin" | "mentor" | "estrategista" | "cliente_dono" | "gestor_cliente" | "colaborador_cliente" | "company_responsible" | "company_leader";
 
@@ -35,6 +36,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    if (E2E_ENABLED) {
+      const role = e2eRole();
+      setUser(role ? e2eUser(role) : null);
+      setSession(null);
+      setRoles(role ? [role] : []);
+      setLoading(false);
+      return;
+    }
     const { data: sub } = supabase.auth.onAuthStateChange((_e, sess) => {
       setSession(sess);
       setUser(sess?.user ?? null);
