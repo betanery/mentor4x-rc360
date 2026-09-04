@@ -22,16 +22,16 @@ jobs:
           ref: hardening/full-correction-plan
           fetch-depth: 0
 
-      - name: Apply staged correction patches
+      - name: Apply validated correction patch
         shell: bash
         run: |
           set -euo pipefail
-          cat .hardening/full-correction/part-*.patch > /tmp/full-correction.patch
+          base64 -d .hardening/full-correction-valid.patch.gz.b64 > /tmp/full-correction.patch.gz
+          gunzip -c /tmp/full-correction.patch.gz > /tmp/full-correction.patch
           git apply --check /tmp/full-correction.patch
           git apply /tmp/full-correction.patch
-          git apply --check .hardening/full-correction/postfix.patch
-          git apply .hardening/full-correction/postfix.patch
           rm -rf .hardening/full-correction
+          rm -f .hardening/full-correction-valid.patch.gz.b64
 
       - name: Commit applied corrections
         shell: bash
