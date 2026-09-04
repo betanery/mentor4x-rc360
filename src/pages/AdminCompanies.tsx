@@ -88,7 +88,7 @@ const emptyContractForm = {
   product_id: "",
   product_version_id: "",
   status: "ativo",
-  journey_stage: "ciclo_1",
+  journey_stage: "ciclo_1" as typeof STAGES[number],
   current_cycle: 1,
   started_at: new Date().toISOString().slice(0, 10),
   expected_completion: "",
@@ -488,7 +488,7 @@ export default function AdminCompanies() {
               </Select>
             </div>
             <div><Label>Status</Label><Select value={contractForm.status} onValueChange={(value) => setContractForm({ ...contractForm, status: value })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ativo">Ativo</SelectItem><SelectItem value="pausado">Pausado</SelectItem><SelectItem value="rascunho">Rascunho</SelectItem></SelectContent></Select></div>
-            <div><Label>Jornada inicial</Label><Select value={contractForm.journey_stage} onValueChange={(value) => setContractForm({ ...contractForm, journey_stage: value })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{STAGES.filter((stage) => stage !== "concluido").map((stage) => <SelectItem key={stage} value={stage}>{CYCLE_LABEL[stage].label}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label>Jornada inicial</Label><Select value={contractForm.journey_stage} onValueChange={(value) => setContractForm({ ...contractForm, journey_stage: value as typeof STAGES[number] })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{STAGES.filter((stage) => stage !== "concluido").map((stage) => <SelectItem key={stage} value={stage}>{CYCLE_LABEL[stage].label}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Ciclo operacional</Label><Input type="number" min={1} max={24} value={contractForm.current_cycle} onChange={(e) => setContractForm({ ...contractForm, current_cycle: Number(e.target.value) || 1 })} /></div>
             <div><Label>Data de início</Label><Input type="date" value={contractForm.started_at} onChange={(e) => setContractForm({ ...contractForm, started_at: e.target.value })} /></div>
             <div className="sm:col-span-2"><Label>Previsão de conclusão</Label><Input type="date" value={contractForm.expected_completion} onChange={(e) => setContractForm({ ...contractForm, expected_completion: e.target.value })} /></div>
