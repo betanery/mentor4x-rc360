@@ -2,6 +2,7 @@ import { createContext, ReactNode, useContext, useEffect, useMemo, useState } fr
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useCompany } from "./useCompany";
+import { E2E_CONTRACT, E2E_ENABLED } from "@/test/e2eFixtures";
 
 export type ActiveContract = {
   id: string;
@@ -68,6 +69,12 @@ export function ContractProvider({ children }: { children: ReactNode }) {
     if (!user || !current) {
       setContracts([]);
       setCurrentContract(null);
+      setLoading(false);
+      return;
+    }
+    if (E2E_ENABLED) {
+      setContracts([E2E_CONTRACT]);
+      setCurrentContract(E2E_CONTRACT);
       setLoading(false);
       return;
     }
