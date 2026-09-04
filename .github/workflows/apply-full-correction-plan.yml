@@ -1,0 +1,44 @@
+name: Apply Full Correction Plan
+
+on:
+  push:
+    branches:
+      - hardening/full-correction-plan
+    paths:
+      - .github/workflows/apply-full-correction-plan.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout hardening branch
+        uses: actions/checkout@v4
+        with:
+          ref: hardening/full-correction-plan
+          fetch-depth: 0
+
+      - name: Apply staged correction patches
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .hardening/full-correction/part-*.patch > /tmp/full-correction.patch
+          git apply --check /tmp/full-correction.patch
+          git apply /tmp/full-correction.patch
+          git apply --check .hardening/full-correction/postfix.patch
+          git apply .hardening/full-correction/postfix.patch
+          rm -rf .hardening/full-correction
+
+      - name: Commit applied corrections
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: apply full authorization and contract hardening plan"
+          git push origin HEAD:hardening/full-correction-plan
