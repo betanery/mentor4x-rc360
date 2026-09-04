@@ -1,0 +1,203 @@
++            {!hideIndicator && <div className="h-2.5 w-2.5 rounded-[2px]" style={{ background: color || item.color || "transparent" }} />}
++            <span className="text-muted-foreground">{item.name ?? ""}</span>
++            <span className="ml-auto font-mono font-medium tabular-nums text-foreground">{item.value ?? ""}</span>
+           </div>
+         ))}
+       </div>
+@@ -112,19 +140,19 @@ const ChartTooltipContent = React.forwardRef<HTMLDivElement, any>((props, ref) =
+ ChartTooltipContent.displayName = "ChartTooltip";
+ 
+ const ChartLegend = RechartsPrimitive.Legend;
+-const ChartLegendContent = React.forwardRef<HTMLDivElement, any>((props, ref) => {
+-  const { className, hideIcon = false, payload, verticalAlign = "bottom", nameKey } = props;
++const ChartLegendContent = React.forwardRef<HTMLDivElement, LegendContentProps>((props, ref) => {
++  const { className, hideIcon = false, payload, verticalAlign = "bottom" } = props;
+   if (!payload?.length) return null;
+ 
+-  const safePayload = payload.filter(Boolean);
++  const safePayload = payload.filter((item): item is LegendItem => Boolean(item));
+   if (!safePayload.length) return null;
+ 
+   return (
+     <div ref={ref} className={cn("flex items-center justify-center gap-4", verticalAlign === "top" ? "pb-3" : "pt-3", className)}>
+-      {safePayload.map((item: any, index: number) => (
+-        <div key={item?.value ?? index} className="flex items-center gap-1.5">
+-          {!hideIcon && <div className="h-2 w-2 rounded-[2px]" style={{ background: item?.color || "transparent" }} />}
+-          {item?.value ?? ""}
++      {safePayload.map((item, index) => (
++        <div key={String(item.value ?? index)} className="flex items-center gap-1.5">
++          {!hideIcon && <div className="h-2 w-2 rounded-[2px]" style={{ background: item.color || "transparent" }} />}
++          {item.value ?? ""}
+         </div>
+       ))}
+     </div>
+diff --git a/src/hooks/useAuth.tsx b/src/hooks/useAuth.tsx
+index 1a54bed..493aab3 100644
+--- a/src/hooks/useAuth.tsx
++++ b/src/hooks/useAuth.tsx
+@@ -1,38 +1,64 @@
+-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
++import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react";
+ import { supabase } from "@/integrations/supabase/client";
+ import type { Session, User } from "@supabase/supabase-js";
+-import { E2E_ENABLED, e2eRole, e2eUser } from "@/test/e2eFixtures";
++import { E2E_COMPANY, E2E_ENABLED, e2eRole, e2eUser } from "@/test/e2eFixtures";
+ 
+-type AppRole = "super_admin" | "mentor" | "estrategista" | "cliente_dono" | "gestor_cliente" | "colaborador_cliente" | "company_responsible" | "company_leader";
++export type AppRole = "super_admin" | "mentor" | "estrategista" | "cliente_dono" | "gestor_cliente" | "colaborador_cliente" | "company_responsible" | "company_leader";
++
++export type CompanyAccess = {
++  company_id: string;
++  access_role: AppRole;
++  status: string;
++  access_scope: string | null;
++  allowed_pillars: string[] | null;
++  allowed_departments: string[] | null;
++  can_view_commercial: boolean | null;
++  can_view_full_reports: boolean | null;
++  is_primary_responsible: boolean | null;
++};
+ 
+ interface AuthCtx {
+   user: User | null;
+   session: Session | null;
++  /** Papéis globais de sistema. Papéis contextuais de empresa NÃO são agregados aqui. */
+   roles: AppRole[];
++  companyAccess: CompanyAccess[];
+   loading: boolean;
+   isStaff: boolean;
+   /** Consultor 4X (papel técnico `mentor`) ou Super Admin — detém as alçadas de aprovação. */
+   isConsultor: boolean;
+   hasRole: (r: AppRole) => boolean;
++  getCompanyAccess: (companyId?: string | null) => CompanyAccess | null;
++  hasCompanyRole: (r: AppRole, companyId?: string | null) => boolean;
+   signOut: () => Promise<void>;
+   refreshRoles: () => Promise<void>;
+ }
+ 
+ const Ctx = createContext<AuthCtx | undefined>(undefined);
++const STAFF_ROLES: AppRole[] = ["super_admin", "mentor", "estrategista"];
+ 
+ export function AuthProvider({ children }: { children: ReactNode }) {
+   const [user, setUser] = useState<User | null>(null);
+   const [session, setSession] = useState<Session | null>(null);
+   const [roles, setRoles] = useState<AppRole[]>([]);
++  const [companyAccess, setCompanyAccess] = useState<CompanyAccess[]>([]);
+   const [loading, setLoading] = useState(true);
+ 
+   const loadRoles = async (uid: string) => {
+-    const [globalRoles, companyRoles] = await Promise.all([
++    const [globalRoles, accessRows] = await Promise.all([
+       supabase.from("user_roles").select("role").eq("user_id", uid),
+-      supabase.from("company_access").select("access_role").eq("user_id", uid).eq("status", "ativo"),
++      supabase
++        .from("company_access")
++        .select("company_id, access_role, status, access_scope, allowed_pillars, allowed_departments, can_view_commercial, can_view_full_reports, is_primary_responsible")
++        .eq("user_id", uid)
++        .eq("status", "ativo"),
+     ]);
+-    const merged = [...(globalRoles.data || []).map((r: any) => r.role), ...(companyRoles.data || []).map((r: any) => r.access_role)];
+-    setRoles([...new Set(merged)] as AppRole[]);
++
++    if (globalRoles.error) throw globalRoles.error;
++    if (accessRows.error) throw accessRows.error;
++
++    setRoles([...(new Set((globalRoles.data || []).map((r) => r.role as AppRole)))]);
++    setCompanyAccess((accessRows.data || []) as CompanyAccess[]);
+   };
+ 
+   useEffect(() => {
+@@ -40,43 +66,84 @@ export function AuthProvider({ children }: { children: ReactNode }) {
+       const role = e2eRole();
+       setUser(role ? e2eUser(role) : null);
+       setSession(null);
+-      setRoles(role ? [role] : []);
++      const isGlobal = !!role && STAFF_ROLES.includes(role);
++      setRoles(role && isGlobal ? [role] : []);
++      setCompanyAccess(role && !isGlobal ? [{
++        company_id: E2E_COMPANY.id,
++        access_role: role,
++        status: "ativo",
++        access_scope: "full_company",
++        allowed_pillars: null,
++        allowed_departments: null,
++        can_view_commercial: ["company_responsible", "cliente_dono"].includes(role),
++        can_view_full_reports: ["company_responsible", "cliente_dono"].includes(role),
++        is_primary_responsible: role === "company_responsible",
++      }] : []);
+       setLoading(false);
+       return;
+     }
++
+     const { data: sub } = supabase.auth.onAuthStateChange((_e, sess) => {
+       setSession(sess);
+       setUser(sess?.user ?? null);
+       if (sess?.user) {
+-        setTimeout(() => loadRoles(sess.user.id), 0);
++        setTimeout(() => {
++          void loadRoles(sess.user.id).catch((error) => {
++            console.error("Falha ao carregar permissões", error);
++            setRoles([]);
++            setCompanyAccess([]);
++          });
++        }, 0);
+       } else {
+         setRoles([]);
++        setCompanyAccess([]);
+       }
+     });
++
+     supabase.auth.getSession().then(({ data: { session } }) => {
+       setSession(session);
+       setUser(session?.user ?? null);
+-      if (session?.user) loadRoles(session.user.id).finally(() => setLoading(false));
+-      else setLoading(false);
++      if (session?.user) {
++        loadRoles(session.user.id)
++          .catch((error) => {
++            console.error("Falha ao carregar permissões", error);
++            setRoles([]);
++            setCompanyAccess([]);
++          })
++          .finally(() => setLoading(false));
++      } else {
++        setLoading(false);
++      }
+     });
++
+     return () => sub.subscription.unsubscribe();
+   }, []);
+ 
+   const signOut = async () => {
+     await supabase.auth.signOut();
+     setRoles([]);
++    setCompanyAccess([]);
+   };
+ 
+   const refreshRoles = async () => {
+     if (user) await loadRoles(user.id);
+   };
+ 
+-  const isStaff = roles.some((r) => ["super_admin", "mentor", "estrategista"].includes(r));
++  const isStaff = roles.some((r) => STAFF_ROLES.includes(r));
+   const isConsultor = roles.some((r) => ["super_admin", "mentor"].includes(r));
+   const hasRole = (r: AppRole) => roles.includes(r);
+ 
++  const accessByCompany = useMemo(() => {
++    const map = new Map<string, CompanyAccess>();
++    for (const access of companyAccess) map.set(access.company_id, access);
++    return map;
++  }, [companyAccess]);
++
++  const getCompanyAccess = (companyId?: string | null) => companyId ? accessByCompany.get(companyId) ?? null : null;
++  const hasCompanyRole = (r: AppRole, companyId?: string | null) => getCompanyAccess(companyId)?.access_role === r;
++
+   return (
+-    <Ctx.Provider value={{ user, session, roles, loading, isStaff, isConsultor, hasRole, signOut, refreshRoles }}>
++    <Ctx.Provider value={{ user, session, roles, companyAccess, loading, isStaff, isConsultor, hasRole, getCompanyAccess, hasCompanyRole, signOut, refreshRoles }}>
+       {children}
+     </Ctx.Provider>
+   );
+diff --git a/src/hooks/useCompany.tsx b/src/hooks/useCompany.tsx
+index 35a5602..d17f56a 100644
+--- a/src/hooks/useCompany.tsx
