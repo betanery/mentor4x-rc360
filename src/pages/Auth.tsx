@@ -8,6 +8,8 @@ import { Card } from "@/components/ui/card";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { authErrorMessage } from "@/lib/feedback";
+
 
 function safeNext(raw: string | null): string {
   if (!raw) return "/";
@@ -50,8 +52,10 @@ export default function Auth() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) toast.error(error.message);
-    else {
+    if (error) {
+      const { title, description } = authErrorMessage(error);
+      toast.error(title, { description });
+    } else {
       toast.success("Bem-vindo de volta!");
       if (next.startsWith("/.lovable/")) window.location.href = next;
       else nav(next);
@@ -63,8 +67,12 @@ export default function Auth() {
       provider: "google",
       options: { redirectTo: `${window.location.origin}${next}` },
     });
-    if (error) toast.error(error.message);
+    if (error) {
+      const { title, description } = authErrorMessage(error);
+      toast.error(title, { description });
+    }
   };
+
 
   const setNewPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,7 +143,11 @@ export default function Auth() {
               <div className="space-y-2">
                 <h2 className="text-3xl font-bold">Acesse o sistema</h2>
                 <p className="text-muted-foreground">Entre com sua conta para continuar a jornada.</p>
+                <p className="text-sm text-muted-foreground">
+                  Você precisa entrar com sua conta para ver os painéis, o diagnóstico e o plano de ação.
+                </p>
               </div>
+
 
               <Card className="p-6 space-y-5 shadow-card">
                 <form onSubmit={signIn} className="space-y-4">
