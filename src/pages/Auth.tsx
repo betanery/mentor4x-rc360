@@ -143,7 +143,11 @@ export default function Auth() {
               <div className="space-y-2">
                 <h2 className="text-3xl font-bold">Acesse o sistema</h2>
                 <p className="text-muted-foreground">Entre com sua conta para continuar a jornada.</p>
+                <p className="text-sm text-muted-foreground">
+                  Você precisa entrar com sua conta para ver os painéis, o diagnóstico e o plano de ação.
+                </p>
               </div>
+
 
               <Card className="p-6 space-y-5 shadow-card">
                 <form onSubmit={signIn} className="space-y-4">
