@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - .deploy/edge-hardening-20260905.trigger
+      - .deploy/edge-hardening-20260905.trigger2
 
 permissions:
   contents: read
@@ -16,7 +16,6 @@ concurrency:
 
 jobs:
   deploy:
-    if: ${{ contains(github.event.head_commit.message, 'deploy: security hardened edge functions') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
