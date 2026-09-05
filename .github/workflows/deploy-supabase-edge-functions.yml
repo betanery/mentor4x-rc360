@@ -30,7 +30,7 @@ jobs:
     timeout-minutes: 20
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_PROJECT_REF: fjgdcmtwstmslmbxlsga
+      SUPABASE_PROJECT_REF: wtlvircittxcjiczqlne
 
     steps:
       - name: Checkout main
