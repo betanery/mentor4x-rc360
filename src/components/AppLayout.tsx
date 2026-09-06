@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { E2E_ENABLED } from "@/test/e2eFixtures";
 import { useCompany } from "@/hooks/useCompany";
@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LayoutDashboard, Target, AlertTriangle, Compass, Map, Swords, Users, Briefcase, GraduationCap, Sparkles, FileText, Award, LogOut, Bell, Menu, X, Building2, ListChecks, BookOpen, Stethoscope, BarChart3, Boxes, Rocket, ContactRound } from "lucide-react";
+import { LayoutDashboard, Target, AlertTriangle, Compass, Map, Swords, Users, Briefcase, GraduationCap, Sparkles, FileText, Award, LogOut, Bell, Menu, X, Building2, ListChecks, BookOpen, Stethoscope, BarChart3, Boxes, Rocket, ContactRound, ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -58,6 +58,18 @@ const NAV_SECTIONS = [
   },
 ];
 
+const FLOW_STEPS = [
+  { to: "/onboarding", label: "Onboarding", nextLabel: "Ir para Diagnóstico" },
+  { to: "/diagnostico", label: "Diagnóstico", nextLabel: "Ver Top 5 Gargalos" },
+  { to: "/gargalos", label: "Top 5 Gargalos", nextLabel: "Definir Metas Críticas" },
+  { to: "/metas", label: "Metas Críticas", nextLabel: "Montar Plano de Ação" },
+  { to: "/plano-acao", label: "Plano de Ação", nextLabel: "Ir para Sala de Guerra" },
+  { to: "/sala-guerra", label: "Sala de Guerra", nextLabel: "Acompanhar Pilares" },
+  { to: "/pilares", label: "Pilares 4X", nextLabel: "Gerar Relatórios" },
+  { to: "/relatorios", label: "Relatórios", nextLabel: "Ver Antes e Depois" },
+  { to: "/relatorio-see4x", label: "Antes e Depois", nextLabel: "Voltar ao Dashboard" },
+] as const;
+
 const STAFF_NAV = [
   { to: "/crm", label: "CRM Comercial", icon: ContactRound, role: ["super_admin","mentor","estrategista"] as const },
   { to: "/mentor", label: "Área do Consultor 4X", icon: Users, role: ["super_admin","mentor"] as const },
@@ -72,11 +84,16 @@ export function AppLayout() {
   const { companies, current, setCurrentId } = useCompany();
   const { contracts, currentContract, setCurrentContractId } = useContract();
   const nav = useNavigate();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
   const [unread, setUnread] = useState(0);
 
   const initial = (user?.email || "?")[0].toUpperCase();
   const visibleStaff = STAFF_NAV.filter(n => n.role.some(r => roles.includes(r as any)));
+  const flowIndex = FLOW_STEPS.findIndex((step) => step.to === location.pathname);
+  const flowStep = flowIndex >= 0 ? FLOW_STEPS[flowIndex] : null;
+  const nextFlowStep = flowIndex >= 0 ? FLOW_STEPS[flowIndex + 1] : null;
+  const nextFlowTarget = nextFlowStep?.to ?? (flowStep ? "/" : null);
 
   useEffect(() => {
     if (E2E_ENABLED) {
@@ -231,6 +248,20 @@ export function AppLayout() {
         </header>
 
         <main className="flex-1 p-4 lg:p-8 animate-fade-in">
+          {flowStep && nextFlowTarget && (
+            <div className="mb-5 rounded-xl border border-border bg-card/80 px-4 py-3 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Fluxo 4X · etapa {flowIndex + 1} de {FLOW_STEPS.length}</p>
+                  <p className="text-sm font-semibold mt-0.5">Você está em {flowStep.label}</p>
+                  <p className="text-xs text-muted-foreground">Conclua o que precisa nesta tela e avance para a próxima etapa do método.</p>
+                </div>
+                <Button size="sm" variant="outline" className="shrink-0" onClick={() => nav(nextFlowTarget)}>
+                  {flowStep.nextLabel}<ArrowRight className="h-4 w-4 ml-1.5" />
+                </Button>
+              </div>
+            </div>
+          )}
           <Outlet />
         </main>
       </div>
