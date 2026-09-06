@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GOAL_STATUS_LABEL, formatBRL, PILLAR_LABEL } from "@/lib/labels";
-import { Plus, Calendar, DollarSign, Trash2, Paperclip, MessageSquare, Loader2, ExternalLink, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Plus, Calendar, DollarSign, Trash2, Paperclip, MessageSquare, Loader2, ExternalLink, AlertTriangle, ShieldCheck, SlidersHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { showError } from "@/lib/feedback";
@@ -111,13 +111,26 @@ export default function Goals() {
     },
   });
 
-  // Vincular a meta ao BlindSpot puxa o pilar e as capacidades correspondentes.
+  // Vincular a meta ao BlindSpot puxa o pilar correspondente.
   const pickBlindspot = (code: string) => {
     const bs = blindspotByCode(code);
     setForm((s) => ({
       ...s,
       blindspot_code: code,
       capacity_code: "",
+      pillar: bs ? bs.pillar : s.pillar,
+    }));
+  };
+
+  // O gargalo é a origem operacional da meta; quando possível, herdamos o BlindSpot e o Pilar.
+  const pickBottleneck = (id: string) => {
+    const bottleneck = bottlenecks.find((b) => b.id === id);
+    const bs = bottleneck?.blindspot_code ? blindspotByCode(bottleneck.blindspot_code) : null;
+    setForm((s) => ({
+      ...s,
+      bottleneck_id: id,
+      blindspot_code: bottleneck?.blindspot_code || s.blindspot_code,
+      capacity_code: bottleneck?.blindspot_code ? "" : s.capacity_code,
       pillar: bs ? bs.pillar : s.pillar,
     }));
   };
@@ -298,8 +311,11 @@ export default function Goals() {
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button className="bg-gradient-brand"><Plus className="h-4 w-4 mr-1" /> Nova meta</Button></DialogTrigger>
             <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-              <DialogHeader><DialogTitle>Nova Meta Crítica</DialogTitle></DialogHeader>
-              <div className="space-y-3">
+              <DialogHeader>
+                <DialogTitle>Nova Meta Crítica</DialogTitle>
+                <p className="text-sm text-muted-foreground">Comece pelo essencial. Os campos metodológicos e de governança ficam em detalhes avançados.</p>
+              </DialogHeader>
+              <div className="space-y-4">
                 {atCapacity && (
                   <div className="rounded-lg border border-gold/40 bg-gold/10 p-3">
                     <p className="flex items-center gap-2 text-xs font-bold text-gold">
@@ -319,76 +335,91 @@ export default function Goals() {
                     </div>
                   </div>
                 )}
-                <div><Label>Título</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex.: Fechar 5 contratos novos" /></div>
-                <div><Label>Descrição</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
 
-                <div className="grid grid-cols-1 gap-3 rounded-lg border border-border p-3 bg-muted/30">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Vínculo metodológico SEE_4X</p>
+                <div className="space-y-3 rounded-lg border border-border p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Essencial</p>
+                  <div><Label>Título</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex.: Fechar 5 contratos novos" /></div>
                   <div>
-                    <Label>BlindSpot</Label>
-                    <Select value={form.blindspot_code} onValueChange={pickBlindspot}>
-                      <SelectTrigger><SelectValue placeholder="Selecione o BlindSpot" /></SelectTrigger>
-                      <SelectContent>
-                        {BLINDSPOTS.map((bs) => <SelectItem key={bs.code} value={bs.code}>{bs.code} · {bs.title}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Capacidade estruturante</Label>
-                    <Select
-                      value={form.capacity_code}
-                      onValueChange={(v) => setForm({ ...form, capacity_code: v })}
-                      disabled={!form.blindspot_code}
-                    >
-                      <SelectTrigger><SelectValue placeholder={form.blindspot_code ? "Selecione a capacidade" : "Escolha o BlindSpot primeiro"} /></SelectTrigger>
-                      <SelectContent>
-                        {CAPACITIES.filter((c) => c.blindspot === form.blindspot_code).map((c) => (
-                          <SelectItem key={c.code} value={c.code}>{c.title}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Gargalo atacado</Label>
-                    <Select value={form.bottleneck_id} onValueChange={(v) => setForm({ ...form, bottleneck_id: v })}>
-                      <SelectTrigger><SelectValue placeholder="Opcional — gargalo do Top 5" /></SelectTrigger>
+                    <Label>Gargalo que esta meta ataca</Label>
+                    <Select value={form.bottleneck_id} onValueChange={pickBottleneck}>
+                      <SelectTrigger><SelectValue placeholder="Selecione um gargalo do Top 5 (opcional)" /></SelectTrigger>
                       <SelectContent>
                         {bottlenecks.length === 0 && <SelectItem value="sem-gargalo" disabled>Nenhum gargalo ativo</SelectItem>}
                         {bottlenecks.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
+                    {form.bottleneck_id && form.blindspot_code && (
+                      <p className="mt-1 text-xs text-muted-foreground">BlindSpot e Pilar foram vinculados automaticamente a partir do gargalo.</p>
+                    )}
                   </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>Pilar</Label>
-                    <Select value={form.pillar} onValueChange={(v) => setForm({ ...form, pillar: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>{Object.entries(PILLAR_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                  <div><Label>Indicador</Label><Input value={form.indicator} onChange={(e) => setForm({ ...form, indicator: e.target.value })} placeholder="Ex.: R$ 100k" /></div>
-                  <div><Label>Impacto financeiro (R$)</Label><Input type="number" value={form.financial_impact} onChange={(e) => setForm({ ...form, financial_impact: e.target.value })} /></div>
-                  <div><Label>Prazo</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
-                  <div className="col-span-2"><Label>Semana (início)</Label><Input type="date" value={form.week_start} onChange={(e) => setForm({ ...form, week_start: e.target.value })} /></div>
-                </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <Label>Situação atual</Label>
-                    <Textarea rows={2} value={form.current_situation} onChange={(e) => setForm({ ...form, current_situation: e.target.value })} placeholder="Como está hoje, com número quando houver" />
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div><Label>Indicador de sucesso</Label><Input value={form.indicator} onChange={(e) => setForm({ ...form, indicator: e.target.value })} placeholder="Ex.: 5 contratos ou R$ 100 mil" /></div>
+                    <div><Label>Prazo</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
                   </div>
                   <div>
                     <Label>Resultado esperado</Label>
-                    <Textarea rows={2} value={form.expected_result} onChange={(e) => setForm({ ...form, expected_result: e.target.value })} placeholder="O que passa a ser verdade quando a meta for atingida" />
+                    <Textarea rows={2} value={form.expected_result} onChange={(e) => setForm({ ...form, expected_result: e.target.value })} placeholder="O que passa a ser verdade quando esta meta for atingida?" />
                   </div>
-                  <div>
-                    <Label>Observações</Label>
-                    <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Riscos, dependências e combinados" />
-                  </div>
+                  <div><Label>Descrição <span className="font-normal text-muted-foreground">(opcional)</span></Label><Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Contexto adicional, se necessário" /></div>
                 </div>
 
+                <details className="group rounded-lg border border-border bg-muted/20">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-sm font-semibold">
+                    <span className="flex items-center gap-2"><SlidersHorizontal className="h-4 w-4 text-gold" /> Detalhes avançados</span>
+                    <span className="text-xs font-normal text-muted-foreground group-open:hidden">Mostrar</span>
+                    <span className="hidden text-xs font-normal text-muted-foreground group-open:inline">Ocultar</span>
+                  </summary>
+                  <div className="space-y-4 border-t border-border p-4">
+                    <div className="grid grid-cols-1 gap-3 rounded-lg border border-border p-3 bg-background/70">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Vínculo metodológico SEE_4X</p>
+                      <div>
+                        <Label>BlindSpot</Label>
+                        <Select value={form.blindspot_code} onValueChange={pickBlindspot}>
+                          <SelectTrigger><SelectValue placeholder="Selecione o BlindSpot" /></SelectTrigger>
+                          <SelectContent>
+                            {BLINDSPOTS.map((bs) => <SelectItem key={bs.code} value={bs.code}>{bs.code} · {bs.title}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Capacidade estruturante</Label>
+                        <Select
+                          value={form.capacity_code}
+                          onValueChange={(v) => setForm({ ...form, capacity_code: v })}
+                          disabled={!form.blindspot_code}
+                        >
+                          <SelectTrigger><SelectValue placeholder={form.blindspot_code ? "Selecione a capacidade" : "Escolha o BlindSpot primeiro"} /></SelectTrigger>
+                          <SelectContent>
+                            {CAPACITIES.filter((c) => c.blindspot === form.blindspot_code).map((c) => (
+                              <SelectItem key={c.code} value={c.code}>{c.title}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Pilar</Label>
+                        <Select value={form.pillar} onValueChange={(v) => setForm({ ...form, pillar: v })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>{Object.entries(PILLAR_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                        {form.blindspot_code && <p className="mt-1 text-xs text-muted-foreground">Preenchido pelo BlindSpot; altere apenas se houver decisão metodológica específica.</p>}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div><Label>Impacto financeiro (R$)</Label><Input type="number" value={form.financial_impact} onChange={(e) => setForm({ ...form, financial_impact: e.target.value })} /></div>
+                      <div><Label>Semana de início</Label><Input type="date" value={form.week_start} onChange={(e) => setForm({ ...form, week_start: e.target.value })} /></div>
+                    </div>
+                    <div>
+                      <Label>Situação atual</Label>
+                      <Textarea rows={2} value={form.current_situation} onChange={(e) => setForm({ ...form, current_situation: e.target.value })} placeholder="Como está hoje, com número quando houver" />
+                    </div>
+                    <div>
+                      <Label>Observações</Label>
+                      <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Riscos, dependências e combinados" />
+                    </div>
+                  </div>
+                </details>
               </div>
               <DialogFooter><Button onClick={() => createMut.mutate()} disabled={!form.title || createMut.isPending}>Criar meta</Button></DialogFooter>
             </DialogContent>
