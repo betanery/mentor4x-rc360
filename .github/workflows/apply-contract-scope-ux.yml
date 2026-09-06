@@ -1,0 +1,45 @@
+name: Apply contract scope UX
+
+on:
+  push:
+    branches:
+      - ux/flow-simplification-20260906
+    paths:
+      - .github/workflows/apply-contract-scope-ux.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ux/flow-simplification-20260906
+      - name: Wire visual scope editor
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/pages/AdminProducts.tsx')
+          s = p.read_text()
+          import_anchor = 'import { VersionConfigDialog } from "@/components/VersionConfigDialog";\n'
+          import_line = 'import { ContractScopeEditor } from "@/components/ContractScopeEditor";\n'
+          if import_line not in s:
+              s = s.replace(import_anchor, import_anchor + import_line)
+          old = '<div className="sm:col-span-2"><Label>Escopo contratado (JSON)</Label><Textarea rows={4} value={contractForm.contracted_scope} onChange={(e) => setContractForm({ ...contractForm, contracted_scope: e.target.value })} /></div>'
+          new = '<ContractScopeEditor value={contractForm.contracted_scope} onChange={(contracted_scope) => setContractForm({ ...contractForm, contracted_scope })} />'
+          if old not in s:
+              raise SystemExit('scope textarea anchor not found')
+          s = s.replace(old, new)
+          p.write_text(s)
+          PY
+      - name: Remove temporary workflow
+        run: rm .github/workflows/apply-contract-scope-ux.yml
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/AdminProducts.tsx .github/workflows/apply-contract-scope-ux.yml
+          git commit -m "UX: replace raw contract scope JSON with visual editor"
+          git push origin HEAD:ux/flow-simplification-20260906
