@@ -52,7 +52,7 @@ export function ContractScopeEditor({ value, onChange }: { value: string; onChan
   const addEntry = () => commitEntries([...entries, { key: "", value: "" }]);
 
   return (
-    <div className="space-y-3 sm:col-span-2">
+    <div className="space-y-3 sm:col-span-2" data-testid="contract-scope-editor">
       <div>
         <Label>Escopo contratado</Label>
         <p className="mt-1 text-xs text-muted-foreground">
@@ -72,7 +72,7 @@ export function ContractScopeEditor({ value, onChange }: { value: string; onChan
             </div>
           )}
           {entries.map((entry, index) => (
-            <div key={`${index}-${entry.key}`} className="grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)_auto] gap-2 items-start">
+            <div key={`${index}-${entry.key}`} className="grid grid-cols-1 gap-2 rounded-lg border border-border bg-muted/20 p-2 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)_auto] sm:items-start sm:border-0 sm:bg-transparent sm:p-0">
               <Input
                 aria-label={`Nome do item de escopo ${index + 1}`}
                 value={entry.key}
@@ -85,8 +85,8 @@ export function ContractScopeEditor({ value, onChange }: { value: string; onChan
                 onChange={(e) => updateEntry(index, { value: e.target.value })}
                 placeholder="Ex.: 12"
               />
-              <Button type="button" size="icon" variant="ghost" onClick={() => removeEntry(index)} aria-label={`Remover item de escopo ${index + 1}`}>
-                <Trash2 className="h-4 w-4 text-destructive" />
+              <Button type="button" size="sm" variant="ghost" className="justify-self-end sm:h-10 sm:w-10 sm:p-0" onClick={() => removeEntry(index)} aria-label={`Remover item de escopo ${index + 1}`}>
+                <Trash2 className="h-4 w-4 text-destructive" /><span className="ml-1 sm:hidden">Remover</span>
               </Button>
             </div>
           ))}
