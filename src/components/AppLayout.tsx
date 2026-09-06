@@ -15,22 +15,47 @@ import { cn } from "@/lib/utils";
 import { ROLE_LABEL } from "@/lib/labels";
 import { useContract } from "@/hooks/useContract";
 
-const NAV = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/diagnostico", label: "Diagnóstico SEE_4X", icon: Stethoscope },
-  { to: "/jornada", label: "Jornada SEE_4X", icon: Map },
-  { to: "/onboarding", label: "Onboarding", icon: Rocket },
-  { to: "/metas", label: "Metas", icon: Target },
-  { to: "/plano-acao", label: "Plano de Ação", icon: ListChecks },
-  { to: "/gargalos", label: "Top 5 Gargalos", icon: AlertTriangle },
-  { to: "/pilares", label: "Pilares 4X", icon: Compass },
-  { to: "/sala-guerra", label: "Sala de Guerra", icon: Swords },
-  { to: "/universidade", label: "Universidade 4X", icon: GraduationCap },
-  { to: "/playbooks", label: "Playbooks", icon: BookOpen },
-  { to: "/socio-ia", label: "Meu Sócio IA", icon: Sparkles, highlight: true },
-  { to: "/relatorios", label: "Relatórios", icon: FileText },
-  { to: "/relatorio-see4x", label: "Relatório SEE_4X", icon: BarChart3 },
-  { to: "/certificados", label: "Certificação SEE_4X", icon: Award },
+const NAV_SECTIONS = [
+  {
+    label: "Visão",
+    items: [
+      { to: "/", label: "Dashboard", icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: "Começar",
+    items: [
+      { to: "/onboarding", label: "Onboarding", icon: Rocket },
+      { to: "/diagnostico", label: "Diagnóstico SEE_4X", icon: Stethoscope },
+    ],
+  },
+  {
+    label: "Executar",
+    items: [
+      { to: "/jornada", label: "Jornada SEE_4X", icon: Map },
+      { to: "/gargalos", label: "Top 5 Gargalos", icon: AlertTriangle },
+      { to: "/metas", label: "Metas Críticas", icon: Target },
+      { to: "/plano-acao", label: "Plano de Ação", icon: ListChecks },
+      { to: "/sala-guerra", label: "Sala de Guerra", icon: Swords },
+    ],
+  },
+  {
+    label: "Medir",
+    items: [
+      { to: "/pilares", label: "Pilares 4X", icon: Compass },
+      { to: "/relatorios", label: "Relatórios", icon: FileText },
+      { to: "/relatorio-see4x", label: "Antes e Depois SEE_4X", icon: BarChart3 },
+      { to: "/certificados", label: "Certificação SEE_4X", icon: Award },
+    ],
+  },
+  {
+    label: "Aprender e Apoio",
+    items: [
+      { to: "/universidade", label: "Universidade 4X", icon: GraduationCap },
+      { to: "/playbooks", label: "Playbooks", icon: BookOpen },
+      { to: "/socio-ia", label: "Meu Sócio IA", icon: Sparkles, highlight: true },
+    ],
+  },
 ];
 
 const STAFF_NAV = [
@@ -115,24 +140,31 @@ export function AppLayout() {
           </div>
         )}
 
-        <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-          {NAV.map((item) => (
-            <NavLink key={item.to} to={item.to} end={item.to === "/"} onClick={() => setOpen(false)}
-              className={({ isActive }) => cn(
-                "group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
-                isActive
-                  ? "bg-gradient-to-r from-gold to-gold-soft text-primary shadow-gold"
-                  : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-                item.highlight && "ring-1 ring-gold/30"
-              )}>
-              <item.icon className="h-4 w-4" />
-              <span>{item.label}</span>
-            </NavLink>
+        <nav className="flex-1 overflow-y-auto p-3 space-y-4">
+          {NAV_SECTIONS.map((section) => (
+            <div key={section.label}>
+              <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/45">{section.label}</p>
+              <div className="space-y-1">
+                {section.items.map((item) => (
+                  <NavLink key={item.to} to={item.to} end={item.to === "/"} onClick={() => setOpen(false)}
+                    className={({ isActive }) => cn(
+                      "group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                      isActive
+                        ? "bg-gradient-to-r from-gold to-gold-soft text-primary shadow-gold"
+                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                      item.highlight && "ring-1 ring-gold/30"
+                    )}>
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            </div>
           ))}
 
           {visibleStaff.length > 0 && (
             <div className="pt-4 mt-4 border-t border-sidebar-border">
-              <p className="px-3 text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/50 mb-2">Operação</p>
+              <p className="px-3 text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/50 mb-2">Operação interna</p>
               {visibleStaff.map((item) => (
                 <NavLink key={item.to} to={item.to} onClick={() => setOpen(false)}
                   className={({ isActive }) => cn(
