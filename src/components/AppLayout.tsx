@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LayoutDashboard, Target, AlertTriangle, Compass, Map, Swords, Users, Briefcase, GraduationCap, Sparkles, FileText, Award, LogOut, Bell, Menu, X, Building2, ListChecks, BookOpen, Stethoscope, BarChart3, Boxes, Rocket } from "lucide-react";
+import { LayoutDashboard, Target, AlertTriangle, Compass, Map, Swords, Users, Briefcase, GraduationCap, Sparkles, FileText, Award, LogOut, Bell, Menu, X, Building2, ListChecks, BookOpen, Stethoscope, BarChart3, Boxes, Rocket, ContactRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -34,6 +34,7 @@ const NAV = [
 ];
 
 const STAFF_NAV = [
+  { to: "/crm", label: "CRM Comercial", icon: ContactRound, role: ["super_admin","mentor","estrategista"] as const },
   { to: "/mentor", label: "Área do Consultor 4X", icon: Users, role: ["super_admin","mentor"] as const },
   { to: "/estrategista", label: "Área do Estrategista 4X", icon: Briefcase, role: ["super_admin","mentor","estrategista"] as const },
   { to: "/admin/produtos", label: "Produtos", icon: Boxes, role: ["super_admin"] as const },
@@ -77,7 +78,6 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen bg-gradient-surface flex">
-      {/* Sidebar */}
       <aside className={cn(
         "fixed lg:sticky top-0 left-0 z-40 h-screen w-72 bg-sidebar text-sidebar-foreground flex-col transition-transform shrink-0",
         open ? "flex translate-x-0" : "hidden lg:flex -translate-x-full lg:translate-x-0"
@@ -154,7 +154,6 @@ export function AppLayout() {
 
       {open && <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setOpen(false)} />}
 
-      {/* Main */}
       <div className="flex-1 min-w-0 flex flex-col">
         <header className="sticky top-0 z-20 glass border-b border-border h-16 flex items-center justify-between px-4 lg:px-8">
           <div className="flex items-center gap-3">
