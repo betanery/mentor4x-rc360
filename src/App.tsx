@@ -33,7 +33,6 @@ const AdminUsers = lazy(() => import("./pages/AdminUsers"));
 const AdminCompanies = lazy(() => import("./pages/AdminCompanies"));
 const AdminUniversity = lazy(() => import("./pages/AdminUniversity"));
 const AdminProducts = lazy(() => import("./pages/AdminProducts"));
-const CRM = lazy(() => import("./pages/CRM"));
 const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 const Verify = lazy(() => import("./pages/Verify"));
 const DiagnosticRespond = lazy(() => import("./pages/DiagnosticRespond"));
@@ -85,7 +84,6 @@ const App = () => (
                     <Route path="/relatorio-see4x" element={<ReportSee4X />} />
                     <Route path="/certificados" element={<Certificates />} />
                     <Route path="/notificacoes" element={<Notifications />} />
-                    <Route path="/crm" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><CRM /></ProtectedRoute>} />
                     <Route path="/mentor" element={<ProtectedRoute allow={["super_admin","mentor"]}><MentorArea /></ProtectedRoute>} />
                     <Route path="/estrategista" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><StrategistArea /></ProtectedRoute>} />
                     <Route path="/admin/usuarios" element={<ProtectedRoute allow={["super_admin"]}><AdminUsers /></ProtectedRoute>} />
