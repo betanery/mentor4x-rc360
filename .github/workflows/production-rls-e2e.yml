@@ -1,0 +1,61 @@
+name: Production JWT RLS E2E
+
+on:
+  push:
+    branches:
+      - check/prod-rls-e2e-20260906
+    paths:
+      - scripts/production-rls-e2e.mjs
+      - .github/workflows/production-rls-e2e.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-jwt-rls-e2e
+  cancel-in-progress: false
+
+jobs:
+  validate-production-isolation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: wtlvircittxcjiczqlne
+      SUPABASE_KEYS_JSON_PATH: /tmp/supabase-api-keys.json
+      APP_ORIGIN: https://mentor.mentoria4x.com
+
+    steps:
+      - name: Checkout validation branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Resolve project API keys securely
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${SUPABASE_ACCESS_TOKEN:-}"
+          supabase projects api-keys --project-ref "$SUPABASE_PROJECT_REF" --output json > "$SUPABASE_KEYS_JSON_PATH"
+          test -s "$SUPABASE_KEYS_JSON_PATH"
+          echo "Project keys retrieved for ephemeral test use; values are not printed."
+
+      - name: Real JWT + RLS + production database E2E
+        run: node scripts/production-rls-e2e.mjs
+
+      - name: Remove temporary key file
+        if: always()
+        shell: bash
+        run: rm -f "$SUPABASE_KEYS_JSON_PATH"
