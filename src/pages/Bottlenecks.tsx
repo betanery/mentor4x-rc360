@@ -242,8 +242,8 @@ export default function Bottlenecks() {
                       </div>
                     )}
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <div><Label>Posição no Top 5</Label><Input type="number" min={1} max={5} value={form.rank_position} onChange={(e) => setForm({ ...form, rank_position: e.target.value })} placeholder="1 a 5" /></div>
-                      <div><Label>Prazo</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
+                      <div><Label>Posição no Top 5</Label><Input aria-label="Posição no Top 5" type="number" min={1} max={5} value={form.rank_position} onChange={(e) => setForm({ ...form, rank_position: e.target.value })} placeholder="1 a 5" /></div>
+                      <div><Label>Prazo</Label><Input aria-label="Prazo do gargalo" type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
                     </div>
                     <div><Label>Plano de correção</Label><Textarea value={form.correction_plan} onChange={(e) => setForm({ ...form, correction_plan: e.target.value })} rows={3} placeholder="Ação estruturante prevista para remover o gargalo" /></div>
                   </div>

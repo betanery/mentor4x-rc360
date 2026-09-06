@@ -374,8 +374,8 @@ export default function Goals() {
                       </div>
                     </div>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <div><Label>Impacto financeiro (R$)</Label><Input type="number" value={form.financial_impact} onChange={(e) => setForm({ ...form, financial_impact: e.target.value })} /></div>
-                      <div><Label>Semana de início</Label><Input type="date" value={form.week_start} onChange={(e) => setForm({ ...form, week_start: e.target.value })} /></div>
+                      <div><Label>Impacto financeiro (R$)</Label><Input aria-label="Impacto financeiro (R$)" type="number" value={form.financial_impact} onChange={(e) => setForm({ ...form, financial_impact: e.target.value })} /></div>
+                      <div><Label>Semana de início</Label><Input aria-label="Semana de início" type="date" value={form.week_start} onChange={(e) => setForm({ ...form, week_start: e.target.value })} /></div>
                     </div>
                     <div><Label>Situação atual</Label><Textarea rows={2} value={form.current_situation} onChange={(e) => setForm({ ...form, current_situation: e.target.value })} placeholder="Como está hoje, com número quando houver" /></div>
                     <div><Label>Observações</Label><Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Riscos, dependências e combinados" /></div>
