@@ -31,6 +31,7 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminCompanies from "./pages/AdminCompanies";
 import AdminUniversity from "./pages/AdminUniversity";
 import AdminProducts from "./pages/AdminProducts";
+import CRM from "./pages/CRM";
 import OAuthConsent from "./pages/OAuthConsent";
 import Verify from "./pages/Verify";
 import DiagnosticRespond from "./pages/DiagnosticRespond";
@@ -74,6 +75,7 @@ const App = () => (
                   <Route path="/relatorio-see4x" element={<ReportSee4X />} />
                   <Route path="/certificados" element={<Certificates />} />
                   <Route path="/notificacoes" element={<Notifications />} />
+                  <Route path="/crm" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><CRM /></ProtectedRoute>} />
                   <Route path="/mentor" element={<ProtectedRoute allow={["super_admin","mentor"]}><MentorArea /></ProtectedRoute>} />
                   <Route path="/estrategista" element={<ProtectedRoute allow={["super_admin","mentor","estrategista"]}><StrategistArea /></ProtectedRoute>} />
                   <Route path="/admin/usuarios" element={<ProtectedRoute allow={["super_admin"]}><AdminUsers /></ProtectedRoute>} />
