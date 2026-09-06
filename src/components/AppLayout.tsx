@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LayoutDashboard, Target, AlertTriangle, Compass, Map, Swords, Users, Briefcase, GraduationCap, Sparkles, FileText, Award, LogOut, Bell, Menu, X, Building2, ListChecks, BookOpen, Stethoscope, Boxes, Rocket, ContactRound, ArrowRight } from "lucide-react";
+import { LayoutDashboard, Target, AlertTriangle, Compass, Map, Swords, Users, Briefcase, GraduationCap, Sparkles, FileText, Award, LogOut, Bell, Menu, X, Building2, ListChecks, BookOpen, Stethoscope, Boxes, Rocket, ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -69,7 +69,6 @@ const FLOW_STEPS = [
 ] as const;
 
 const STAFF_NAV = [
-  { to: "/crm", label: "CRM Comercial", icon: ContactRound, role: ["super_admin","mentor","estrategista"] as const },
   { to: "/mentor", label: "Área do Consultor 4X", icon: Users, role: ["super_admin","mentor"] as const },
   { to: "/estrategista", label: "Área do Estrategista 4X", icon: Briefcase, role: ["super_admin","mentor","estrategista"] as const },
   { to: "/admin/produtos", label: "Produtos", icon: Boxes, role: ["super_admin"] as const },
