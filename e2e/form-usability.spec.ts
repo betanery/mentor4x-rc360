@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 async function isolateNetwork(page: Page) {
   await page.route("**/rest/v1/**", async (route) => {
@@ -13,6 +13,12 @@ async function loginSuperAdmin(page: Page) {
   await page.addInitScript(() => localStorage.setItem("m4x.e2eRole", "super_admin"));
   await page.goto("/");
   await expect(page.locator("main")).toBeVisible();
+}
+
+async function expectTouchTarget(locator: Locator, min = 40) {
+  const box = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.height).toBeGreaterThanOrEqual(min);
 }
 
 async function expectDialogFitsViewport(page: Page) {
@@ -36,29 +42,42 @@ test.describe("form usability on mobile", () => {
 
   test("Meta Crítica abre, permite digitação e mantém CTA alcançável", async ({ page }) => {
     await page.goto("/metas");
-    await page.getByRole("button", { name: "Nova meta" }).click();
+    const openButton = page.getByRole("button", { name: "Nova meta" });
+    await expectTouchTarget(openButton);
+    await openButton.click();
     await expectDialogFitsViewport(page);
 
     const title = page.getByPlaceholder("Ex.: Fechar 5 contratos novos");
+    await expectTouchTarget(title);
     await title.fill("Aumentar conversão de propostas");
     await expect(title).toHaveValue("Aumentar conversão de propostas");
 
+    const firstSelect = page.getByRole("dialog").getByRole("combobox").first();
+    await expectTouchTarget(firstSelect);
+
     const dialog = page.getByRole("dialog");
     await dialog.evaluate((el) => { el.scrollTop = el.scrollHeight; });
-    await expect(page.getByRole("button", { name: "Criar meta" })).toBeVisible();
+    const createButton = page.getByRole("button", { name: "Criar meta" });
+    await expect(createButton).toBeVisible();
+    await expectTouchTarget(createButton);
   });
 
   test("Gargalo abre, permite digitação e pode ser fechado sem perder controle da tela", async ({ page }) => {
     await page.goto("/gargalos");
-    await page.getByRole("button", { name: "Novo gargalo" }).click();
+    const openButton = page.getByRole("button", { name: "Novo gargalo" });
+    await expectTouchTarget(openButton);
+    await openButton.click();
     await expectDialogFitsViewport(page);
 
     const dialog = page.getByRole("dialog");
     const nameInput = dialog.locator("input").first();
+    await expectTouchTarget(nameInput);
     await nameInput.fill("Baixa previsibilidade comercial");
     await expect(nameInput).toHaveValue("Baixa previsibilidade comercial");
 
-    await page.getByRole("button", { name: "Fechar janela" }).click();
+    const closeButton = page.getByRole("button", { name: "Fechar janela" });
+    await expectTouchTarget(closeButton);
+    await closeButton.click();
     await expect(dialog).not.toBeVisible();
   });
 });
