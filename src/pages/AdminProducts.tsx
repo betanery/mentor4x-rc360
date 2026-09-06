@@ -20,6 +20,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { CYCLE_LABEL } from "@/lib/labels";
 import { OnboardingTemplateDialog } from "@/components/OnboardingTemplateDialog";
 import { VersionConfigDialog } from "@/components/VersionConfigDialog";
+import { ContractScopeEditor } from "@/components/ContractScopeEditor";
 import { Boxes, Calendar, Copy, Layers3, ListChecks, Lock, Loader2, Package, Pencil, Plus, RefreshCw, SlidersHorizontal, Trash2 } from "lucide-react";
 
 import type { Json, Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
@@ -559,7 +560,7 @@ export default function AdminProducts() {
             <div><Label>Início</Label><Input type="date" value={contractForm.started_at} onChange={(e) => setContractForm({ ...contractForm, started_at: e.target.value })} /></div>
             <div><Label>Previsão</Label><Input type="date" value={contractForm.expected_completion} onChange={(e) => setContractForm({ ...contractForm, expected_completion: e.target.value })} /></div>
             <div><Label>Conclusão</Label><Input type="date" value={contractForm.completed_at} onChange={(e) => setContractForm({ ...contractForm, completed_at: e.target.value })} /></div>
-            <div className="sm:col-span-2"><Label>Escopo contratado (JSON)</Label><Textarea rows={4} value={contractForm.contracted_scope} onChange={(e) => setContractForm({ ...contractForm, contracted_scope: e.target.value })} /></div>
+            <ContractScopeEditor value={contractForm.contracted_scope} onChange={(contracted_scope) => setContractForm({ ...contractForm, contracted_scope })} />
             <div className="sm:col-span-2"><Label>Observações</Label><Textarea rows={3} value={contractForm.notes} onChange={(e) => setContractForm({ ...contractForm, notes: e.target.value })} /></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setContractDialog(false)}>Cancelar</Button><Button className="bg-gradient-brand" onClick={saveContract}>Salvar</Button></DialogFooter>
