@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LayoutDashboard, Target, AlertTriangle, Compass, Map, Swords, Users, Briefcase, GraduationCap, Sparkles, FileText, Award, LogOut, Bell, Menu, X, Building2, ListChecks, BookOpen, Stethoscope, BarChart3, Boxes, Rocket, ContactRound, ArrowRight } from "lucide-react";
+import { LayoutDashboard, Target, AlertTriangle, Compass, Map, Swords, Users, Briefcase, GraduationCap, Sparkles, FileText, Award, LogOut, Bell, Menu, X, Building2, ListChecks, BookOpen, Stethoscope, Boxes, Rocket, ContactRound, ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -44,7 +44,6 @@ const NAV_SECTIONS = [
     items: [
       { to: "/pilares", label: "Pilares 4X", icon: Compass },
       { to: "/relatorios", label: "Relatórios", icon: FileText },
-      { to: "/relatorio-see4x", label: "Antes e Depois SEE_4X", icon: BarChart3 },
       { to: "/certificados", label: "Certificação SEE_4X", icon: Award },
     ],
   },
@@ -66,8 +65,7 @@ const FLOW_STEPS = [
   { to: "/plano-acao", label: "Plano de Ação", nextLabel: "Ir para Sala de Guerra" },
   { to: "/sala-guerra", label: "Sala de Guerra", nextLabel: "Acompanhar Pilares" },
   { to: "/pilares", label: "Pilares 4X", nextLabel: "Gerar Relatórios" },
-  { to: "/relatorios", label: "Relatórios", nextLabel: "Ver Antes e Depois" },
-  { to: "/relatorio-see4x", label: "Antes e Depois", nextLabel: "Voltar ao Dashboard" },
+  { to: "/relatorios", label: "Relatórios", nextLabel: "Voltar ao Dashboard" },
 ] as const;
 
 const STAFF_NAV = [
