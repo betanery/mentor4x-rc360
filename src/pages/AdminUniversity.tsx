@@ -42,6 +42,7 @@ export default function AdminUniversity() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [courseDialog, setCourseDialog] = useState(false);
   const [courseForm, setCourseForm] = useState<Partial<Course>>(emptyCourse);
@@ -59,13 +60,21 @@ export default function AdminUniversity() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: c }, { data: l }] = await Promise.all([
+    setLoadError(null);
+    const [coursesRes, lessonsRes] = await Promise.all([
       supabase.from("courses").select("*").order("order_index", { ascending: true }),
       supabase.from("lessons").select("*").order("order_index", { ascending: true }),
     ]);
-    setCourses((c as Course[]) || []);
-    setLessons((l as Lesson[]) || []);
     setLoading(false);
+    const error = coursesRes.error || lessonsRes.error;
+    if (error) {
+      const message = error.message || "Não foi possível carregar a Universidade 4X.";
+      setLoadError(message);
+      toast.error(message);
+      return;
+    }
+    setCourses((coursesRes.data as Course[]) || []);
+    setLessons((lessonsRes.data as Lesson[]) || []);
   };
   useEffect(() => { load(); }, []);
 
@@ -220,8 +229,14 @@ export default function AdminUniversity() {
         <Card className="p-4 shadow-card"><div className="text-xs text-muted-foreground">Aulas</div><div className="text-2xl font-bold">{stats.lessons}</div></Card>
       </div>
 
-      {loading ? (
-        <Card className="p-12 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></Card>
+      {loadError ? (
+        <Card className="p-8 text-center">
+          <p className="font-semibold">Não foi possível carregar a Universidade 4X.</p>
+          <p className="mt-1 text-sm text-muted-foreground">{loadError}</p>
+          <Button className="mt-4" variant="outline" onClick={() => void load()}>Tentar novamente</Button>
+        </Card>
+      ) : loading ? (
+        <Card className="p-12 flex items-center justify-center text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin mr-2" /> Carregando Universidade 4X...</Card>
       ) : courses.length === 0 ? (
         <Card className="p-12 text-center text-muted-foreground">
           <GraduationCap className="h-10 w-10 mx-auto mb-3 opacity-50" />
