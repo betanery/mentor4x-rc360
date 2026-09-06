@@ -17,7 +17,7 @@ import { Slider } from "@/components/ui/slider";
 import { URGENCY_LABEL, formatBRL, PILLAR_LABEL } from "@/lib/labels";
 import { BLINDSPOTS, blindspotByCode } from "@/lib/see4x";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, CheckCircle2, Trash2, Loader2, Target, History, ArrowUpDown } from "lucide-react";
+import { Plus, CheckCircle2, Trash2, Loader2, Target, History, ArrowUpDown, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { showError } from "@/lib/feedback";
 import type { Tables } from "@/integrations/supabase/types";
@@ -199,54 +199,74 @@ export default function Bottlenecks() {
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button className="bg-gradient-brand" disabled={!current}><Plus className="h-4 w-4 mr-1" /> Novo gargalo</Button></DialogTrigger>
             <DialogContent className="max-h-[85vh] overflow-y-auto">
-              <DialogHeader><DialogTitle>Registrar gargalo</DialogTitle></DialogHeader>
-              <div className="space-y-3">
-                <div>
-                  <Label>BlindSpot de origem</Label>
-                  <Select value={form.blindspot_code} onValueChange={pickBlindspot}>
-                    <SelectTrigger><SelectValue placeholder="Selecione o BlindSpot (opcional)" /></SelectTrigger>
-                    <SelectContent>
-                      {BLINDSPOTS.map((bs) => (
-                        <SelectItem key={bs.code} value={bs.code}>{bs.code} · {bs.title}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div><Label>Nome</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label>Área</Label><Input value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} placeholder="Comercial, Operação..." /></div>
+              <DialogHeader>
+                <DialogTitle>Registrar gargalo</DialogTitle>
+                <p className="text-sm text-muted-foreground">Registre primeiro o que está travando o resultado. Priorização e governança ficam nos detalhes avançados.</p>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-3 rounded-lg border border-border p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Essencial</p>
                   <div>
-                    <Label>Urgência</Label>
-                    <Select value={form.urgency} onValueChange={(v) => setForm({ ...form, urgency: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>{Object.entries(URGENCY_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div><Label>Impacto</Label><Textarea value={form.impact} onChange={(e) => setForm({ ...form, impact: e.target.value })} /></div>
-                <div><Label>Valor estimado (R$)</Label><Input type="number" value={form.estimated_value} onChange={(e) => setForm({ ...form, estimated_value: e.target.value })} /></div>
-                {form.blindspot_code && (
-                  <div>
-                    <Label>Capacidade estruturante</Label>
-                    <Select value={form.capacity_code} onValueChange={(v) => setForm({ ...form, capacity_code: v })}>
-                      <SelectTrigger><SelectValue placeholder="Escolha a capacidade" /></SelectTrigger>
+                    <Label>BlindSpot de origem</Label>
+                    <Select value={form.blindspot_code} onValueChange={pickBlindspot}>
+                      <SelectTrigger><SelectValue placeholder="Selecione o BlindSpot (opcional)" /></SelectTrigger>
                       <SelectContent>
-                        {(blindspotByCode(form.blindspot_code)?.capacities ?? []).map((c) => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        {BLINDSPOTS.map((bs) => (
+                          <SelectItem key={bs.code} value={bs.code}>{bs.code} · {bs.title}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    {form.blindspot_code && <p className="mt-1 text-xs text-muted-foreground">Nome, área e capacidade inicial são sugeridos automaticamente.</p>}
                   </div>
-                )}
-                <div><Label>Causa raiz</Label><Textarea value={form.root_cause} onChange={(e) => setForm({ ...form, root_cause: e.target.value })} rows={2} placeholder="Por que o gargalo existe hoje?" /></div>
-                <div><Label>Resultado esperado</Label><Textarea value={form.expected_result} onChange={(e) => setForm({ ...form, expected_result: e.target.value })} rows={2} placeholder="O que muda quando estiver resolvido" /></div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label>Posição no Top 5</Label><Input type="number" min={1} max={5} value={form.rank_position} onChange={(e) => setForm({ ...form, rank_position: e.target.value })} placeholder="1 a 5" /></div>
-                  <div><Label>Prazo</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
+                  <div><Label>Nome do gargalo</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ex.: Baixa previsibilidade comercial" /></div>
+                  <div>
+                    <Label>Impacto no negócio</Label>
+                    <Textarea value={form.impact} onChange={(e) => setForm({ ...form, impact: e.target.value })} rows={2} placeholder="O que este gargalo está causando hoje?" />
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <Label>Urgência</Label>
+                      <Select value={form.urgency} onValueChange={(v) => setForm({ ...form, urgency: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>{Object.entries(URGENCY_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div><Label>Impacto financeiro estimado (R$)</Label><Input type="number" value={form.estimated_value} onChange={(e) => setForm({ ...form, estimated_value: e.target.value })} /></div>
+                  </div>
+                  <div><Label>Causa raiz</Label><Textarea value={form.root_cause} onChange={(e) => setForm({ ...form, root_cause: e.target.value })} rows={2} placeholder="Por que o gargalo existe hoje?" /></div>
+                  <div><Label>Resultado esperado</Label><Textarea value={form.expected_result} onChange={(e) => setForm({ ...form, expected_result: e.target.value })} rows={2} placeholder="O que muda quando estiver resolvido?" /></div>
                 </div>
-                <div><Label>Plano de correção</Label><Textarea value={form.correction_plan} onChange={(e) => setForm({ ...form, correction_plan: e.target.value })} rows={3} /></div>
+
+                <details className="group rounded-lg border border-border bg-muted/20">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-sm font-semibold">
+                    <span className="flex items-center gap-2"><SlidersHorizontal className="h-4 w-4 text-gold" /> Detalhes avançados</span>
+                    <span className="text-xs font-normal text-muted-foreground group-open:hidden">Mostrar</span>
+                    <span className="hidden text-xs font-normal text-muted-foreground group-open:inline">Ocultar</span>
+                  </summary>
+                  <div className="space-y-3 border-t border-border p-4">
+                    <div><Label>Área</Label><Input value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} placeholder="Comercial, Operação..." /></div>
+                    {form.blindspot_code && (
+                      <div>
+                        <Label>Capacidade estruturante</Label>
+                        <Select value={form.capacity_code} onValueChange={(v) => setForm({ ...form, capacity_code: v })}>
+                          <SelectTrigger><SelectValue placeholder="Escolha a capacidade" /></SelectTrigger>
+                          <SelectContent>
+                            {(blindspotByCode(form.blindspot_code)?.capacities ?? []).map((c) => (
+                              <SelectItem key={c} value={c}>{c}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div><Label>Posição no Top 5</Label><Input type="number" min={1} max={5} value={form.rank_position} onChange={(e) => setForm({ ...form, rank_position: e.target.value })} placeholder="1 a 5" /></div>
+                      <div><Label>Prazo</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
+                    </div>
+                    <div><Label>Plano de correção</Label><Textarea value={form.correction_plan} onChange={(e) => setForm({ ...form, correction_plan: e.target.value })} rows={3} placeholder="Ação estruturante prevista para remover o gargalo" /></div>
+                  </div>
+                </details>
               </div>
-              <DialogFooter><Button onClick={() => createMut.mutate()} disabled={!form.name || createMut.isPending}>Registrar</Button></DialogFooter>
+              <DialogFooter><Button onClick={() => createMut.mutate()} disabled={!form.name || createMut.isPending}>Registrar gargalo</Button></DialogFooter>
             </DialogContent>
           </Dialog>
         }
