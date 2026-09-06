@@ -83,6 +83,39 @@ export default function Pillars() {
     meta: 80,
   }));
 
+  const launchScore = isStaff && current ? (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="bg-gradient-brand"><Plus className="h-4 w-4 mr-2" /> Lançar score</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Novo score de pilar</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div><Label>Pilar</Label>
+            <Select value={form.pillar} onValueChange={(v) => setForm({ ...form, pillar: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {Object.entries(PILLAR_LABEL).map(([k, p]) => <SelectItem key={k} value={k}>{p.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div><Label>Score (0-100)</Label>
+            <Input type="number" min={0} max={100} value={form.score} onChange={(e) => setForm({ ...form, score: parseInt(e.target.value) || 0 })} />
+          </div>
+          <div><Label>Pontos cegos</Label>
+            <Textarea value={form.blind_spots} onChange={(e) => setForm({ ...form, blind_spots: e.target.value })} placeholder="O que está invisível ao gestor..." />
+          </div>
+          <div><Label>Recomendações</Label>
+            <Textarea value={form.recommendations} onChange={(e) => setForm({ ...form, recommendations: e.target.value })} placeholder="Próximas ações sugeridas..." />
+          </div>
+          <Button className="w-full bg-gradient-brand" disabled={mut.isPending} onClick={() => mut.mutate()}>
+            {mut.isPending ? "Salvando..." : "Salvar score"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  ) : undefined;
+
   if (loadingScores) {
     return (
       <div className="space-y-6">
@@ -94,41 +127,7 @@ export default function Pillars() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <PageHeader title="Pilares 4X" subtitle={PILLARS_SUBTITLE} />
-        {isStaff && current && (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-brand"><Plus className="h-4 w-4 mr-2" /> Lançar score</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Novo score de pilar</DialogTitle></DialogHeader>
-              <div className="space-y-3">
-                <div><Label>Pilar</Label>
-                  <Select value={form.pillar} onValueChange={(v) => setForm({ ...form, pillar: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(PILLAR_LABEL).map(([k, p]) => <SelectItem key={k} value={k}>{p.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div><Label>Score (0-100)</Label>
-                  <Input type="number" min={0} max={100} value={form.score} onChange={(e) => setForm({ ...form, score: parseInt(e.target.value) || 0 })} />
-                </div>
-                <div><Label>Pontos cegos</Label>
-                  <Textarea value={form.blind_spots} onChange={(e) => setForm({ ...form, blind_spots: e.target.value })} placeholder="O que está invisível ao gestor..." />
-                </div>
-                <div><Label>Recomendações</Label>
-                  <Textarea value={form.recommendations} onChange={(e) => setForm({ ...form, recommendations: e.target.value })} placeholder="Próximas ações sugeridas..." />
-                </div>
-                <Button className="w-full bg-gradient-brand" disabled={mut.isPending} onClick={() => mut.mutate()}>
-                  {mut.isPending ? "Salvando..." : "Salvar score"}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
+      <PageHeader title="Pilares 4X" subtitle={PILLARS_SUBTITLE} action={launchScore} />
 
       {scores.length > 0 && (
         <Card className="p-6 shadow-card">
