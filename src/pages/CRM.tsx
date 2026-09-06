@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { CRMFollowup } from "@/components/crm/CRMFollowup";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Search, Users, CircleDollarSign, Clock3 } from "lucide-react";
+import { Plus, Search, Users, CircleDollarSign, Clock3, RotateCcw } from "lucide-react";
 
 const db = supabase as any;
 
@@ -61,16 +62,7 @@ export default function CRM() {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    name: "",
-    company_name: "",
-    email: "",
-    phone: "",
-    source: "",
-    event_name: "",
-    tags: "",
-    notes: "",
-    product: "",
-    value: "",
+    name: "", company_name: "", email: "", phone: "", source: "", event_name: "", tags: "", notes: "", product: "", value: "",
   });
 
   const load = async () => {
@@ -79,7 +71,6 @@ export default function CRM() {
       db.from("crm_contacts").select("*").order("created_at", { ascending: false }),
       db.from("crm_opportunities").select("*, crm_contacts(*)").order("created_at", { ascending: false }),
     ]);
-
     if (contactError || opportunityError) {
       console.error(contactError || opportunityError);
       toast.error("Não foi possível carregar o CRM.");
@@ -96,41 +87,27 @@ export default function CRM() {
     const q = query.trim().toLowerCase();
     if (!q) return contacts;
     return contacts.filter((c) => [c.name, c.company_name, c.email, c.phone, c.source, c.event_name, ...(c.tags || [])]
-      .filter(Boolean)
-      .some((v) => String(v).toLowerCase().includes(q)));
+      .filter(Boolean).some((v) => String(v).toLowerCase().includes(q)));
   }, [contacts, query]);
 
-  const openValue = opportunities
-    .filter((o) => !["ganho", "perdido"].includes(o.stage))
-    .reduce((sum, o) => sum + Number(o.value || 0), 0);
-  const wonValue = opportunities
-    .filter((o) => o.stage === "ganho")
-    .reduce((sum, o) => sum + Number(o.value || 0), 0);
+  const openValue = opportunities.filter((o) => !["ganho", "perdido"].includes(o.stage)).reduce((sum, o) => sum + Number(o.value || 0), 0);
+  const wonValue = opportunities.filter((o) => o.stage === "ganho").reduce((sum, o) => sum + Number(o.value || 0), 0);
   const nextActions = opportunities.filter((o) => o.next_action_at && !["ganho", "perdido"].includes(o.stage)).length;
+  const recoveryCount = opportunities.filter((o) => ["perdido", "recuperacao"].includes(o.stage)).length;
 
   const createLead = async () => {
-    if (!form.name.trim()) {
-      toast.error("Informe o nome do contato.");
-      return;
-    }
+    if (!form.name.trim()) return toast.error("Informe o nome do contato.");
     setSaving(true);
     const tags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
     const { data: contact, error: contactError } = await db.from("crm_contacts").insert({
-      name: form.name.trim(),
-      company_name: form.company_name.trim() || null,
-      email: form.email.trim() || null,
-      phone: form.phone.trim() || null,
-      source: form.source.trim() || null,
-      event_name: form.event_name.trim() || null,
-      tags,
-      notes: form.notes.trim() || null,
-      created_by: user?.id || null,
+      name: form.name.trim(), company_name: form.company_name.trim() || null, email: form.email.trim() || null,
+      phone: form.phone.trim() || null, source: form.source.trim() || null, event_name: form.event_name.trim() || null,
+      tags, notes: form.notes.trim() || null, created_by: user?.id || null,
     }).select("*").single();
 
     if (contactError) {
       setSaving(false);
-      toast.error("Erro ao criar contato.");
-      return;
+      return toast.error("Erro ao criar contato.");
     }
 
     const { error: opportunityError } = await db.from("crm_opportunities").insert({
@@ -138,16 +115,11 @@ export default function CRM() {
       title: form.product.trim() ? `${form.product.trim()} · ${form.name.trim()}` : `Oportunidade · ${form.name.trim()}`,
       product: form.product.trim() || null,
       value: Number(form.value.replace(/\./g, "").replace(",", ".")) || 0,
-      stage: "novo",
-      owner_user_id: user?.id || null,
-      created_by: user?.id || null,
+      stage: "novo", owner_user_id: user?.id || null, created_by: user?.id || null,
     });
 
-    if (opportunityError) {
-      toast.error("Contato criado, mas a oportunidade não foi criada.");
-    } else {
-      toast.success("Lead adicionado ao funil.");
-    }
+    if (opportunityError) toast.error("Contato criado, mas a oportunidade não foi criada.");
+    else toast.success("Lead adicionado ao funil.");
 
     setForm({ name: "", company_name: "", email: "", phone: "", source: "", event_name: "", tags: "", notes: "", product: "", value: "" });
     setOpen(false);
@@ -193,14 +165,16 @@ export default function CRM() {
         </Dialog>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Pipeline aberto</CardTitle><CircleDollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{money.format(openValue)}</div><p className="text-xs text-muted-foreground">{opportunities.filter((o) => !["ganho", "perdido"].includes(o.stage)).length} oportunidades ativas</p></CardContent></Card>
         <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Vendas ganhas</CardTitle><Users className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{money.format(wonValue)}</div><p className="text-xs text-muted-foreground">{opportunities.filter((o) => o.stage === "ganho").length} negócios ganhos</p></CardContent></Card>
         <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Próximas ações</CardTitle><Clock3 className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{nextActions}</div><p className="text-xs text-muted-foreground">follow-ups programados</p></CardContent></Card>
+        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Recuperação</CardTitle><RotateCcw className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{recoveryCount}</div><p className="text-xs text-muted-foreground">leads perdidos ou em recuperação</p></CardContent></Card>
       </div>
 
       <Tabs defaultValue="pipeline" className="space-y-4">
-        <TabsList><TabsTrigger value="pipeline">Funil</TabsTrigger><TabsTrigger value="contatos">Contatos</TabsTrigger></TabsList>
+        <TabsList className="flex flex-wrap h-auto"><TabsTrigger value="pipeline">Funil</TabsTrigger><TabsTrigger value="followup">Follow-up</TabsTrigger><TabsTrigger value="recuperacao">Recuperação</TabsTrigger><TabsTrigger value="contatos">Contatos</TabsTrigger></TabsList>
+
         <TabsContent value="pipeline" className="space-y-4">
           {loading ? <p className="text-sm text-muted-foreground">Carregando CRM...</p> : (
             <div className="grid gap-4 xl:grid-cols-4">
@@ -212,13 +186,12 @@ export default function CRM() {
                     <div className="mb-3 flex items-center justify-between"><div className="font-semibold text-sm">{label} <Badge variant="secondary" className="ml-1">{items.length}</Badge></div><div className="text-xs text-muted-foreground">{money.format(total)}</div></div>
                     <div className="space-y-3">
                       {items.map((o) => (
-                        <Card key={o.id} className="shadow-sm">
-                          <CardContent className="p-4 space-y-3">
-                            <div><div className="font-semibold text-sm">{o.crm_contacts?.name || o.title}</div><div className="text-xs text-muted-foreground">{o.crm_contacts?.company_name || o.product || "Sem empresa/produto"}</div></div>
-                            <div className="flex items-center justify-between"><span className="text-sm font-medium">{money.format(Number(o.value || 0))}</span>{o.product && <Badge variant="outline">{o.product}</Badge>}</div>
-                            <Select value={o.stage} onValueChange={(stage) => moveStage(o.id, stage)}><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent>{STAGES.map(([value, text]) => <SelectItem key={value} value={value}>{text}</SelectItem>)}</SelectContent></Select>
-                          </CardContent>
-                        </Card>
+                        <Card key={o.id} className="shadow-sm"><CardContent className="p-4 space-y-3">
+                          <div><div className="font-semibold text-sm">{o.crm_contacts?.name || o.title}</div><div className="text-xs text-muted-foreground">{o.crm_contacts?.company_name || o.product || "Sem empresa/produto"}</div></div>
+                          <div className="flex items-center justify-between"><span className="text-sm font-medium">{money.format(Number(o.value || 0))}</span>{o.product && <Badge variant="outline">{o.product}</Badge>}</div>
+                          {o.next_action_at && <div className="text-xs text-muted-foreground">{o.next_action || "Próxima ação"}: {new Date(o.next_action_at).toLocaleString("pt-BR")}</div>}
+                          <Select value={o.stage} onValueChange={(stage) => moveStage(o.id, stage)}><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent>{STAGES.map(([value, text]) => <SelectItem key={value} value={value}>{text}</SelectItem>)}</SelectContent></Select>
+                        </CardContent></Card>
                       ))}
                     </div>
                   </div>
@@ -227,6 +200,10 @@ export default function CRM() {
             </div>
           )}
         </TabsContent>
+
+        <TabsContent value="followup"><CRMFollowup mode="followup" /></TabsContent>
+        <TabsContent value="recuperacao"><CRMFollowup mode="recovery" /></TabsContent>
+
         <TabsContent value="contatos" className="space-y-4">
           <div className="relative max-w-lg"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" placeholder="Buscar por nome, empresa, origem, evento ou etiqueta" value={query} onChange={(e) => setQuery(e.target.value)} /></div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
