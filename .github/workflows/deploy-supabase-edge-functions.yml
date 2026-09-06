@@ -6,9 +6,10 @@ on:
       target:
         description: "Which Edge Functions should be deployed?"
         required: true
-        default: security-hardened
+        default: crm
         type: choice
         options:
+          - crm
           - security-hardened
           - all
       confirm:
@@ -53,6 +54,23 @@ jobs:
             exit 1
           fi
           supabase functions list --project-ref "$SUPABASE_PROJECT_REF" >/dev/null
+
+      - name: Deploy CRM functions
+        if: ${{ inputs.target == 'crm' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          functions=(
+            crm-automation
+            crm-inbound
+            crm-import
+          )
+          for function_name in "${functions[@]}"; do
+            echo "Deploying ${function_name}..."
+            supabase functions deploy "$function_name" \
+              --project-ref "$SUPABASE_PROJECT_REF" \
+              --use-api
+          done
 
       - name: Deploy security-hardened functions
         if: ${{ inputs.target == 'security-hardened' }}
