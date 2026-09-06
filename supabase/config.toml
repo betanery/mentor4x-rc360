@@ -9,6 +9,12 @@ project_id = "fjgdcmtwstmslmbxlsga"
     verify_jwt = false
   [functions.chat]
     verify_jwt = true
+  [functions.crm-automation]
+    verify_jwt = false
+  [functions.crm-import]
+    verify_jwt = true
+  [functions.crm-inbound]
+    verify_jwt = false
   [functions.daily-alerts]
     verify_jwt = false
   [functions.diagnostic-response]
