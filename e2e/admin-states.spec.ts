@@ -47,7 +47,7 @@ test.describe("admin states", () => {
     await page.goto("/empresas");
     await expect(page.getByRole("heading", { name: "Empresas" })).toBeVisible();
     await expect(page.getByText("Nenhuma empresa encontrada.")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Nova empresa" })).toBeVisible();
+    await expect(page.getByRole("main").getByRole("button", { name: "Nova empresa" })).toBeVisible();
   });
 
   test("universidade admin oferece próximo passo no estado vazio", async ({ page }) => {
