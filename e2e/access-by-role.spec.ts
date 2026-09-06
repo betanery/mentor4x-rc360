@@ -57,6 +57,16 @@ test("usuário não autenticado é direcionado para login", async ({ page }) => 
   expect(forbidden).toEqual([]);
 });
 
+test("CRM não faz parte do Mentor 4X", async ({ page }) => {
+  const forbidden = await isolateNetwork(page);
+  await loginAs(page, "super_admin");
+  await expect(page.getByRole("link", { name: /CRM/i })).toHaveCount(0);
+  await page.goto("/crm");
+  await expect(page.getByRole("heading", { name: "Página não encontrada" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Voltar ao Dashboard" })).toBeVisible();
+  expect(forbidden).toEqual([]);
+});
+
 for (const role of Object.keys(labels) as Role[]) {
   test.describe(role, () => {
     test("abre o sistema e percorre todos os módulos comuns", async ({ page }) => {
