@@ -40,7 +40,7 @@ test.describe("form usability on mobile", () => {
     await loginSuperAdmin(page);
   });
 
-  test("Meta Crítica abre, permite digitação e mantém CTA alcançável", async ({ page }) => {
+  test("Meta Crítica prioriza campos essenciais e mantém detalhes avançados sob demanda", async ({ page }) => {
     await page.goto("/metas");
     await page.getByRole("button", { name: "Nova meta" }).click();
     await expectDialogFitsViewport(page);
@@ -50,28 +50,36 @@ test.describe("form usability on mobile", () => {
     await expect(title).toHaveValue("Aumentar conversão de propostas");
     await expectTouchTarget(title);
 
-    const numeric = page.getByRole("dialog").locator('input[type="number"]').first();
-    await expect(numeric).toHaveAttribute("inputmode", "decimal");
+    const advanced = page.getByText("Detalhes avançados", { exact: true }).first();
+    await expect(advanced).toBeVisible();
+    await expect(page.getByLabel("Impacto financeiro (R$)")).not.toBeVisible();
+    await advanced.click();
+    await expect(page.getByLabel("Impacto financeiro (R$)")).toBeVisible();
+    await expect(page.getByLabel("Impacto financeiro (R$)")).toHaveAttribute("inputmode", "decimal");
 
     const createButton = page.getByRole("button", { name: "Criar meta" });
     await expect(createButton).toBeVisible();
     await expectTouchTarget(createButton);
-
-    const dialog = page.getByRole("dialog");
-    await dialog.evaluate((el) => { el.scrollTop = el.scrollHeight; });
-    await expect(createButton).toBeVisible();
   });
 
-  test("Gargalo abre, permite digitação e pode ser fechado sem perder controle da tela", async ({ page }) => {
+  test("Gargalo mostra o essencial primeiro e preserva governança nos detalhes", async ({ page }) => {
     await page.goto("/gargalos");
     await page.getByRole("button", { name: "Novo gargalo" }).click();
     await expectDialogFitsViewport(page);
 
     const dialog = page.getByRole("dialog");
-    const nameInput = dialog.locator("input").first();
+    const nameInput = page.getByPlaceholder("Ex.: Baixa previsibilidade comercial");
     await nameInput.fill("Baixa previsibilidade comercial");
     await expect(nameInput).toHaveValue("Baixa previsibilidade comercial");
     await expectTouchTarget(nameInput);
+
+    await expect(page.getByLabel("Posição no Top 5")).not.toBeVisible();
+    await page.getByText("Detalhes avançados", { exact: true }).click();
+    await expect(page.getByLabel("Posição no Top 5")).toBeVisible();
+
+    const registerButton = page.getByRole("button", { name: "Registrar gargalo" });
+    await expect(registerButton).toBeVisible();
+    await expectTouchTarget(registerButton);
 
     const closeButton = page.getByRole("button", { name: "Fechar janela" });
     await closeButton.click();
