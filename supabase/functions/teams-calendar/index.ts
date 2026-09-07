@@ -1,4 +1,5 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { outlookFetch } from "../_shared/outlook-gateway.ts";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCompanyAuthorization } from "../_shared/company-authorization.ts";
 import { corsHeadersFor, originAllowed } from "../_shared/cors.ts";
 
@@ -35,46 +36,6 @@ function requiredEnv(name: string) {
   const value = Deno.env.get(name);
   if (!value) throw new Error(`Configuração ausente: ${name}`);
   return value;
-}
-
-async function graphToken() {
-  const tenant = requiredEnv("MS_GRAPH_TENANT_ID");
-  const clientId = requiredEnv("MS_GRAPH_CLIENT_ID");
-  const clientSecret = requiredEnv("MS_GRAPH_CLIENT_SECRET");
-  const body = new URLSearchParams({
-    client_id: clientId,
-    client_secret: clientSecret,
-    scope: "https://graph.microsoft.com/.default",
-    grant_type: "client_credentials",
-  });
-  const response = await fetch(`https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body,
-  });
-  const payload = await response.json();
-  if (!response.ok || !payload.access_token) {
-    throw new Error(`Falha ao autenticar no Microsoft Graph: ${payload.error_description || payload.error || response.status}`);
-  }
-  return payload.access_token as string;
-}
-
-async function graphFetch(path: string, init: RequestInit = {}) {
-  const token = await graphToken();
-  const response = await fetch(`https://graph.microsoft.com/v1.0${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      ...(init.headers || {}),
-    },
-  });
-  const text = await response.text();
-  const payload = text ? JSON.parse(text) : null;
-  if (!response.ok) {
-    throw new Error(payload?.error?.message || `Microsoft Graph respondeu ${response.status}`);
-  }
-  return payload;
 }
 
 function datePartsInZone(date: Date, timeZone: string) {
@@ -149,7 +110,7 @@ function overlaps(start: Date, end: Date, item: ScheduleItem) {
 }
 
 async function getBusyItems(host: Host, start: Date, end: Date): Promise<ScheduleItem[]> {
-  const payload = await graphFetch(`/users/${encodeURIComponent(host.microsoft_email)}/calendar/getSchedule`, {
+  const payload = await outlookFetch(`/users/${encodeURIComponent(host.microsoft_email)}/calendar/getSchedule`, {
     method: "POST",
     headers: { Prefer: 'outlook.timezone="UTC"' },
     body: JSON.stringify({
@@ -159,7 +120,12 @@ async function getBusyItems(host: Host, start: Date, end: Date): Promise<Schedul
       availabilityViewInterval: 15,
     }),
   });
-  return payload?.value?.[0]?.scheduleItems || [];
+  const schedule = payload?.value?.[0];
+  // Graph can return HTTP 200 with a per-mailbox error. Never treat it as free.
+  if (!schedule || schedule.error || !Array.isArray(schedule.scheduleItems)) {
+    throw new Error("Não foi possível consultar esta agenda. Verifique a conexão Outlook no Lovable e as permissões do calendário.");
+  }
+  return schedule.scheduleItems.filter((item: ScheduleItem) => item.status !== "free");
 }
 
 function validateSlot(host: Host, start: Date, durationMin: number) {
@@ -178,14 +144,14 @@ function validateSlot(host: Host, start: Date, durationMin: number) {
   }
 }
 
-async function resolveHost(admin: ReturnType<typeof createClient>, hostId: string) {
+async function resolveHost(admin: SupabaseClient, hostId: string) {
   const { data, error } = await admin.from("calendar_booking_hosts").select("*").eq("id", hostId).eq("active", true).maybeSingle();
   if (error) throw error;
   if (!data) throw new Error("Agenda não encontrada ou inativa.");
   return data as Host;
 }
 
-async function resolveContract(admin: ReturnType<typeof createClient>, companyId: string, contractId?: string | null) {
+async function resolveContract(admin: SupabaseClient, companyId: string, contractId?: string | null) {
   if (!contractId) return null;
   const { data, error } = await admin.from("contracts").select("id, company_id").eq("id", contractId).eq("company_id", companyId).maybeSingle();
   if (error) throw error;
@@ -249,6 +215,11 @@ Deno.serve(async (req) => {
         minimum_notice_hours: Number(body.minimum_notice_hours ?? 24),
         updated_at: new Date().toISOString(),
       };
+      // Validate delegated access and Teams capability before advertising this host.
+      const calendar = await outlookFetch(`/users/${encodeURIComponent(microsoftEmail)}/calendar?$select=canEdit,allowedOnlineMeetingProviders`);
+      if (!calendar?.canEdit || !calendar.allowedOnlineMeetingProviders?.includes("teamsForBusiness")) {
+        return json({ error: "A conexão Outlook no Lovable precisa de acesso de edição a esta agenda e suporte a reuniões Teams." }, 400, cors);
+      }
       const { data, error } = await admin.from("calendar_booking_hosts").upsert(payload, { onConflict: "user_id" }).select("id, display_name, microsoft_email").single();
       if (error) throw error;
       return json({ host: data }, 200, cors);
@@ -307,7 +278,7 @@ Deno.serve(async (req) => {
       const agenda = String(body.agenda || "Encontro de acompanhamento da Jornada 4X.").trim();
       const transactionId = crypto.randomUUID();
 
-      const event = await graphFetch(`/users/${encodeURIComponent(host.microsoft_email)}/events`, {
+      const event = await outlookFetch(`/users/${encodeURIComponent(host.microsoft_email)}/events`, {
         method: "POST",
         headers: { Prefer: 'outlook.timezone="UTC"' },
         body: JSON.stringify({
@@ -327,6 +298,13 @@ Deno.serve(async (req) => {
       });
 
       const joinUrl = event?.onlineMeeting?.joinUrl || event?.onlineMeetingUrl || null;
+      if (!event?.id || !joinUrl) {
+        if (event?.id) {
+          try { await outlookFetch(`/users/${encodeURIComponent(host.microsoft_email)}/events/${encodeURIComponent(event.id)}`, { method: "DELETE" }); }
+          catch { console.error("teams-calendar: falha ao remover evento sem link Teams", event.id); }
+        }
+        throw new Error("O Outlook não retornou um link Teams. Verifique a licença e as permissões da agenda conectada no Lovable.");
+      }
       const meetingPayload = {
         company_id: companyId,
         contract_id: contractId,
@@ -351,7 +329,7 @@ Deno.serve(async (req) => {
       };
       const { data: meeting, error: meetingError } = await admin.from("meetings").insert(meetingPayload).select("id, scheduled_at, meeting_url, title").single();
       if (meetingError) {
-        try { await graphFetch(`/users/${encodeURIComponent(host.microsoft_email)}/events/${encodeURIComponent(event.id)}`, { method: "DELETE" }); } catch { /* compensating delete best-effort */ }
+        try { await outlookFetch(`/users/${encodeURIComponent(host.microsoft_email)}/events/${encodeURIComponent(event.id)}`, { method: "DELETE" }); } catch { /* compensating delete best-effort */ }
         throw meetingError;
       }
       return json({ meeting, teams_join_url: joinUrl, organizer: host.display_name }, 200, cors);

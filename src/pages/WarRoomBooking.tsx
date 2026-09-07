@@ -69,7 +69,11 @@ export default function WarRoomBooking() {
 
   const invoke = async <T,>(body: Record<string, unknown>) => {
     const { data, error } = await supabase.functions.invoke("teams-calendar", { body });
-    if (error) throw error;
+    if (error) {
+      const response = (error as { context?: Response }).context;
+      const details = response instanceof Response ? await response.json().catch(() => null) : null;
+      throw new Error(details?.error || error.message);
+    }
     const payload = data as T & { error?: string };
     if (payload?.error) throw new Error(payload.error);
     return payload;
@@ -99,6 +103,7 @@ export default function WarRoomBooking() {
     if (!current || !organizerId) return;
     setLoadingSlots(true);
     setSelectedSlot(null);
+    setSlots([]);
     setBooked(null);
     try {
       const data = await invoke<{ slots: Slot[] }>({
@@ -165,7 +170,7 @@ export default function WarRoomBooking() {
         contract_id: currentContract?.id ?? null,
         ...hostForm,
       });
-      toast.success("Sua agenda Microsoft foi habilitada para reservas.");
+      toast.success("Sua agenda Outlook foi validada via Lovable e habilitada para reservas.");
       await loadOrganizers();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível configurar a agenda.");
@@ -223,7 +228,7 @@ export default function WarRoomBooking() {
               <p className="text-sm text-muted-foreground">Carregando agendas…</p>
             ) : organizers.length === 0 ? (
               <div className="rounded-lg border border-dashed p-5 text-sm text-muted-foreground">
-                Ainda não há agenda Microsoft habilitada para reserva. Um Consultor ou Estrategista precisa configurar a própria agenda abaixo.
+                Ainda não há agenda habilitada para reserva. A equipe 4X precisa conectar o Outlook no Lovable e cadastrar as agendas de atendimento.
               </div>
             ) : (
               <Select value={organizerId} onValueChange={setOrganizerId}>
@@ -243,7 +248,7 @@ export default function WarRoomBooking() {
                 <Clock3 className="h-5 w-5 text-gold" />
                 <h2 className="font-bold">2. Escolha um horário livre</h2>
               </div>
-              <p className="text-xs text-muted-foreground">Disponibilidade real da agenda Microsoft nos próximos 14 dias.</p>
+              <p className="text-xs text-muted-foreground">Disponibilidade da agenda Outlook via Lovable nos próximos 14 dias.</p>
               {loadingSlots ? (
                 <p className="text-sm text-muted-foreground">Consultando agenda…</p>
               ) : (
@@ -279,8 +284,8 @@ export default function WarRoomBooking() {
                 <div className="text-muted-foreground mt-1">O convite será enviado para {user?.email}.</div>
               </div>
               <div>
-                <Label>Pauta inicial</Label>
-                <Textarea className="mt-2" value={agenda} onChange={(e) => setAgenda(e.target.value)} />
+                <Label htmlFor="booking-agenda">Pauta inicial</Label>
+                <Textarea id="booking-agenda" className="mt-2" value={agenda} onChange={(e) => setAgenda(e.target.value)} />
               </div>
               <Button onClick={book} disabled={booking} className="bg-gradient-brand">
                 <Video className="h-4 w-4 mr-1" /> {booking ? "Criando encontro no Teams…" : "Confirmar e gerar link do Teams"}
@@ -295,49 +300,49 @@ export default function WarRoomBooking() {
           <div className="flex items-center gap-2">
             <Settings2 className="h-5 w-5 text-gold" />
             <div>
-              <h2 className="font-bold">Configurar minha agenda Microsoft 365</h2>
-              <p className="text-xs text-muted-foreground">Cada Consultor ou Estrategista habilita a própria agenda uma única vez.</p>
+              <h2 className="font-bold">Configurar minha agenda Outlook via Lovable</h2>
+              <p className="text-xs text-muted-foreground">Conecte o Microsoft Outlook no Lovable e vincule a conexão ao Mentor 4X. Depois, cadastre uma agenda que a conta conectada possa editar.</p>
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="sm:col-span-2">
-              <Label>Nome exibido</Label>
-              <Input value={hostForm.display_name} onChange={(e) => setHostForm({ ...hostForm, display_name: e.target.value })} placeholder="Ex.: Roberta Cardoso" />
+              <Label htmlFor="host-display_name">Nome exibido</Label>
+              <Input id="host-display_name" value={hostForm.display_name} onChange={(e) => setHostForm({ ...hostForm, display_name: e.target.value })} placeholder="Ex.: Roberta Cardoso" />
             </div>
             <div className="sm:col-span-2">
-              <Label>E-mail Microsoft 365</Label>
-              <Input type="email" value={hostForm.microsoft_email} onChange={(e) => setHostForm({ ...hostForm, microsoft_email: e.target.value })} placeholder="nome@empresa.com.br" />
+              <Label htmlFor="host-microsoft_email">E-mail Microsoft 365</Label>
+              <Input id="host-microsoft_email" type="email" value={hostForm.microsoft_email} onChange={(e) => setHostForm({ ...hostForm, microsoft_email: e.target.value })} placeholder="nome@empresa.com.br" />
             </div>
             <div>
-              <Label>Início</Label>
-              <Input type="time" value={hostForm.workday_start} onChange={(e) => setHostForm({ ...hostForm, workday_start: e.target.value })} />
+              <Label htmlFor="host-workday_start">Início</Label>
+              <Input id="host-workday_start" type="time" value={hostForm.workday_start} onChange={(e) => setHostForm({ ...hostForm, workday_start: e.target.value })} />
             </div>
             <div>
-              <Label>Fim</Label>
-              <Input type="time" value={hostForm.workday_end} onChange={(e) => setHostForm({ ...hostForm, workday_end: e.target.value })} />
+              <Label htmlFor="host-workday_end">Fim</Label>
+              <Input id="host-workday_end" type="time" value={hostForm.workday_end} onChange={(e) => setHostForm({ ...hostForm, workday_end: e.target.value })} />
             </div>
             <div>
-              <Label>Duração (min)</Label>
-              <Input type="number" min={15} max={240} value={hostForm.slot_duration_min} onChange={(e) => setHostForm({ ...hostForm, slot_duration_min: Number(e.target.value) })} />
+              <Label htmlFor="host-slot_duration_min">Duração (min)</Label>
+              <Input id="host-slot_duration_min" type="number" min={15} max={240} value={hostForm.slot_duration_min} onChange={(e) => setHostForm({ ...hostForm, slot_duration_min: Number(e.target.value) })} />
             </div>
             <div>
-              <Label>Intervalo (min)</Label>
-              <Input type="number" min={0} max={120} value={hostForm.buffer_min} onChange={(e) => setHostForm({ ...hostForm, buffer_min: Number(e.target.value) })} />
+              <Label htmlFor="host-buffer_min">Intervalo (min)</Label>
+              <Input id="host-buffer_min" type="number" min={0} max={120} value={hostForm.buffer_min} onChange={(e) => setHostForm({ ...hostForm, buffer_min: Number(e.target.value) })} />
             </div>
             <div>
-              <Label>Agenda aberta (dias)</Label>
-              <Input type="number" min={1} max={180} value={hostForm.booking_window_days} onChange={(e) => setHostForm({ ...hostForm, booking_window_days: Number(e.target.value) })} />
+              <Label htmlFor="host-booking_window_days">Agenda aberta (dias)</Label>
+              <Input id="host-booking_window_days" type="number" min={1} max={180} value={hostForm.booking_window_days} onChange={(e) => setHostForm({ ...hostForm, booking_window_days: Number(e.target.value) })} />
             </div>
             <div>
-              <Label>Antecedência mínima (h)</Label>
-              <Input type="number" min={0} max={336} value={hostForm.minimum_notice_hours} onChange={(e) => setHostForm({ ...hostForm, minimum_notice_hours: Number(e.target.value) })} />
+              <Label htmlFor="host-minimum_notice_hours">Antecedência mínima (h)</Label>
+              <Input id="host-minimum_notice_hours" type="number" min={0} max={336} value={hostForm.minimum_notice_hours} onChange={(e) => setHostForm({ ...hostForm, minimum_notice_hours: Number(e.target.value) })} />
             </div>
           </div>
           <Button variant="outline" onClick={saveMyHost} disabled={savingHost}>
-            {savingHost ? "Salvando…" : "Habilitar minha agenda"}
+            {savingHost ? "Salvando…" : "Validar e habilitar minha agenda"}
           </Button>
           <p className="text-xs text-muted-foreground">
-            A conexão usa credenciais de aplicação do Microsoft Graph armazenadas somente nos secrets da Edge Function. Nenhuma senha Microsoft é salva no Mentor 4X.
+            O Lovable gerencia a autorização Microsoft. Este cadastro valida o acesso à agenda e o suporte ao Teams; ele não conecta uma nova conta. Agendas de outros profissionais precisam estar compartilhadas com permissão de edição para a conta conectada.
           </p>
         </Card>
       )}
