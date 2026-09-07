@@ -21,6 +21,7 @@ const Tasks = lazy(() => import("./pages/Tasks"));
 const Playbooks = lazy(() => import("./pages/Playbooks"));
 const Pillars = lazy(() => import("./pages/Pillars"));
 const WarRoom = lazy(() => import("./pages/WarRoom"));
+const WarRoomBooking = lazy(() => import("./pages/WarRoomBooking"));
 const MentorArea = lazy(() => import("./pages/MentorArea"));
 const StrategistArea = lazy(() => import("./pages/StrategistArea"));
 const University = lazy(() => import("./pages/University"));
@@ -78,6 +79,7 @@ const App = () => (
                     <Route path="/playbooks" element={<Playbooks />} />
                     <Route path="/pilares" element={<Pillars />} />
                     <Route path="/sala-guerra" element={<WarRoom />} />
+                    <Route path="/sala-guerra/agendar" element={<WarRoomBooking />} />
                     <Route path="/universidade" element={<University />} />
                     <Route path="/socio-ia" element={<SocioIA />} />
                     <Route path="/relatorios" element={<Reports />} />
