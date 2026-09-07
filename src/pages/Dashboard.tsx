@@ -57,18 +57,18 @@ export default function Dashboard() {
       setMeetings(m.data || []);
       setDiagnostic((d.data || [])[0] || null);
 
-      // Real 90-day score evolution: average of pillar scores grouped per week (last 12 weeks)
       const scores = (p.data || []) as Array<{ measured_at: string; score: number }>;
       const buckets = new Map<string, { sum: number; n: number }>();
       const weekKey = (d: Date) => {
-        const start = subDays(d, d.getDay()); // sunday-start
+        const start = subDays(d, d.getDay());
         return format(start, "yyyy-MM-dd");
       };
       scores.forEach((s) => {
         const d = parseISO(s.measured_at);
         const k = weekKey(d);
         const cur = buckets.get(k) || { sum: 0, n: 0 };
-        cur.sum += s.score; cur.n += 1;
+        cur.sum += s.score;
+        cur.n += 1;
         buckets.set(k, cur);
       });
       const history = Array.from({ length: 12 }, (_, i) => {
@@ -80,7 +80,6 @@ export default function Dashboard() {
           score: v ? Math.round(v.sum / v.n) : null,
         };
       });
-      // Forward-fill nulls with last known score; if none, use overall_score
       let last = current.overall_score || 0;
       const filled = history.map((h) => {
         if (h.score == null) return { ...h, score: last };
@@ -102,8 +101,8 @@ export default function Dashboard() {
           crie uma nova empresa para começar a operação.
         </p>
         <div className="flex justify-center gap-3">
-          <Link to="/empresas" className="text-sm font-semibold text-primary underline">Ir para Empresas</Link>
-          <Link to="/notificacoes" className="text-sm font-semibold text-royal underline">Ver notificações</Link>
+          <Link to="/empresas" className="inline-flex min-h-10 items-center text-sm font-semibold text-primary underline">Ir para Empresas</Link>
+          <Link to="/notificacoes" className="inline-flex min-h-10 items-center text-sm font-semibold text-royal underline">Ver notificações</Link>
         </div>
       </div>
     );
@@ -131,7 +130,6 @@ export default function Dashboard() {
   const completedWeekly = weeklyGoals.filter((g) => g.status === "concluido").length;
   const execRate = weeklyGoals.length ? Math.round((completedWeekly / weeklyGoals.length) * 100) : 0;
 
-  // Latest pillar score per pillar
   const latestPillar = (key: string) => {
     const arr = pillars.filter((p) => p.pillar === key);
     return arr[0]?.score ?? 0;
@@ -140,15 +138,13 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={`Dashboard Executivo`}
+        title="Dashboard Executivo"
         subtitle="Visão completa da execução, score e próximos passos da empresa."
         action={<Badge className={`${improviso.color} text-xs px-3 py-1.5 font-bold`}>{improviso.label}</Badge>}
       />
 
       <OnboardingChecklist companyId={current.id} contractId={currentContract?.id} />
 
-
-      {/* Bloco Classificação — baseline oficial do Diagnóstico SEE_4X */}
       <Card className="p-5">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
@@ -159,7 +155,7 @@ export default function Dashboard() {
                 : "Nenhum diagnóstico validado — a classificação abaixo ainda não tem baseline oficial."}
             </p>
           </div>
-          <Link to="/diagnostico" className="text-sm font-semibold text-primary underline">
+          <Link to="/diagnostico" className="inline-flex min-h-10 items-center text-sm font-semibold text-primary underline">
             {diagnostic ? "Ver diagnóstico →" : "Fazer diagnóstico →"}
           </Link>
         </div>
@@ -204,7 +200,6 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      {/* Hero KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Score Geral" value={current.overall_score} sub="0–100 pontos" icon={Activity} accent="primary" />
         <StatCard label="Índice de Execução" value={`${execRate}%`} sub={`${completedWeekly}/${weeklyGoals.length} metas`} icon={Target} accent="gold" />
@@ -212,7 +207,6 @@ export default function Dashboard() {
         <StatCard label="Receita projetada" value={formatBRL(current.projected_revenue)} sub="próximos 12 meses" icon={DollarSign} accent="success" />
       </div>
 
-      {/* Stage + Pillars */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2 p-6 shadow-card overflow-hidden relative bg-gradient-brand text-primary-foreground">
           <div className="absolute top-0 right-0 w-64 h-64 bg-gold/10 rounded-full -translate-y-32 translate-x-32 blur-3xl" />
@@ -247,14 +241,13 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Pilares 4X */}
       <Card className="p-6 shadow-card">
         <div className="flex items-center justify-between mb-5">
           <div>
             <h3 className="text-lg font-bold">Pilares 4X</h3>
             <p className="text-sm text-muted-foreground">Score atual em cada eixo do método</p>
           </div>
-          <Link to="/pilares" className="text-xs font-semibold text-royal hover:text-primary">Ver detalhes →</Link>
+          <Link to="/pilares" className="inline-flex min-h-10 items-center text-xs font-semibold text-royal hover:text-primary">Ver detalhes →</Link>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {Object.entries(PILLAR_LABEL).map(([key, p]) => {
@@ -272,7 +265,6 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      {/* Charts + Goals */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2 p-6 shadow-card">
           <div className="flex items-center justify-between mb-4">
@@ -302,7 +294,7 @@ export default function Dashboard() {
         <Card className="p-6 shadow-card">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold">Metas Críticas do ciclo</h3>
-            <Link to="/metas" className="text-xs font-semibold text-royal hover:text-primary">Ver todas →</Link>
+            <Link to="/metas" className="inline-flex min-h-10 items-center text-xs font-semibold text-royal hover:text-primary">Ver todas →</Link>
           </div>
           {weeklyGoals.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma Meta Crítica definida para este ciclo.</p>}
           <div className="space-y-3">
@@ -322,14 +314,13 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Bottlenecks */}
       <Card className="p-6 shadow-card">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-lg font-bold flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-destructive" /> Top gargalos críticos</h3>
             <p className="text-sm text-muted-foreground">Travas que mais impactam o resultado agora</p>
           </div>
-          <Link to="/gargalos" className="text-xs font-semibold text-royal hover:text-primary">Ver todos →</Link>
+          <Link to="/gargalos" className="inline-flex min-h-10 items-center text-xs font-semibold text-royal hover:text-primary">Ver todos →</Link>
         </div>
         {bottlenecks.length === 0 && <p className="text-sm text-muted-foreground">Nenhum gargalo crítico identificado.</p>}
         <div className="space-y-3">

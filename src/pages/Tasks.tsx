@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
 import { useContract } from "@/hooks/useContract";
@@ -56,6 +57,7 @@ export default function Tasks() {
   const { current } = useCompany();
   const { currentContract } = useContract();
   const qc = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [checklistDraft, setChecklistDraft] = useState("");
@@ -103,6 +105,20 @@ export default function Tasks() {
 
   const resetForm = () => { setForm(EMPTY_FORM); setChecklistDraft(""); setEditing(null); };
 
+  useEffect(() => {
+    const goalId = searchParams.get("goal");
+    if (!goalId || goals.length === 0 || editing) return;
+    const linkedGoal = goals.find((g) => g.id === goalId);
+    if (!linkedGoal) return;
+    setForm({
+      ...EMPTY_FORM,
+      goal_id: linkedGoal.id,
+      blindspot_code: linkedGoal.blindspot_code ?? "",
+    });
+    setOpen(true);
+    setSearchParams({}, { replace: true });
+  }, [goals, editing, searchParams, setSearchParams]);
+
   const openEdit = (t: Task) => {
     setEditing(t);
     setForm({
@@ -134,7 +150,6 @@ export default function Tasks() {
     mutationFn: async () => {
       if (!current) throw new Error("Selecione uma empresa");
       if (editing) {
-        // Controle de edição concorrente: só grava se ninguém alterou a tarefa nesse meio-tempo.
         const { data, error } = await supabase
           .from("tasks")
           .update(payloadFromForm())
@@ -219,7 +234,7 @@ export default function Tasks() {
     <div className="space-y-6">
       <PageHeader
         title="Plano de Ação"
-        subtitle="Tarefas operacionais do ciclo — prioridade, checklist e vínculo com o BlindSpot correspondente."
+        subtitle="Tarefas operacionais do ciclo — prioridade, checklist e vínculo com a Meta Crítica e o BlindSpot correspondente."
         action={
           <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
             <DialogTrigger asChild>
@@ -230,7 +245,7 @@ export default function Tasks() {
               <div className="space-y-3">
                 <div><Label>Título</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex.: Montar script de vendas" /></div>
                 <div><Label>Descrição</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} /></div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div><Label>Prazo</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
                   <div>
                     <Label>Prioridade</Label>
@@ -244,13 +259,27 @@ export default function Tasks() {
                 </div>
                 <div>
                   <Label>Meta vinculada</Label>
-                  <Select value={form.goal_id} onValueChange={(v) => setForm({ ...form, goal_id: v })}>
+                  <Select
+                    value={form.goal_id}
+                    onValueChange={(v) => {
+                      const linkedGoal = goals.find((g) => g.id === v);
+                      setForm({
+                        ...form,
+                        goal_id: v,
+                        blindspot_code: linkedGoal?.blindspot_code ?? form.blindspot_code,
+                        capacity_code: "",
+                      });
+                    }}
+                  >
                     <SelectTrigger><SelectValue placeholder="Opcional — meta do ciclo" /></SelectTrigger>
                     <SelectContent>
                       {goals.length === 0 && <SelectItem value="sem-meta" disabled>Nenhuma meta em aberto</SelectItem>}
                       {goals.map((g) => <SelectItem key={g.id} value={g.id}>{g.title}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  {form.goal_id && goalById(form.goal_id) && (
+                    <p className="mt-1 text-xs text-muted-foreground">A tarefa ficará vinculada à meta “{goalById(form.goal_id)?.title}”.</p>
+                  )}
                 </div>
                 <div>
                   <Label>BlindSpot</Label>

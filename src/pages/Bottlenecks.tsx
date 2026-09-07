@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
 import { useContract } from "@/hooks/useContract";
@@ -17,7 +18,7 @@ import { Slider } from "@/components/ui/slider";
 import { URGENCY_LABEL, formatBRL, PILLAR_LABEL } from "@/lib/labels";
 import { BLINDSPOTS, blindspotByCode } from "@/lib/see4x";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, CheckCircle2, Trash2, Loader2, Target, History, ArrowUpDown } from "lucide-react";
+import { Plus, CheckCircle2, Trash2, Loader2, Target, History, ArrowUpDown, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { showError } from "@/lib/feedback";
 import type { Tables } from "@/integrations/supabase/types";
@@ -32,7 +33,6 @@ const EMPTY = {
 
 const URGENCY_WEIGHT: Record<string, number> = { critica: 4, alta: 3, media: 2, baixa: 1 };
 
-/** Recomendação do Top 5: criticidade × impacto financeiro × urgência (pendência considerada). */
 function priorityScore(b: Bottleneck, maxValue: number) {
   const urgency = URGENCY_WEIGHT[b.urgency] ?? 1;
   const impact = maxValue > 0 ? Number(b.estimated_value || 0) / maxValue : 0;
@@ -40,18 +40,17 @@ function priorityScore(b: Bottleneck, maxValue: number) {
   return urgency * 25 + impact * 50 + pending * 25;
 }
 
-
 export default function Bottlenecks() {
   const { current } = useCompany();
   const { currentContract } = useContract();
   const { user, isConsultor } = useAuth();
   const qc = useQueryClient();
+  const nav = useNavigate();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const [rankTarget, setRankTarget] = useState<Bottleneck | null>(null);
   const [newRank, setNewRank] = useState("1");
   const [rankJustification, setRankJustification] = useState("");
-
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["bottlenecks", current?.id, currentContract?.id],
@@ -142,12 +141,8 @@ export default function Bottlenecks() {
       const position = Number(newRank);
       if (!position || position < 1 || position > 5) throw new Error("A posição deve estar entre 1 e 5");
       if (!rankJustification.trim()) throw new Error("Registre a justificativa da mudança");
-      const { error } = await supabase
-        .from("bottlenecks")
-        .update({ rank_position: position })
-        .eq("id", rankTarget.id);
+      const { error } = await supabase.from("bottlenecks").update({ rank_position: position }).eq("id", rankTarget.id);
       if (error) throw error;
-      // O histórico de posição é gravado automaticamente pelo banco; a justificativa entra na auditoria.
       await supabase.from("governance_log").insert({
         company_id: current.id,
         actor_id: user?.id ?? null,
@@ -189,7 +184,6 @@ export default function Bottlenecks() {
   const totalImpact = top5.reduce((s, i) => s + Number(i.estimated_value || 0), 0);
   const bottleneckName = (id: string) => items.find((i) => i.id === id)?.name ?? "Gargalo";
 
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -199,54 +193,63 @@ export default function Bottlenecks() {
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button className="bg-gradient-brand" disabled={!current}><Plus className="h-4 w-4 mr-1" /> Novo gargalo</Button></DialogTrigger>
             <DialogContent className="max-h-[85vh] overflow-y-auto">
-              <DialogHeader><DialogTitle>Registrar gargalo</DialogTitle></DialogHeader>
-              <div className="space-y-3">
-                <div>
-                  <Label>BlindSpot de origem</Label>
-                  <Select value={form.blindspot_code} onValueChange={pickBlindspot}>
-                    <SelectTrigger><SelectValue placeholder="Selecione o BlindSpot (opcional)" /></SelectTrigger>
-                    <SelectContent>
-                      {BLINDSPOTS.map((bs) => (
-                        <SelectItem key={bs.code} value={bs.code}>{bs.code} · {bs.title}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div><Label>Nome</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label>Área</Label><Input value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} placeholder="Comercial, Operação..." /></div>
+              <DialogHeader>
+                <DialogTitle>Registrar gargalo</DialogTitle>
+                <p className="text-sm text-muted-foreground">Registre primeiro o que está travando o resultado. Priorização e governança ficam nos detalhes avançados.</p>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-3 rounded-lg border border-border p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Essencial</p>
                   <div>
-                    <Label>Urgência</Label>
-                    <Select value={form.urgency} onValueChange={(v) => setForm({ ...form, urgency: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>{Object.entries(URGENCY_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}</SelectContent>
+                    <Label>BlindSpot de origem</Label>
+                    <Select value={form.blindspot_code} onValueChange={pickBlindspot}>
+                      <SelectTrigger><SelectValue placeholder="Selecione o BlindSpot (opcional)" /></SelectTrigger>
+                      <SelectContent>{BLINDSPOTS.map((bs) => <SelectItem key={bs.code} value={bs.code}>{bs.code} · {bs.title}</SelectItem>)}</SelectContent>
                     </Select>
+                    {form.blindspot_code && <p className="mt-1 text-xs text-muted-foreground">Nome, área e capacidade inicial são sugeridos automaticamente.</p>}
                   </div>
-                </div>
-                <div><Label>Impacto</Label><Textarea value={form.impact} onChange={(e) => setForm({ ...form, impact: e.target.value })} /></div>
-                <div><Label>Valor estimado (R$)</Label><Input type="number" value={form.estimated_value} onChange={(e) => setForm({ ...form, estimated_value: e.target.value })} /></div>
-                {form.blindspot_code && (
-                  <div>
-                    <Label>Capacidade estruturante</Label>
-                    <Select value={form.capacity_code} onValueChange={(v) => setForm({ ...form, capacity_code: v })}>
-                      <SelectTrigger><SelectValue placeholder="Escolha a capacidade" /></SelectTrigger>
-                      <SelectContent>
-                        {(blindspotByCode(form.blindspot_code)?.capacities ?? []).map((c) => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div><Label>Nome do gargalo</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ex.: Baixa previsibilidade comercial" /></div>
+                  <div><Label>Impacto no negócio</Label><Textarea value={form.impact} onChange={(e) => setForm({ ...form, impact: e.target.value })} rows={2} placeholder="O que este gargalo está causando hoje?" /></div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <Label>Urgência</Label>
+                      <Select value={form.urgency} onValueChange={(v) => setForm({ ...form, urgency: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>{Object.entries(URGENCY_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div><Label>Impacto financeiro estimado (R$)</Label><Input type="number" value={form.estimated_value} onChange={(e) => setForm({ ...form, estimated_value: e.target.value })} /></div>
                   </div>
-                )}
-                <div><Label>Causa raiz</Label><Textarea value={form.root_cause} onChange={(e) => setForm({ ...form, root_cause: e.target.value })} rows={2} placeholder="Por que o gargalo existe hoje?" /></div>
-                <div><Label>Resultado esperado</Label><Textarea value={form.expected_result} onChange={(e) => setForm({ ...form, expected_result: e.target.value })} rows={2} placeholder="O que muda quando estiver resolvido" /></div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label>Posição no Top 5</Label><Input type="number" min={1} max={5} value={form.rank_position} onChange={(e) => setForm({ ...form, rank_position: e.target.value })} placeholder="1 a 5" /></div>
-                  <div><Label>Prazo</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
+                  <div><Label>Causa raiz</Label><Textarea value={form.root_cause} onChange={(e) => setForm({ ...form, root_cause: e.target.value })} rows={2} placeholder="Por que o gargalo existe hoje?" /></div>
+                  <div><Label>Resultado esperado</Label><Textarea value={form.expected_result} onChange={(e) => setForm({ ...form, expected_result: e.target.value })} rows={2} placeholder="O que muda quando estiver resolvido?" /></div>
                 </div>
-                <div><Label>Plano de correção</Label><Textarea value={form.correction_plan} onChange={(e) => setForm({ ...form, correction_plan: e.target.value })} rows={3} /></div>
+
+                <details className="group rounded-lg border border-border bg-muted/20">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-sm font-semibold">
+                    <span className="flex items-center gap-2"><SlidersHorizontal className="h-4 w-4 text-gold" /> Detalhes avançados</span>
+                    <span className="text-xs font-normal text-muted-foreground group-open:hidden">Mostrar</span>
+                    <span className="hidden text-xs font-normal text-muted-foreground group-open:inline">Ocultar</span>
+                  </summary>
+                  <div className="space-y-3 border-t border-border p-4">
+                    <div><Label>Área</Label><Input value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} placeholder="Comercial, Operação..." /></div>
+                    {form.blindspot_code && (
+                      <div>
+                        <Label>Capacidade estruturante</Label>
+                        <Select value={form.capacity_code} onValueChange={(v) => setForm({ ...form, capacity_code: v })}>
+                          <SelectTrigger><SelectValue placeholder="Escolha a capacidade" /></SelectTrigger>
+                          <SelectContent>{(blindspotByCode(form.blindspot_code)?.capacities ?? []).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div><Label>Posição no Top 5</Label><Input aria-label="Posição no Top 5" type="number" min={1} max={5} value={form.rank_position} onChange={(e) => setForm({ ...form, rank_position: e.target.value })} placeholder="1 a 5" /></div>
+                      <div><Label>Prazo</Label><Input aria-label="Prazo do gargalo" type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
+                    </div>
+                    <div><Label>Plano de correção</Label><Textarea value={form.correction_plan} onChange={(e) => setForm({ ...form, correction_plan: e.target.value })} rows={3} placeholder="Ação estruturante prevista para remover o gargalo" /></div>
+                  </div>
+                </details>
               </div>
-              <DialogFooter><Button onClick={() => createMut.mutate()} disabled={!form.name || createMut.isPending}>Registrar</Button></DialogFooter>
+              <DialogFooter><Button onClick={() => createMut.mutate()} disabled={!form.name || createMut.isPending}>Registrar gargalo</Button></DialogFooter>
             </DialogContent>
           </Dialog>
         }
@@ -261,11 +264,7 @@ export default function Bottlenecks() {
       {isLoading && <Card className="p-12 text-center text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Carregando gargalos...</Card>}
 
       <div className="space-y-4">
-        {!isLoading && top5.length === 0 && (
-          <Card className="p-12 text-center text-muted-foreground">
-            Nenhum gargalo ativo. Gere o Top 5 a partir do Diagnóstico SEE_4X validado.
-          </Card>
-        )}
+        {!isLoading && top5.length === 0 && <Card className="p-12 text-center text-muted-foreground">Nenhum gargalo ativo. Gere o Top 5 a partir do Diagnóstico SEE_4X validado.</Card>}
         {top5.map((b, i) => {
           const u = URGENCY_LABEL[b.urgency];
           const bs = b.blindspot_code ? blindspotByCode(b.blindspot_code) : null;
@@ -273,9 +272,7 @@ export default function Bottlenecks() {
             <Card key={b.id} className="p-6 shadow-card hover:shadow-elegant transition-all">
               <div className="flex flex-col lg:flex-row gap-4">
                 <div className="flex items-start gap-4 flex-1 min-w-0">
-                  <div className="h-12 w-12 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0">
-                    <span className="font-black text-destructive">#{b.rank_position ?? i + 1}</span>
-                  </div>
+                  <div className="h-12 w-12 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0"><span className="font-black text-destructive">#{b.rank_position ?? i + 1}</span></div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-bold text-lg">{b.name}</h3>
@@ -284,82 +281,36 @@ export default function Bottlenecks() {
                       {bs && <Badge variant="outline" className="border-gold text-gold">{bs.code} · BlindSpot</Badge>}
                       {b.capacity_code && <Badge variant="outline">{b.capacity_code}</Badge>}
                       {b.due_date && <Badge variant="secondary">Prazo {new Date(b.due_date + "T00:00:00").toLocaleDateString("pt-BR")}</Badge>}
-                      {recommendedRank.get(b.id) !== (b.rank_position ?? i + 1) && (
-                        <Badge variant="outline" className="border-primary text-primary">
-                          Recomendado #{recommendedRank.get(b.id)}
-                        </Badge>
-                      )}
+                      {recommendedRank.get(b.id) !== (b.rank_position ?? i + 1) && <Badge variant="outline" className="border-primary text-primary">Recomendado #{recommendedRank.get(b.id)}</Badge>}
                     </div>
 
                     {b.impact && <p className="mt-2 text-sm text-muted-foreground">{b.impact}</p>}
                     {(b.root_cause || b.expected_result) && (
                       <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                        {b.root_cause && (
-                          <div className="p-3 rounded-lg bg-muted/30 border border-border">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Causa raiz</p>
-                            <p className="text-sm whitespace-pre-wrap">{b.root_cause}</p>
-                          </div>
-                        )}
-                        {b.expected_result && (
-                          <div className="p-3 rounded-lg bg-muted/30 border border-border">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Resultado esperado</p>
-                            <p className="text-sm whitespace-pre-wrap">{b.expected_result}</p>
-                          </div>
-                        )}
+                        {b.root_cause && <div className="p-3 rounded-lg bg-muted/30 border border-border"><p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Causa raiz</p><p className="text-sm whitespace-pre-wrap">{b.root_cause}</p></div>}
+                        {b.expected_result && <div className="p-3 rounded-lg bg-muted/30 border border-border"><p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Resultado esperado</p><p className="text-sm whitespace-pre-wrap">{b.expected_result}</p></div>}
                       </div>
                     )}
-                    {bs && (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {bs.capacities.map((c) => (
-                          <span key={c} className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-md bg-muted/50 border border-border">
-                            <Target className="h-3 w-3 text-primary" />{c}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {b.correction_plan && (
-                      <div className="mt-3 p-3 bg-muted/40 rounded-lg">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Plano de correção</p>
-                        <p className="text-sm whitespace-pre-wrap">{b.correction_plan}</p>
-                      </div>
-                    )}
-                    <div className="mt-3 flex items-center gap-4 text-sm">
-                      <span className="text-success font-semibold">{formatBRL(b.estimated_value)}</span>
-                      <span className="text-muted-foreground">·</span>
-                      <span className="text-muted-foreground">{b.progress}% resolvido</span>
-                    </div>
+                    {bs && <div className="mt-3 flex flex-wrap gap-2">{bs.capacities.map((c) => <span key={c} className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-md bg-muted/50 border border-border"><Target className="h-3 w-3 text-primary" />{c}</span>)}</div>}
+                    {b.correction_plan && <div className="mt-3 p-3 bg-muted/40 rounded-lg"><p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Plano de correção</p><p className="text-sm whitespace-pre-wrap">{b.correction_plan}</p></div>}
+                    <div className="mt-3 flex items-center gap-4 text-sm"><span className="text-success font-semibold">{formatBRL(b.estimated_value)}</span><span className="text-muted-foreground">·</span><span className="text-muted-foreground">{b.progress}% resolvido</span></div>
                   </div>
                 </div>
                 <div className="lg:w-72 space-y-3">
+                  <Button className="w-full" onClick={() => nav(`/metas?bottleneck=${b.id}`)}>
+                    <Target className="h-4 w-4 mr-1" /> Criar Meta para este Gargalo
+                  </Button>
                   <Progress value={b.progress} className="h-2" />
                   <Slider value={[b.progress]} max={100} step={5} onValueChange={(v) => progressMut.mutate({ id: b.id, progress: v[0] })} />
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => progressMut.mutate({ id: b.id, progress: 100 })} className="flex-1">
-                      <CheckCircle2 className="h-4 w-4 mr-1" /> Resolver
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => { if (confirm("Excluir gargalo?")) removeMut.mutate(b.id); }}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => progressMut.mutate({ id: b.id, progress: 100 })} className="flex-1"><CheckCircle2 className="h-4 w-4 mr-1" /> Resolver</Button>
+                    <Button size="sm" variant="ghost" onClick={() => { if (confirm("Excluir gargalo?")) removeMut.mutate(b.id); }} aria-label="Excluir gargalo"><Trash2 className="h-4 w-4 text-destructive" /></Button>
                   </div>
                   {isConsultor ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => {
-                        setRankTarget(b);
-                        setNewRank(String(b.rank_position ?? recommendedRank.get(b.id) ?? i + 1));
-                        setRankJustification("");
-                      }}
-                    >
+                    <Button size="sm" variant="outline" className="w-full" onClick={() => { setRankTarget(b); setNewRank(String(b.rank_position ?? recommendedRank.get(b.id) ?? i + 1)); setRankJustification(""); }}>
                       <ArrowUpDown className="h-4 w-4 mr-1" /> Alterar posição
                     </Button>
-                  ) : (
-                    <p className="text-[11px] text-muted-foreground text-center">
-                      Posição no Top 5 definida pelo Consultor 4X
-                    </p>
-                  )}
-
+                  ) : <p className="text-[11px] text-muted-foreground text-center">Posição no Top 5 definida pelo Consultor 4X</p>}
                 </div>
               </div>
             </Card>
@@ -368,24 +319,15 @@ export default function Bottlenecks() {
       </div>
 
       <Card className="p-6 shadow-card">
-        <div className="flex items-center gap-2 mb-4">
-          <History className="h-4 w-4 text-primary" />
-          <h3 className="font-bold">Histórico do Top 5</h3>
-        </div>
-        {history.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhuma mudança de posição registrada até agora.</p>
-        ) : (
+        <div className="flex items-center gap-2 mb-4"><History className="h-4 w-4 text-primary" /><h3 className="font-bold">Histórico do Top 5</h3></div>
+        {history.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma mudança de posição registrada até agora.</p> : (
           <div className="space-y-2">
             {history.map((h) => (
               <div key={h.id} className="flex flex-wrap items-center gap-2 text-sm p-3 rounded-lg bg-muted/30 border border-border">
                 <span className="font-semibold">{bottleneckName(h.bottleneck_id)}</span>
-                <Badge variant="outline">
-                  {h.previous_position ? `#${h.previous_position}` : "sem posição"} → {h.new_position ? `#${h.new_position}` : "sem posição"}
-                </Badge>
+                <Badge variant="outline">{h.previous_position ? `#${h.previous_position}` : "sem posição"} → {h.new_position ? `#${h.new_position}` : "sem posição"}</Badge>
                 {h.cycle && <Badge variant="secondary">{h.cycle.replace("ciclo_", "Ciclo ")}</Badge>}
-                <span className="text-muted-foreground ml-auto text-xs">
-                  {new Date(h.created_at).toLocaleString("pt-BR")}
-                </span>
+                <span className="text-muted-foreground ml-auto text-xs">{new Date(h.created_at).toLocaleString("pt-BR")}</span>
                 {h.justification && <p className="w-full text-xs text-muted-foreground">{h.justification}</p>}
               </div>
             ))}
@@ -398,28 +340,14 @@ export default function Bottlenecks() {
           <DialogHeader><DialogTitle>Alterar posição no Top 5</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">{rankTarget?.name}</p>
-            <div>
-              <Label>Nova posição (1 a 5)</Label>
-              <Input type="number" min={1} max={5} value={newRank} onChange={(e) => setNewRank(e.target.value)} />
-            </div>
-            <div>
-              <Label>Justificativa</Label>
-              <Textarea
-                rows={3}
-                value={rankJustification}
-                onChange={(e) => setRankJustification(e.target.value)}
-                placeholder="Por que este gargalo muda de prioridade neste ciclo?"
-              />
-            </div>
+            <div><Label>Nova posição (1 a 5)</Label><Input type="number" min={1} max={5} value={newRank} onChange={(e) => setNewRank(e.target.value)} /></div>
+            <div><Label>Justificativa</Label><Textarea rows={3} value={rankJustification} onChange={(e) => setRankJustification(e.target.value)} placeholder="Por que este gargalo muda de prioridade neste ciclo?" /></div>
           </div>
           <DialogFooter>
-            <Button onClick={() => rankMut.mutate()} disabled={rankMut.isPending}>
-              {rankMut.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Registrar mudança
-            </Button>
+            <Button onClick={() => rankMut.mutate()} disabled={rankMut.isPending}>{rankMut.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Registrar mudança</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-
   );
 }

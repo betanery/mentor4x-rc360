@@ -110,7 +110,7 @@ export default function StrategistArea() {
       </div>
 
       <Tabs defaultValue="carteira">
-        <TabsList>
+        <TabsList className="h-auto w-full flex flex-wrap justify-start gap-1">
           <TabsTrigger value="carteira">Carteira</TabsTrigger>
           <TabsTrigger value="risco">Metas em risco</TabsTrigger>
           <TabsTrigger value="tarefas">Ações abertas</TabsTrigger>
@@ -204,7 +204,7 @@ export default function StrategistArea() {
                   <h4 className="font-semibold flex items-center gap-2"><MessageSquare className="h-4 w-4 text-royal" /> {tpl.title}</h4>
                   <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap">{tpl.text}</p>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => copyTpl(tpl.text)}><Copy className="h-4 w-4" /></Button>
+                <Button size="sm" variant="outline" aria-label={`Copiar mensagem: ${tpl.title}`} onClick={() => copyTpl(tpl.text)}><Copy className="h-4 w-4" /></Button>
               </div>
             </Card>
           ))}

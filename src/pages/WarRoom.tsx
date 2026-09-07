@@ -333,7 +333,7 @@ export default function WarRoom() {
 
         <TabsContent value="semanal" className="space-y-4 mt-4">
           <div className="flex items-center gap-2 flex-wrap">
-            <Input type="date" value={weekStart} onChange={(e) => setWeekStart(e.target.value)} className="w-44" />
+            <Input type="date" aria-label="Semana da Sala de Guerra" value={weekStart} onChange={(e) => setWeekStart(e.target.value)} className="w-44" />
             <Button onClick={() => persistReview()} disabled={saving || isAtaLocked} className="bg-gradient-brand"><Save className="h-4 w-4 mr-1" /> Salvar</Button>
             <Badge className={ataBadge.className}>{ataBadge.label}</Badge>
             <p className="text-sm text-muted-foreground ml-2">Semana de {format(new Date(`${weekStart}T12:00:00`), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>

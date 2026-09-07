@@ -78,9 +78,9 @@ export default function MentorArea() {
         title="Área do Consultor 4X"
         subtitle="Agenda consolidada, decisões pendentes e carteira de Clientes 4X."
         action={
-          <Link to="/empresas">
-            <Button className="bg-gradient-brand"><Plus className="h-4 w-4 mr-1" /> Cadastrar empresa</Button>
-          </Link>
+          <Button asChild className="bg-gradient-brand">
+            <Link to="/empresas"><Plus className="h-4 w-4 mr-1" /> Cadastrar empresa</Link>
+          </Button>
         }
       />
 
@@ -129,13 +129,13 @@ export default function MentorArea() {
                       </p>
                     </div>
                     {m.meeting_url && (
-                      <a href={m.meeting_url} target="_blank" rel="noreferrer">
-                        <Button size="sm" variant="outline"><Video className="h-4 w-4 mr-1" /> Entrar</Button>
-                      </a>
+                      <Button asChild size="sm" variant="outline">
+                        <a href={m.meeting_url} target="_blank" rel="noreferrer"><Video className="h-4 w-4 mr-1" /> Entrar</a>
+                      </Button>
                     )}
-                    <Link to="/sala-guerra" onClick={() => setCurrentId(m.company_id)}>
-                      <Button size="sm" variant="ghost">Abrir empresa</Button>
-                    </Link>
+                    <Button asChild size="sm" variant="ghost">
+                      <Link to="/sala-guerra" onClick={() => setCurrentId(m.company_id)}>Abrir empresa</Link>
+                    </Button>
                   </div>
                 ))}
               </div>
