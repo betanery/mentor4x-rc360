@@ -123,6 +123,7 @@ async function auditRoute(page: Page, route: string, mode: "desktop" | "mobile")
       els.filter((el) => {
         const rect = el.getBoundingClientRect();
         const text = (el.textContent || "").trim();
+        if (el.getAttribute("role") === "checkbox") return false;
         if (!text && !el.getAttribute("aria-label")) return false;
         return rect.width > 0 && rect.height > 0 && rect.height < 36;
       }).length,

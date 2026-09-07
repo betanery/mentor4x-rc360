@@ -283,7 +283,7 @@ export default function SocioIA() {
                   <Textarea value={input} onChange={(e) => setInput(e.target.value)} placeholder="Pergunte ao seu sócio IA..."
                     className="resize-none min-h-[44px] max-h-32"
                     onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }} />
-                  <Button type="submit" disabled={loading || !input.trim()} className="bg-gradient-brand"><Send className="h-4 w-4" /></Button>
+                  <Button type="submit" aria-label="Enviar mensagem ao Sócio IA" disabled={loading || !input.trim()} className="bg-gradient-brand"><Send className="h-4 w-4" /></Button>
                 </form>
               </div>
             </Card>
