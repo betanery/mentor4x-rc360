@@ -20,19 +20,6 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (!id.includes("node_modules")) return undefined;
-          if (id.includes("react") || id.includes("react-dom") || id.includes("react-router")) return "vendor-react";
-          if (id.includes("@tanstack")) return "vendor-query";
-          if (id.includes("recharts") || id.includes("d3-")) return "vendor-charts";
-          if (id.includes("@supabase")) return "vendor-supabase";
-          if (id.includes("@radix-ui")) return "vendor-ui";
-          return "vendor-misc";
-        },
-      },
-    },
-  },
+  // Let Rollup derive shared chunks from the import graph. Manually grouping
+  // React-dependent libraries can create cycles that run before React initializes.
 }));
