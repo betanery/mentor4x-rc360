@@ -14,7 +14,7 @@ const labels: Record<Role, string> = {
 };
 
 const reservedRoutes = ["/estrategista", "/admin/usuarios", "/admin/produtos", "/empresas", "/admin/universidade"] as const;
-const commonRoutes = ["/", "/diagnostico", "/jornada", "/onboarding", "/metas", "/plano-acao", "/gargalos", "/pilares", "/sala-guerra", "/universidade", "/playbooks", "/socio-ia", "/relatorios", "/relatorio-see4x", "/certificados", "/notificacoes"];
+const commonRoutes = ["/", "/diagnostico", "/jornada", "/onboarding", "/metas", "/plano-acao", "/gargalos", "/pilares", "/sala-guerra", "/sala-guerra/agendar", "/universidade", "/playbooks", "/socio-ia", "/relatorios", "/relatorio-see4x", "/certificados", "/notificacoes"];
 
 const allowedReservedRoutes: Record<Role, readonly string[]> = {
   super_admin: reservedRoutes,
@@ -74,7 +74,7 @@ for (const role of Object.keys(labels) as Role[]) {
       await loginAs(page, role);
       for (const route of commonRoutes) {
         await page.goto(route);
-        await expect(page).toHaveURL(new RegExp(`${route === "/" ? "/$" : route.replace("/", "\\/")}$`));
+        await expect(page).toHaveURL(new RegExp(`${route === "/" ? "/$" : route.replaceAll("/", "\\/")}$`));
         await expect(page.locator("main")).toBeVisible();
       }
       expect(forbidden).toEqual([]);
@@ -87,7 +87,7 @@ for (const role of Object.keys(labels) as Role[]) {
       for (const route of reservedRoutes) {
         await page.goto(route);
         if (allowedReservedRoutes[role].includes(route)) {
-          await expect(page).toHaveURL(new RegExp(`${route.replace("/", "\\/")}$`));
+          await expect(page).toHaveURL(new RegExp(`${route.replaceAll("/", "\\/")}$`));
         } else {
           await expect(page).toHaveURL(/\/$/);
         }
