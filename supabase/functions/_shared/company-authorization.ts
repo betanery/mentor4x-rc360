@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 export type CompanyAuthorization = {
   allowed: boolean;
   is_super_admin: boolean;
@@ -13,7 +15,7 @@ export type CompanyAuthorization = {
   department_scopes: string[];
 };
 
-export async function getCompanyAuthorization(admin: any, userId: string, companyId: string): Promise<CompanyAuthorization> {
+export async function getCompanyAuthorization(admin: SupabaseClient, userId: string, companyId: string): Promise<CompanyAuthorization> {
   const { data, error } = await admin.rpc("actor_company_permissions", {
     _user_id: userId,
     _company_id: companyId,
@@ -45,18 +47,19 @@ export function pillarFromBlindspot(code?: string | null): string | null {
   return null;
 }
 
-export function rowInScope(auth: CompanyAuthorization, row: any): boolean {
+export function rowInScope(auth: CompanyAuthorization, row: Record<string, unknown>): boolean {
   if (auth.full_scope || !auth.is_leader) return true;
-  const pillar = row?.pillar ?? pillarFromBlindspot(row?.blindspot_code);
+  const blindspotCode = typeof row?.blindspot_code === "string" ? row.blindspot_code : null;
+  const pillar = row?.pillar ?? pillarFromBlindspot(blindspotCode);
   const department = row?.department ?? row?.area_code ?? row?.area ?? null;
   if (pillar && auth.pillar_scopes.includes(String(pillar))) return true;
   if (department && auth.department_scopes.includes(String(department))) return true;
   return false;
 }
 
-export function redactCommercial<T extends Record<string, any>>(auth: CompanyAuthorization, row: T, fields: string[]): T {
+export function redactCommercial<T extends Record<string, unknown>>(auth: CompanyAuthorization, row: T, fields: string[]): T {
   if (auth.can_view_commercial) return row;
-  const copy: Record<string, any> = { ...row };
+  const copy: Record<string, unknown> = { ...row };
   for (const field of fields) delete copy[field];
   return copy as T;
 }

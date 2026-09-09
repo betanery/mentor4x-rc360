@@ -9,6 +9,13 @@ const corsHeaders = {
 const STAFF_ROLES = ["super_admin","mentor","estrategista"];
 const INVITE_TTL_HOURS = 24;
 
+type Company = { id: string; name: string };
+type Profile = { user_id: string; full_name: string | null; avatar_url: string | null; job_title: string | null; phone: string | null };
+type MemberRow = { user_id: string; company_id: string; member_role: string; is_primary: boolean | null };
+type AccessRow = { user_id: string; company_id: string; access_role: string; is_primary_responsible: boolean | null; status: string };
+type MemberEntry = { company_id: string; member_role: string; is_primary?: boolean | null; company?: Company | null };
+type AuthUser = { id: string; email?: string | null; email_confirmed_at?: string | null; invited_at?: string | null; last_sign_in_at?: string | null };
+
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
@@ -23,7 +30,7 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: "unauthenticated" }, 401);
 
     const { data: callerRoles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
-    const roleList = (callerRoles || []).map((r: any) => r.role);
+    const roleList = (callerRoles || []).map((r: { role: string }) => r.role);
     const isStaff = roleList.some((r: string) => STAFF_ROLES.includes(r));
     if (!isStaff) return json({ error: "forbidden" }, 403);
 
@@ -37,8 +44,8 @@ Deno.serve(async (req) => {
         supabase.from("company_access").select("company_id").eq("user_id", user.id).eq("status", "ativo"),
       ]);
       scopedCompanyIds = [...new Set([
-        ...(memberships || []).map((m: any) => m.company_id),
-        ...(accesses || []).map((a: any) => a.company_id),
+        ...(memberships || []).map((m: { company_id: string }) => m.company_id),
+        ...(accesses || []).map((a: { company_id: string }) => a.company_id),
       ])];
     }
 
@@ -66,23 +73,23 @@ Deno.serve(async (req) => {
     if (authList.error) return json({ error: authList.error.message }, 500);
 
     const now = Date.now();
-    const companyMap = new Map((companies.data || []).map((c: any) => [c.id, c]));
-    const profileMap = new Map((profiles.data || []).map((p: any) => [p.user_id, p]));
+    const companyMap = new Map((companies.data || []).map((c: Company) => [c.id, c]));
+    const profileMap = new Map((profiles.data || []).map((p: Profile) => [p.user_id, p]));
     const rolesMap = new Map<string, string[]>();
-    (roles.data || []).forEach((r: any) => {
+    (roles.data || []).forEach((r: { user_id: string; role: string }) => {
       const arr = rolesMap.get(r.user_id) || [];
       arr.push(r.role);
       rolesMap.set(r.user_id, arr);
     });
 
-    const membersMap = new Map<string, any[]>();
-    (members.data || []).forEach((m: any) => {
+    const membersMap = new Map<string, MemberEntry[]>();
+    (members.data || []).forEach((m: MemberRow) => {
       if (scopedCompanyIds && !scopedCompanyIds.includes(m.company_id)) return;
       const arr = membersMap.get(m.user_id) || [];
       arr.push({ ...m, company: companyMap.get(m.company_id) });
       membersMap.set(m.user_id, arr);
     });
-    (accesses.data || []).forEach((a: any) => {
+    (accesses.data || []).forEach((a: AccessRow) => {
       if (scopedCompanyIds && !scopedCompanyIds.includes(a.company_id)) return;
       const arr = membersMap.get(a.user_id) || [];
       if (!arr.some((m) => m.company_id === a.company_id && m.member_role === a.access_role)) {
@@ -94,7 +101,7 @@ Deno.serve(async (req) => {
       rolesMap.set(a.user_id, userRoles);
     });
 
-    const users = (authList.data?.users || []).map((u: any) => {
+    const users = ((authList.data?.users || []) as AuthUser[]).map((u) => {
       const confirmed = !!u.email_confirmed_at;
       const invitedAt = u.invited_at ? new Date(u.invited_at).getTime() : null;
       const lastSignIn = u.last_sign_in_at ? new Date(u.last_sign_in_at).getTime() : null;
@@ -117,9 +124,9 @@ Deno.serve(async (req) => {
     });
 
     const scopedUsers = scopedCompanyIds
-      ? users.filter((u: any) =>
+      ? users.filter((u) =>
           u.id === user.id ||
-          (u.memberships || []).some((m: any) => scopedCompanyIds!.includes(m.company_id)))
+          (u.memberships || []).some((m) => scopedCompanyIds!.includes(m.company_id)))
       : users;
 
     return json({

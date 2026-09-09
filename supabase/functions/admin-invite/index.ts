@@ -46,9 +46,9 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   let callerId: string | null = null;
-  let auditPayload: any = null;
+  let auditPayload: { email: string; full_name: string; role: string; company_id: string | null } | null = null;
 
-  const writeAudit = async (status: string, extra: Record<string, any> = {}) => {
+  const writeAudit = async (status: string, extra: Record<string, unknown> = {}) => {
     if (!auditPayload) return;
     try {
       await supabase.from("invite_audit").insert({ ...auditPayload, status, invited_by: callerId, ...extra });
@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
     callerId = user.id;
 
     const { data: callerRoles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
-    const callerRoleList = (callerRoles || []).map((r: any) => r.role);
+    const callerRoleList = (callerRoles || []).map((r: { role: string }) => r.role);
     const isStaff = callerRoleList.some((r) => STAFF_ROLES.includes(r));
     if (!isStaff) return json({ error: "Acesso negado: apenas equipe interna pode convidar usuários" }, 403);
     const isSuperAdmin = callerRoleList.includes("super_admin");
@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
     const redirectTo = safeRedirectTo(req);
 
     const { data: existingUserList } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    const existingUser = existingUserList?.users?.find((u: any) => u.email?.toLowerCase() === email);
+    const existingUser = existingUserList?.users?.find((u: { email?: string | null }) => u.email?.toLowerCase() === email);
 
     if (existingUser && !resend) {
       await writeAudit("falhou", { error_message: "Email já cadastrado", invited_user_id: existingUser.id });
