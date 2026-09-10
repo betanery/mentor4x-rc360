@@ -109,7 +109,11 @@ Deno.serve(async (req) => {
         invite_expired: "Este link expirou. Peça um novo link ao seu Consultor 4X.",
         collection_closed: "A coleta deste diagnóstico já foi encerrada.",
       };
-      return json({ error: loaded.error, message: map[loaded.error] }, 410);
+      const code = String(loaded.error);
+      return json(
+        { error: code, message: map[code] ?? "Não foi possível abrir este link. Peça um novo link ao seu Consultor 4X." },
+        410,
+      );
     }
     const { invite, company_name } = loaded;
 
