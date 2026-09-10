@@ -31,6 +31,9 @@ jobs:
       - name: Outlook gateway contract tests
         run: npm run test:backend
 
+      - name: Validate production connection
+        run: npm run validate:production-config
+
       - name: Build
         run: npm run build
 
