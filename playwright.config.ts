@@ -20,8 +20,6 @@ export default defineConfig({
     env: {
       ...process.env,
       VITE_E2E_MODE: "true",
-      VITE_SUPABASE_URL: "http://127.0.0.1:54321",
-      VITE_SUPABASE_PUBLISHABLE_KEY: "mentor4x-e2e-anon-key",
     },
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],

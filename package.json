@@ -8,8 +8,9 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run validate:production-config && vite build",
     "build:dev": "vite build --mode development",
+    "validate:production-config": "node scripts/validate-production-config.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
