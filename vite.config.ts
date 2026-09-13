@@ -10,26 +10,26 @@ export default defineConfig(({ mode }) => {
   const backend = resolvePublicBackend(process.env);
 
   return {
-  server: {
-    host: "::",
-    port: 8080,
-    hmr: {
-      overlay: false,
+    server: {
+      host: "::",
+      port: 8080,
+      hmr: {
+        overlay: false,
+      },
     },
-  },
-  plugins: [react(), mcpPlugin(), mode === "development" && componentTagger()].filter(Boolean),
-  define: {
-    "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(backend.url),
-    "import.meta.env.VITE_SUPABASE_PROJECT_ID": JSON.stringify(backend.projectId),
-    "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(backend.publishableKey),
-  },
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+    plugins: [react(), mcpPlugin(), mode === "development" && componentTagger()].filter(Boolean),
+    define: {
+      "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(backend.url),
+      "import.meta.env.VITE_SUPABASE_PROJECT_ID": JSON.stringify(backend.projectId),
+      "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(backend.publishableKey),
     },
-    dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
-  },
-  // Let Rollup derive shared chunks from the import graph. Manually grouping
-  // React-dependent libraries can create cycles that run before React initializes.
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+      },
+      dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
+    },
+    // Let Rollup derive shared chunks from the import graph. Manually grouping
+    // React-dependent libraries can create cycles that run before React initializes.
   };
 });
