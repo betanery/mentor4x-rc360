@@ -427,6 +427,63 @@ export type Database = {
           },
         ]
       }
+      calendar_booking_hosts: {
+        Row: {
+          active: boolean
+          allow_client_booking: boolean
+          booking_window_days: number
+          buffer_min: number
+          created_at: string
+          display_name: string
+          graph_timezone: string
+          id: string
+          microsoft_email: string
+          minimum_notice_hours: number
+          slot_duration_min: number
+          timezone: string
+          updated_at: string
+          user_id: string
+          workday_end: string
+          workday_start: string
+        }
+        Insert: {
+          active?: boolean
+          allow_client_booking?: boolean
+          booking_window_days?: number
+          buffer_min?: number
+          created_at?: string
+          display_name: string
+          graph_timezone?: string
+          id?: string
+          microsoft_email: string
+          minimum_notice_hours?: number
+          slot_duration_min?: number
+          timezone?: string
+          updated_at?: string
+          user_id: string
+          workday_end?: string
+          workday_start?: string
+        }
+        Update: {
+          active?: boolean
+          allow_client_booking?: boolean
+          booking_window_days?: number
+          buffer_min?: number
+          created_at?: string
+          display_name?: string
+          graph_timezone?: string
+          id?: string
+          microsoft_email?: string
+          minimum_notice_hours?: number
+          slot_duration_min?: number
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+          workday_end?: string
+          workday_start?: string
+        }
+        Relationships: []
+      }
       certificates: {
         Row: {
           code: string | null
@@ -1840,11 +1897,19 @@ export type Database = {
       meetings: {
         Row: {
           agenda: string | null
+          attendee_emails: string[]
+          booked_by_user_id: string | null
+          calendar_host_email: string | null
+          calendar_host_user_id: string | null
+          calendar_provider: string
+          calendar_sync_error: string | null
+          calendar_sync_status: string
           company_id: string
           contract_id: string | null
           created_at: string
           created_by: string | null
           duration_min: number | null
+          external_event_id: string | null
           id: string
           location: string | null
           meeting_type: Database["public"]["Enums"]["meeting_type"]
@@ -1857,16 +1922,25 @@ export type Database = {
           scheduled_at: string
           series_id: string | null
           status: string
+          teams_join_url: string | null
           title: string
           updated_at: string
         }
         Insert: {
           agenda?: string | null
+          attendee_emails?: string[]
+          booked_by_user_id?: string | null
+          calendar_host_email?: string | null
+          calendar_host_user_id?: string | null
+          calendar_provider?: string
+          calendar_sync_error?: string | null
+          calendar_sync_status?: string
           company_id: string
           contract_id?: string | null
           created_at?: string
           created_by?: string | null
           duration_min?: number | null
+          external_event_id?: string | null
           id?: string
           location?: string | null
           meeting_type?: Database["public"]["Enums"]["meeting_type"]
@@ -1879,16 +1953,25 @@ export type Database = {
           scheduled_at: string
           series_id?: string | null
           status?: string
+          teams_join_url?: string | null
           title: string
           updated_at?: string
         }
         Update: {
           agenda?: string | null
+          attendee_emails?: string[]
+          booked_by_user_id?: string | null
+          calendar_host_email?: string | null
+          calendar_host_user_id?: string | null
+          calendar_provider?: string
+          calendar_sync_error?: string | null
+          calendar_sync_status?: string
           company_id?: string
           contract_id?: string | null
           created_at?: string
           created_by?: string | null
           duration_min?: number | null
+          external_event_id?: string | null
           id?: string
           location?: string | null
           meeting_type?: Database["public"]["Enums"]["meeting_type"]
@@ -1901,6 +1984,7 @@ export type Database = {
           scheduled_at?: string
           series_id?: string | null
           status?: string
+          teams_join_url?: string | null
           title?: string
           updated_at?: string
         }
